@@ -1,0 +1,26 @@
+{
+  "name": "alexdesignworks/behat-phpserver",
+  "description": "Drupal extension for Behat",
+  "keywords": [
+    "behat",
+    "server"
+  ],
+  "homepage": "https://github.com/alexdesignworks/behat-phpserver",
+  "license": "GPL-2.0+",
+  "authors": [
+    {
+      "name": "Alex Skrypnyk",
+      "email": "alex.designworks@gmail.com"
+    }
+  ],
+  "support": {
+    "issues": "https://github.com/alexdesignworks/behat-phpserver/issues",
+    "source": "https://github.com/alexdesignworks/behat-phpserver"
+  },
+  "require": {
+    "php": ">=5.4",
+    "behat/mink": "^1.7",
+    "behat/mink-goutte-driver": "^1.2",
+    "behat/mink-extension": "^2.2"
+  }
+}
