@@ -69,8 +69,6 @@ class PhpServerContext extends MinkContext implements Context
      * @param BeforeScenarioScope $scope Scenario scope.
      *
      * @beforeScenario @phpserver
-     *
-     * @return null
      */
     public function beforeScenarioStartPhpServer(BeforeScenarioScope $scope)
     {
@@ -87,8 +85,6 @@ class PhpServerContext extends MinkContext implements Context
      * @param AfterScenarioScope $scope Scenario scope.
      *
      * @afterScenario @phpserver
-     *
-     * @return null
      */
     public function afterScenarioStopPhpServer(AfterScenarioScope $scope)
     {

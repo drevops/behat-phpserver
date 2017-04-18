@@ -37,19 +37,21 @@
       <exclude name="Generic.Commenting.Todo.CommentFound"/>
     </rule>
 
-    <!-- The following sniffs are disabled because Coder is not compliant yet, see
-      https://www.drupal.org/node/2734539 -->
-    <rule ref="PEAR.Commenting.FunctionComment.MissingParamComment">
-      <exclude-pattern>*/DrupalPractice/Sniffs/CodeAnalysis/VariableAnalysisSniff.php</exclude-pattern>
+    <rule ref="PEAR.Commenting.FunctionComment">
+      <exclude name="PEAR.Commenting.FunctionComment.MissingReturn"/>
     </rule>
 
     <rule ref="Squiz.PHP.DisallowInlineIf">
-        <exclude name="Squiz.PHP.DisallowInlineIf.Found"/>
+      <exclude name="Squiz.PHP.DisallowInlineIf.Found"/>
     </rule>
 
     <rule ref="Squiz.Operators.ComparisonOperatorUsage">
-        <exclude name="Squiz.Operators.ComparisonOperatorUsage.ImplicitTrue"/>
-        <exclude name="Squiz.Operators.ComparisonOperatorUsage.NotAllowed"/>
+      <exclude name="Squiz.Operators.ComparisonOperatorUsage.ImplicitTrue"/>
+      <exclude name="Squiz.Operators.ComparisonOperatorUsage.NotAllowed"/>
+    </rule>
+
+    <rule ref="Squiz.Commenting.EmptyCatchComment">
+      <exclude name="Squiz.Commenting.EmptyCatchComment.Missing"/>
     </rule>
 
 </ruleset>
