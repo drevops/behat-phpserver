@@ -5,27 +5,13 @@
  * Feature context Behat testing.
  */
 
-require_once "PhpServerTrait.php";
-
 use Behat\Behat\Context\Context;
-use Behat\MinkExtension\Context\MinkContext;
+use \Behat\MinkExtension\Context\RawMinkContext;
 
 /**
  * Defines application features from the specific context.
  */
-class FeatureContext extends MinkContext implements Context {
-
-  use PhpServerTrait {
-    PhpServerTrait::__construct as private __phpServerConstruct;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function __construct() {
-    $fixtures_dir = dirname(__FILE__) . '/../fixtures';
-    $this->__phpServerConstruct($fixtures_dir);
-  }
+class FeatureContext extends RawMinkContext implements Context {
 
   /**
    * Go to the phpserver test page.
