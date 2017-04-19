@@ -2,6 +2,9 @@ default:
   suites:
     default:
       contexts:
+        - IntegratedExperts\BehatPhpServer\PhpServerContext:
+          -
+            docroot: %paths.base%/features/fixtures
         - FeatureContext
   extensions:
     Behat\MinkExtension:
