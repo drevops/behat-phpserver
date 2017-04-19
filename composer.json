@@ -1,11 +1,11 @@
 {
-  "name": "alexdesignworks/behat-phpserver",
-  "description": "Drupal extension for Behat",
+  "name": "integratedexperts/behat-phpserver",
+  "description": "Behat Context to enable PHP server for tests",
   "keywords": [
     "behat",
     "server"
   ],
-  "homepage": "https://github.com/alexdesignworks/behat-phpserver",
+  "homepage": "https://github.com/integratedexperts/behat-phpserver",
   "license": "GPL-2.0+",
   "authors": [
     {
@@ -18,8 +18,8 @@
     }
   ],
   "support": {
-    "issues": "https://github.com/alexdesignworks/behat-phpserver/issues",
-    "source": "https://github.com/alexdesignworks/behat-phpserver"
+    "issues": "https://github.com/integratedexperts/behat-phpserver/issues",
+    "source": "https://github.com/integratedexperts/behat-phpserver"
   },
   "require": {
     "php": ">=5.4",
