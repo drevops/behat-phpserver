@@ -7,7 +7,6 @@
   <file>src/</file>
   <file>tests/</file>
 
-  <!-- The following sniffs are disabled because we don't want them -->
   <rule ref="PEAR.Commenting.FileComment">
     <exclude name="PEAR.Commenting.FileComment.MissingAuthorTag"/>
     <exclude name="PEAR.Commenting.FileComment.MissingLicenseTag"/>
