@@ -5,8 +5,6 @@ default:
         - IntegratedExperts\BehatPhpServer\PhpServerContext:
           -
             docroot: %paths.base%/features/fixtures
-            host: localhost
-            port: 8888
         - FeatureContext
   extensions:
     Behat\MinkExtension:

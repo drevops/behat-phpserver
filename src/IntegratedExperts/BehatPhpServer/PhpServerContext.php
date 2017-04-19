@@ -1,23 +1,21 @@
 <?php
 
 /**
- * This file is part of the IntegratedExperts Behat tests.
- *
- * @file Context PhpServer for Behat.
+ * @file
+ * Behat context to enable PHPServer support in tests.
  */
 
 namespace IntegratedExperts\BehatPhpServer;
 
 use Behat\Behat\Context\Context;
-use Behat\MinkExtension\Context\MinkContext;
 use Behat\Behat\Hook\Scope\AfterScenarioScope;
 use Behat\Behat\Hook\Scope\BeforeScenarioScope;
 use Symfony\Component\Console\Exception\RuntimeException;
 
 /**
- * Class PhpServerTrait.
+ * Class PhpServerContext.
  */
-class PhpServerContext extends MinkContext implements Context
+class PhpServerContext implements Context
 {
 
     /**
@@ -57,10 +55,9 @@ class PhpServerContext extends MinkContext implements Context
     public function __construct($parameters = [])
     {
         $this->docroot = isset($parameters['docroot']) ? $parameters['docroot'] : __DIR__.'/fixtures';
-        $this->host    = isset($parameters['host']) ? $parameters['host'] : 'localhost';
-        $this->port    = isset($parameters['port']) ? $parameters['port'] : '8888';
-
-    }//end __construct()
+        $this->host = isset($parameters['host']) ? $parameters['host'] : 'localhost';
+        $this->port = isset($parameters['port']) ? $parameters['port'] : '8888';
+    }
 
 
     /**
@@ -73,10 +70,9 @@ class PhpServerContext extends MinkContext implements Context
     public function beforeScenarioStartPhpServer(BeforeScenarioScope $scope)
     {
         if ($scope->getScenario()->hasTag('phpserver')) {
-            $this->phpServerStart();
+            $this->start();
         }
-
-    }//end beforeScenarioStartPhpServer()
+    }
 
 
     /**
@@ -89,10 +85,9 @@ class PhpServerContext extends MinkContext implements Context
     public function afterScenarioStopPhpServer(AfterScenarioScope $scope)
     {
         if ($scope->getScenario()->hasTag('phpserver')) {
-            $this->phpServerStop();
+            $this->stop();
         }
-
-    }//end afterScenarioStopPhpServer()
+    }
 
 
     /**
@@ -104,14 +99,14 @@ class PhpServerContext extends MinkContext implements Context
      * @return int
      *   PID as number.
      */
-    protected function phpServerStart()
+    protected function start()
     {
         // If the server already running on this port, stop it.
         // This is a much simpler way of handling previously started servers than
         // having a server manager that would track each instance.
-        if ($this->phpServerIsRunning(false)) {
-            $pid = $this->phpServerGetPid($this->port);
-            $this->phpServerTerminateProcess($pid);
+        if ($this->isRunning(false)) {
+            $pid = $this->getPid($this->port);
+            $this->terminateProcess($pid);
         }
 
         $command = sprintf(
@@ -122,19 +117,18 @@ class PhpServerContext extends MinkContext implements Context
         );
 
         $output = [];
-        $code   = 0;
+        $code = 0;
         exec($command, $output, $code);
         if ($code === 0) {
             $this->pid = $output[0];
         }
 
-        if (!$this->pid || !$this->phpServerIsRunning()) {
+        if (!$this->pid || !$this->isRunning()) {
             throw new \RuntimeException('Unable to start PHP server');
         }
 
         return $this->pid;
-
-    }//end phpServerStart()
+    }
 
 
     /**
@@ -143,15 +137,14 @@ class PhpServerContext extends MinkContext implements Context
      * @return bool
      *   TRUE if server process was stopped, FALSE otherwise.
      */
-    public function phpServerStop()
+    protected function stop()
     {
-        if (!$this->phpServerIsRunning(false)) {
+        if (!$this->isRunning(false)) {
             return true;
         }
 
-        return $this->phpServerTerminateProcess($this->pid);
-
-    }//end phpServerStop()
+        return $this->terminateProcess($this->pid);
+    }
 
 
     /**
@@ -159,21 +152,21 @@ class PhpServerContext extends MinkContext implements Context
      *
      * @param int $timeout Retry timeout in seconds.
      * @param int $delay   Delay between retries in microseconds.
-     *      Default to 0.5 of the second.
+     *                     Default to 0.5 of the second.
      *
      * @return bool
      *   TRUE if the server is running, FALSE otherwise.
      */
-    public function phpServerIsRunning($timeout = 1, $delay = 500000)
+    protected function isRunning($timeout = 1, $delay = 500000)
     {
         if ($timeout === false) {
-            return $this->phpServerCanConnect();
+            return $this->canConnect();
         }
 
         $start = microtime(true);
 
         while ((microtime(true) - $start) <= $timeout) {
-            if ($this->phpServerCanConnect()) {
+            if ($this->canConnect()) {
                 return true;
             }
 
@@ -181,8 +174,7 @@ class PhpServerContext extends MinkContext implements Context
         }
 
         return false;
-
-    }//end phpServerIsRunning()
+    }
 
 
     /**
@@ -192,7 +184,7 @@ class PhpServerContext extends MinkContext implements Context
      *   TRUE if server is running and it is possible to connect to it via socket,
      *   FALSE otherwise.
      */
-    protected function phpServerCanConnect()
+    protected function canConnect()
     {
         set_error_handler(
             function () {
@@ -211,8 +203,7 @@ class PhpServerContext extends MinkContext implements Context
         fclose($sp);
 
         return true;
-
-    }//end phpServerCanConnect()
+    }
 
 
     /**
@@ -223,7 +214,7 @@ class PhpServerContext extends MinkContext implements Context
      * @return int
      *   TRUE if the process was successfully terminated, FALSE otherwise.
      */
-    protected function phpServerTerminateProcess($pid)
+    protected function terminateProcess($pid)
     {
         // If pid was not provided, do not allow to terminate current process.
         if (!$pid) {
@@ -231,12 +222,11 @@ class PhpServerContext extends MinkContext implements Context
         }
 
         $output = [];
-        $code   = 0;
+        $code = 0;
         exec('kill '.(int) $pid, $output, $code);
 
         return $code === 0;
-
-    }//end phpServerTerminateProcess()
+    }
 
 
     /**
@@ -250,7 +240,7 @@ class PhpServerContext extends MinkContext implements Context
      * @return int
      *   PID as number.
      */
-    protected function phpServerGetPid($port)
+    protected function getPid($port)
     {
         $pid = 0;
 
@@ -274,8 +264,5 @@ class PhpServerContext extends MinkContext implements Context
         }
 
         return (int) $pid;
-
-    }//end phpServerGetPid()
-
-
-}//end class
+    }
+}
