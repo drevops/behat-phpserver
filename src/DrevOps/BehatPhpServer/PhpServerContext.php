@@ -5,7 +5,7 @@
  * Behat context to enable PHPServer support in tests.
  */
 
-namespace IntegratedExperts\BehatPhpServer;
+namespace DrevOps\BehatPhpServer;
 
 use Behat\Behat\Context\Context;
 use Behat\Behat\Hook\Scope\AfterScenarioScope;
@@ -256,9 +256,9 @@ class PhpServerContext implements Context
 
         $parts = explode(' ', preg_replace('/\s+/', ' ', $output[0]));
 
-        if (isset($parts[8]) && $parts[8] != '-') {
+        if (isset($parts[8]) && $parts[8] !== '-') {
             list($pid, $name) = explode('/', $parts[8]);
-            if ($name != 'php') {
+            if ($name !== 'php') {
                 $pid = 0;
             }
         }

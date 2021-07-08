@@ -2,13 +2,21 @@
 <ruleset name="behat-phpserver">
   <description>The coding standard for behat-phpserver.</description>
 
-  <rule ref="Symfony2" />
+  <rule ref="Symfony" />
 
   <file>src/</file>
   <file>tests/</file>
 
   <rule ref="PSR1.Classes.ClassDeclaration.MissingNamespace">
     <exclude-pattern>./tests/*</exclude-pattern>
+  </rule>
+
+  <rule ref="Symfony.ControlStructure.YodaConditions.Invalid">
+    <exclude-pattern>*</exclude-pattern>
+  </rule>
+
+  <rule ref="Symfony.Commenting.Annotations.Invalid">
+    <exclude-pattern>*</exclude-pattern>
   </rule>
 
 </ruleset>

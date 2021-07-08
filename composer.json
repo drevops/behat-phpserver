@@ -1,12 +1,12 @@
 {
-  "name": "integratedexperts/behat-phpserver",
+  "name": "drevops/behat-phpserver",
   "description": "Behat Context to enable PHP server for tests",
   "keywords": [
     "behat",
     "server"
   ],
-  "homepage": "https://github.com/integratedexperts/behat-phpserver",
-  "license": "GPL-2.0+",
+  "homepage": "https://github.com/drevops/behat-phpserver",
+  "license": "GPL-2.0-or-later",
   "authors": [
     {
       "name": "Alex Skrypnyk",
@@ -18,28 +18,30 @@
     }
   ],
   "support": {
-    "issues": "https://github.com/integratedexperts/behat-phpserver/issues",
-    "source": "https://github.com/integratedexperts/behat-phpserver"
+    "issues": "https://github.com/drevops/behat-phpserver/issues",
+    "source": "https://github.com/drevops/behat-phpserver"
   },
   "require": {
     "php": ">=5.4",
-    "behat/behat": ">=3.3.1",
+    "behat/behat": "^3.7",
     "behat/mink-goutte-driver": "^1.2",
     "behat/mink-extension": "^2.2"
   },
   "require-dev": {
-    "behat/mink": "^1.7",
-    "squizlabs/php_codesniffer": "2.*",
-    "escapestudios/symfony2-coding-standard": "~2.0"
+    "dealerdirect/phpcodesniffer-composer-installer": "^0.7",
+    "squizlabs/php_codesniffer": "3.*",
+    "escapestudios/symfony2-coding-standard": "~3.0"
+  },
+  "replace": {
+    "integratedexperts/behat-phpserver": "self.version"
   },
   "autoload": {
     "psr-0": {
-      "IntegratedExperts\\BehatPhpServer": "src/"
+      "DrevOps\\BehatPhpServer": "src/"
     }
   },
   "scripts": {
-    "cs": "./vendor/bin/phpcs --runtime-set installed_paths $(pwd)/vendor/escapestudios/symfony2-coding-standard --colors -s -p",
-    "cbf": "./vendor/bin/phpcbf --runtime-set installed_paths $(pwd)/vendor/escapestudios/symfony2-coding-standard --colors",
-    "test": "cd ./tests/behat/ && ../../vendor/bin/behat --colors --format=progress"
+    "cs": "./vendor/bin/phpcs --colors -s -p",
+    "test": "cd ./tests/behat/ && ../../vendor/bin/behat --colors"
   }
 }
