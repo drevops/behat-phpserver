@@ -55,6 +55,9 @@ class PhpServerContext implements Context
     public function __construct($parameters = [])
     {
         $this->docroot = isset($parameters['docroot']) ? $parameters['docroot'] : __DIR__.'/fixtures';
+        if (!file_exists($this->docroot)) {
+            throw new \RuntimeException(sprintf('"docroot" directory %s does not exist', $this->docroot));
+        }
         $this->host = isset($parameters['host']) ? $parameters['host'] : 'localhost';
         $this->port = isset($parameters['port']) ? $parameters['port'] : '8888';
     }
@@ -93,11 +96,11 @@ class PhpServerContext implements Context
     /**
      * Start a server.
      *
+     * @return int
+     *   PID as number.
      * @throws RuntimeException
      *   If unable to start a server.
      *
-     * @return int
-     *   PID as number.
      */
     protected function start()
     {
@@ -181,8 +184,8 @@ class PhpServerContext implements Context
      * Check if it is possible to connect to a server.
      *
      * @return bool
-     *   TRUE if server is running and it is possible to connect to it via socket,
-     *   FALSE otherwise.
+     *   TRUE if server is running and it is possible to connect to it via
+     *   socket, FALSE otherwise.
      */
     protected function canConnect()
     {
