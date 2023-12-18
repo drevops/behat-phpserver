@@ -3,14 +3,11 @@ version: 2.1
 jobs:
   build:
     docker:
-      - image: circleci/php
+      - image: cimg/php:8.2.0
     steps:
       - checkout
-      - run: composer validate
       - run: composer install
-      # Lint code.
       - run: composer lint
-      # Run tests.
       - run: composer test
 
 workflows:
