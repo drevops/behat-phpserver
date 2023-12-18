@@ -12,7 +12,7 @@ jobs:
       - run: composer validate
       - run: composer install
       # Lint code.
-      - run: composer cs
+      - run: composer lint
       # Run tests.
       - run: composer test
 
