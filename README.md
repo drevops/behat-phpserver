@@ -6,10 +6,13 @@
 <h1 align="center">Behat PHP server</h1>
 <div align="center">
 
+[![GitHub Issues](https://img.shields.io/github/issues/drevops/behat-phpserver.svg)](https://github.com/drevops/behat-phpserver/issues)
+[![GitHub Pull Requests](https://img.shields.io/github/issues-pr/drevops/behat-phpserver.svg)](https://github.com/drevops/behat-phpserver/pulls)
 [![CircleCI](https://circleci.com/gh/drevops/behat-phpserver.svg?style=shield)](https://circleci.com/gh/drevops/behat-phpserver)
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/drevops/behat-phpserver)
 [![Total Downloads](https://poser.pugx.org/drevops/behat-phpserver/downloads)](https://packagist.org/packages/drevops/behat-phpserver)
 ![LICENSE](https://img.shields.io/github/license/drevops/behat-phpserver)
+![Renovate](https://img.shields.io/badge/renovate-enabled-green?logo=renovatebot)
 
 </div>
 <p align="center">Behat Context to enable PHPServer in tests.
