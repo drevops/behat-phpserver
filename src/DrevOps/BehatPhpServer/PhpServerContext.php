@@ -10,7 +10,6 @@ namespace DrevOps\BehatPhpServer;
 use Behat\Behat\Context\Context;
 use Behat\Behat\Hook\Scope\AfterScenarioScope;
 use Behat\Behat\Hook\Scope\BeforeScenarioScope;
-use Symfony\Component\Console\Exception\RuntimeException;
 
 /**
  * Class PhpServerContext.
@@ -102,7 +101,7 @@ class PhpServerContext implements Context
      *
      * @return int
      *   PID as number.
-     * @throws RuntimeException
+     * @throws \RuntimeException
      *   If unable to start a server.
      *
      */
@@ -256,7 +255,7 @@ class PhpServerContext implements Context
         exec("netstat -peanut 2>/dev/null|grep ':$port'", $output);
 
         if (!isset($output[0])) {
-            throw new RuntimeException(
+            throw new \RuntimeException(
                 'Unable to determine if PHP server was started on current OS.'
             );
         }
