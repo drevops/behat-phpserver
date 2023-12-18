@@ -42,7 +42,7 @@ class PhpServerContext implements Context
     /**
      * Server process id.
      *
-     * @var string
+     * @var int
      */
     protected $pid;
 
@@ -50,7 +50,7 @@ class PhpServerContext implements Context
     /**
      * PhpServerTrait constructor.
      *
-     * @param array $parameters Settings for server.
+     * @param mixed[] $parameters Settings for server.
      */
     public function __construct($parameters = [])
     {
@@ -68,6 +68,8 @@ class PhpServerContext implements Context
      *
      * @param BeforeScenarioScope $scope Scenario scope.
      *
+     * @return void
+     *
      * @beforeScenario @phpserver
      */
     public function beforeScenarioStartPhpServer(BeforeScenarioScope $scope)
@@ -82,6 +84,8 @@ class PhpServerContext implements Context
      * Stop server after each scenario.
      *
      * @param AfterScenarioScope $scope Scenario scope.
+     *
+     * @return void
      *
      * @afterScenario @phpserver
      */
@@ -123,14 +127,14 @@ class PhpServerContext implements Context
         $code = 0;
         exec($command, $output, $code);
         if ($code === 0) {
-            $this->pid = $output[0];
+            $this->pid = (int) $output[0];
         }
 
         if (!$this->pid || !$this->isRunning()) {
             throw new \RuntimeException('Unable to start PHP server');
         }
 
-        return $this->pid;
+        return (int) $this->pid;
     }
 
 
@@ -153,9 +157,9 @@ class PhpServerContext implements Context
     /**
      * Check that a server is running.
      *
-     * @param int $timeout Retry timeout in seconds.
-     * @param int $delay   Delay between retries in microseconds.
-     *                     Default to 0.5 of the second.
+     * @param int|bool $timeout Retry timeout in seconds.
+     * @param int      $delay   Delay between retries in microseconds.
+     *                          Default to 0.5 of the second.
      *
      * @return bool
      *   TRUE if the server is running, FALSE otherwise.
@@ -195,7 +199,7 @@ class PhpServerContext implements Context
             }
         );
 
-        $sp = fsockopen($this->host, $this->port);
+        $sp = fsockopen($this->host, (int) $this->port);
 
         restore_error_handler();
 
@@ -214,14 +218,14 @@ class PhpServerContext implements Context
      *
      * @param int $pid Process id.
      *
-     * @return int
+     * @return boolean
      *   TRUE if the process was successfully terminated, FALSE otherwise.
      */
     protected function terminateProcess($pid)
     {
         // If pid was not provided, do not allow to terminate current process.
         if (!$pid) {
-            return 1;
+            return true;
         }
 
         $output = [];
@@ -256,8 +260,11 @@ class PhpServerContext implements Context
                 'Unable to determine if PHP server was started on current OS.'
             );
         }
-
-        $parts = explode(' ', preg_replace('/\s+/', ' ', $output[0]));
+        $outputIndexZeroReplaced = preg_replace('/\s+/', ' ', $output[0]);
+        $parts = [];
+        if (!empty($outputIndexZeroReplaced)) {
+            $parts = explode(' ', $outputIndexZeroReplaced);
+        }
 
         if (isset($parts[8]) && $parts[8] !== '-') {
             list($pid, $name) = explode('/', $parts[8]);

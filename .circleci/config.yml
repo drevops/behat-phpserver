@@ -4,15 +4,12 @@ jobs:
   build:
     docker:
       - image: circleci/php
-        auth:
-          username: $DOCKER_REGISTRY_USERNAME
-          password: $DOCKER_REGISTRY_TOKEN
     steps:
       - checkout
       - run: composer validate
       - run: composer install
       # Lint code.
-      - run: composer cs
+      - run: composer lint
       # Run tests.
       - run: composer test
 
