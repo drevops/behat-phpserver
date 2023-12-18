@@ -9,4 +9,4 @@ default:
     Behat\MinkExtension:
       sessions:
         default:
-          goutte: ~
+          browserkit_http: ~
