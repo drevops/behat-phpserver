@@ -1,18 +1,19 @@
 {
   "name": "drevops/behat-phpserver",
+  "type": "library",
   "description": "Behat Context to enable PHP server for tests",
+  "license": "GPL-2.0-or-later",
   "keywords": [
     "behat",
     "server"
   ],
-  "homepage": "https://github.com/drevops/behat-phpserver",
-  "license": "GPL-2.0-or-later",
   "authors": [
     {
       "name": "Alex Skrypnyk",
       "email": "alex@drevops.com"
     }
   ],
+  "homepage": "https://github.com/drevops/behat-phpserver",
   "support": {
     "issues": "https://github.com/drevops/behat-phpserver/issues",
     "source": "https://github.com/drevops/behat-phpserver"
