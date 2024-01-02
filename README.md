@@ -45,4 +45,4 @@ composer lint:fix
 ```bash
 composer test
 ```
-    
+
