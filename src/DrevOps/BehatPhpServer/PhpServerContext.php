@@ -51,7 +51,7 @@ class PhpServerContext implements Context
      *
      * @param mixed[] $parameters Settings for server.
      */
-    public function __construct($parameters = [])
+    public function __construct(array $parameters = [])
     {
         $this->docroot = isset($parameters['docroot']) ? $parameters['docroot'] : __DIR__.'/fixtures';
         if (!file_exists($this->docroot)) {
@@ -67,11 +67,10 @@ class PhpServerContext implements Context
      *
      * @param BeforeScenarioScope $scope Scenario scope.
      *
-     * @return void
      *
      * @beforeScenario @phpserver
      */
-    public function beforeScenarioStartPhpServer(BeforeScenarioScope $scope)
+    public function beforeScenarioStartPhpServer(BeforeScenarioScope $scope): void
     {
         if ($scope->getScenario()->hasTag('phpserver')) {
             $this->start();
@@ -84,11 +83,10 @@ class PhpServerContext implements Context
      *
      * @param AfterScenarioScope $scope Scenario scope.
      *
-     * @return void
      *
      * @afterScenario @phpserver
      */
-    public function afterScenarioStopPhpServer(AfterScenarioScope $scope)
+    public function afterScenarioStopPhpServer(AfterScenarioScope $scope): void
     {
         if ($scope->getScenario()->hasTag('phpserver')) {
             $this->stop();
@@ -105,7 +103,7 @@ class PhpServerContext implements Context
      *   If unable to start a server.
      *
      */
-    protected function start()
+    protected function start(): int
     {
         // If the server already running on this port, stop it.
         // This is a much simpler way of handling previously started servers than
@@ -143,7 +141,7 @@ class PhpServerContext implements Context
      * @return bool
      *   TRUE if server process was stopped, FALSE otherwise.
      */
-    protected function stop()
+    protected function stop(): bool
     {
         if (!$this->isRunning(false)) {
             return true;
@@ -163,7 +161,7 @@ class PhpServerContext implements Context
      * @return bool
      *   TRUE if the server is running, FALSE otherwise.
      */
-    protected function isRunning($timeout = 1, $delay = 500000)
+    protected function isRunning($timeout = 1, $delay = 500000): bool
     {
         if ($timeout === false) {
             return $this->canConnect();
@@ -190,10 +188,10 @@ class PhpServerContext implements Context
      *   TRUE if server is running and it is possible to connect to it via
      *   socket, FALSE otherwise.
      */
-    protected function canConnect()
+    protected function canConnect(): bool
     {
         set_error_handler(
-            function () {
+            static function () : bool {
                 return true;
             }
         );
@@ -220,7 +218,7 @@ class PhpServerContext implements Context
      * @return boolean
      *   TRUE if the process was successfully terminated, FALSE otherwise.
      */
-    protected function terminateProcess($pid)
+    protected function terminateProcess($pid): bool
     {
         // If pid was not provided, do not allow to terminate current process.
         if (!$pid) {
@@ -246,13 +244,13 @@ class PhpServerContext implements Context
      * @return int
      *   PID as number.
      */
-    protected function getPid($port)
+    protected function getPid($port): int
     {
         $pid = 0;
 
         $output = [];
         // @todo: Add support to OSes other then OSX and Ubuntu.
-        exec("netstat -peanut 2>/dev/null|grep ':$port'", $output);
+        exec(sprintf("netstat -peanut 2>/dev/null|grep ':%s'", $port), $output);
 
         if (!isset($output[0])) {
             throw new \RuntimeException(

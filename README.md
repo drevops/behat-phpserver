@@ -37,7 +37,7 @@ Behat Context to enable PHP server for tests.
 
 ```bash
 composer lint
-composer lint:fix
+composer lint-fix
 ```
 
 ### Run tests
@@ -45,4 +45,3 @@ composer lint:fix
 ```bash
 composer test
 ```
-
