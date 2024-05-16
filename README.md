@@ -8,7 +8,7 @@
 
 [![GitHub Issues](https://img.shields.io/github/issues/drevops/behat-phpserver.svg)](https://github.com/drevops/behat-phpserver/issues)
 [![GitHub Pull Requests](https://img.shields.io/github/issues-pr/drevops/behat-phpserver.svg)](https://github.com/drevops/behat-phpserver/pulls)
-[![Test](https://github.com/drevops/behat-phpserver/actions/workflows/test.yml/badge.svg)](https://github.com/drevops/behat-phpserver/actions/workflows/test.yml)
+[![Test PHP](https://github.com/drevops/behat-phpserver/actions/workflows/test-php.yml/badge.svg)](https://github.com/drevops/behat-phpserver/actions/workflows/test-php.yml)
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/drevops/behat-phpserver)
 [![Total Downloads](https://poser.pugx.org/drevops/behat-phpserver/downloads)](https://packagist.org/packages/drevops/behat-phpserver)
 ![LICENSE](https://img.shields.io/github/license/drevops/behat-phpserver)
@@ -45,3 +45,6 @@ composer lint-fix
 ```bash
 composer test
 ```
+
+---
+Repository created using https://getscaffold.dev/ project scaffold template
