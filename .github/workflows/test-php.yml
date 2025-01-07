@@ -8,6 +8,13 @@ on:
     branches:
       - main
       - 'feature/**'
+  workflow_dispatch:
+    inputs:
+      enable_terminal:
+        type: boolean
+        description: 'Enable terminal session.'
+        required: false
+        default: false
 
 jobs:
   test-php:
@@ -15,7 +22,7 @@ jobs:
 
     strategy:
       matrix:
-        php-versions: ['8.1', '8.2', '8.3']
+        php-versions: ['8.2', '8.3', '8.4']
 
     steps:
       - name: Checkout code
@@ -31,12 +38,26 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
+          coverage: pcov
+          ini-values: pcov.directory=.
 
       - name: Install dependencies
         run: composer install
 
+      - name: Validate composer.json
+        run: |
+          composer --verbose validate
+          composer normalize --dry-run
+
       - name: Check coding standards
         run: composer lint
+        continue-on-error: ${{ vars.CI_LINT_IGNORE_FAILURE == '1' }}
 
       - name: Run tests
         run: composer test
+        continue-on-error: ${{ vars.CI_TEST_IGNORE_FAILURE == '1' }}
+
+      - name: Setup tmate session
+        if: ${{ !cancelled() && github.event.inputs.enable_terminal }}
+        uses: mxschmitt/action-tmate@v3
+        timeout-minutes: 5

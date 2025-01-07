@@ -5,6 +5,8 @@
  * Behat context to enable PHPServer support in tests.
  */
 
+declare(strict_types=1);
+
 namespace DrevOps\BehatPhpServer;
 
 use Behat\Behat\Context\Context;

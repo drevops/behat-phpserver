@@ -47,4 +47,4 @@ composer test
 ```
 
 ---
-Repository created using https://getscaffold.dev/ project scaffold template
+_This repository was created using the [Scaffold](https://getscaffold.dev/) project template_
