@@ -1,11 +1,21 @@
 default:
+  autoload: ['%paths.base%/tests/behat/bootstrap']
+  gherkin:
+    filters:
+      tags: '~@skipped'
   suites:
     default:
+      paths: ['%paths.base%/tests/behat/features']
       contexts:
         - DrevOps\BehatPhpServer\PhpServerContext:
-            webroot: '%paths.base%/features/fixtures'
+            webroot: '%paths.base%/tests/behat/fixtures'
+            protocol: http
+            host: 0.0.0.0
+            port: 8888
             debug: true
         - DrevOps\BehatPhpServer\ApiServerContext:
+            webroot: '%paths.base%/apiserver'
+            protocol: http
             host: 0.0.0.0
             port: 8889
             debug: true
