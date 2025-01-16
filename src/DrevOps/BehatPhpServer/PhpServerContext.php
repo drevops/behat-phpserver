@@ -18,46 +18,80 @@ use Behat\Behat\Hook\Scope\BeforeScenarioScope;
 class PhpServerContext implements Context {
 
   /**
-   * Docroot directory.
-   *
-   * @var string
+   * Tag for scenarios that require this server.
    */
-  protected $docroot;
+  const TAG = 'phpserver';
+
+  /**
+   * Default webroot directory.
+   */
+  const DEFAULT_WEBROOT = __DIR__ . '/fixtures';
+
+  /**
+   * Webroot directory.
+   */
+  protected string $webroot;
 
   /**
    * Server hostname.
-   *
-   * @var string
    */
-  protected $host;
+  protected string $host;
 
   /**
    * Server port.
-   *
-   * @var string
    */
-  protected $port;
+  protected int $port;
+
+  /**
+   * Server protocol.
+   */
+  protected string $protocol;
 
   /**
    * Server process id.
-   *
-   * @var int
    */
-  protected $pid;
+  protected int $pid = 0;
+
+  /**
+   * Debug mode.
+   */
+  protected bool $debug = FALSE;
 
   /**
    * PhpServerTrait constructor.
    *
-   * @param mixed[] $parameters
-   *   Settings for server.
+   * @param string|null $webroot
+   *   Webroot directory.
+   * @param string $host
+   *   Server hostname.
+   * @param int $port
+   *   Server port.
+   * @param string $protocol
+   *   Server protocol.
+   * @param bool $debug
+   *   Debug mode.
    */
-  public function __construct(array $parameters = []) {
-    $this->docroot = $parameters['docroot'] ?? __DIR__ . '/fixtures';
-    if (!file_exists($this->docroot)) {
-      throw new \RuntimeException(sprintf('"docroot" directory %s does not exist', $this->docroot));
+  public function __construct(?string $webroot = NULL, string $host = '127.0.0.1', int $port = 8888, string $protocol = 'http', bool $debug = FALSE) {
+    $this->webroot = $webroot ?: static::DEFAULT_WEBROOT;
+
+    if (!file_exists($this->webroot)) {
+      throw new \RuntimeException(sprintf('"webroot" directory %s does not exist', $this->webroot));
     }
-    $this->host = $parameters['host'] ?? 'localhost';
-    $this->port = $parameters['port'] ?? '8888';
+
+    $this->host = $host;
+    $this->port = $port;
+    $this->protocol = $protocol;
+    $this->debug = $debug;
+  }
+
+  /**
+   * Get server URL.
+   *
+   * @return string
+   *   Server URL.
+   */
+  public function getServerUrl(): string {
+    return $this->protocol . '://' . $this->host . ':' . $this->port;
   }
 
   /**
@@ -66,10 +100,10 @@ class PhpServerContext implements Context {
    * @param \Behat\Behat\Hook\Scope\BeforeScenarioScope $scope
    *   Scenario scope.
    *
-   * @beforeScenario @phpserver
+   * @beforeScenario
    */
-  public function beforeScenarioStartPhpServer(BeforeScenarioScope $scope): void {
-    if ($scope->getScenario()->hasTag('phpserver')) {
+  public function beforeScenarioStartServer(BeforeScenarioScope $scope): void {
+    if ($scope->getScenario()->hasTag(static::TAG)) {
       $this->start();
     }
   }
@@ -80,10 +114,10 @@ class PhpServerContext implements Context {
    * @param \Behat\Behat\Hook\Scope\AfterScenarioScope $scope
    *   Scenario scope.
    *
-   * @afterScenario @phpserver
+   * @afterScenario
    */
-  public function afterScenarioStopPhpServer(AfterScenarioScope $scope): void {
-    if ($scope->getScenario()->hasTag('phpserver')) {
+  public function afterScenarioStopServer(AfterScenarioScope $scope): void {
+    if ($scope->getScenario()->hasTag(static::TAG)) {
       $this->stop();
     }
   }
@@ -98,20 +132,19 @@ class PhpServerContext implements Context {
    *   If unable to start a server.
    */
   protected function start(): int {
-    // If the server already running on this port, stop it.
-    // This is a much simpler way of handling previously started servers than
-    // having a server manager that would track each instance.
-    if ($this->isRunning(FALSE)) {
-      $pid = $this->getPid($this->port);
-      $this->terminateProcess($pid);
-    }
+    $this->stop();
 
     $command = sprintf(
-          'php -S %s:%d -t %s >/dev/null 2>&1 & echo $!',
-          $this->host,
-          $this->port,
-          $this->docroot
-      );
+    // Pass a random process ID to the server so it can be accessed from
+    // within the scripts.
+      'PROCESS_TIMESTAMP=%s php -S %s:%d -t %s >/dev/null 2>&1 & echo $!',
+      microtime(TRUE),
+      $this->host,
+      $this->port,
+      $this->webroot
+    );
+
+    $this->debug(sprintf('Starting PHP server with command: %s', $command));
 
     $output = [];
     $code = 0;
@@ -120,11 +153,21 @@ class PhpServerContext implements Context {
       $this->pid = (int) $output[0];
     }
 
-    if (!$this->pid || !$this->isRunning()) {
-      throw new \RuntimeException('Unable to start PHP server');
+    $this->debug(sprintf('PHP server started with PID %s.', $this->pid));
+
+    if ($this->pid === 0) {
+      throw new \RuntimeException('Unable to start PHP server: PID is 0');
     }
 
-    return (int) $this->pid;
+    if (!$this->isRunning()) {
+      throw new \RuntimeException('PHP server is not running');
+    }
+
+    // Despite isRunning() check, the server may not be ready to accept
+    // connections immediately after starting, so we wait a bit.
+    usleep(500000);
+
+    return $this->pid;
   }
 
   /**
@@ -134,66 +177,92 @@ class PhpServerContext implements Context {
    *   TRUE if server process was stopped, FALSE otherwise.
    */
   protected function stop(): bool {
-    if (!$this->isRunning(FALSE)) {
+    if ($this->pid === 0) {
+      $this->debug('PID is 0, server is not running.');
+
       return TRUE;
     }
 
-    return $this->terminateProcess($this->pid);
+    if (!$this->isRunning()) {
+      $this->pid = 0;
+
+      return TRUE;
+    }
+
+    try {
+      $this->pid = $this->getPid($this->port);
+      $this->terminateProcess($this->pid);
+      $this->pid = 0;
+    }
+    catch (\RuntimeException $runtimeException) {
+      print $runtimeException->getMessage();
+
+      return FALSE;
+    }
+
+    return TRUE;
   }
 
   /**
    * Check that a server is running.
    *
-   * @param int|bool $timeout
+   * @param int $timeout
    *   Retry timeout in seconds.
-   * @param int $delay
+   * @param int $retry
    *   Delay between retries in microseconds.
-   *   Default to 0.5 of the second.
    *
    * @return bool
    *   TRUE if the server is running, FALSE otherwise.
    */
-  protected function isRunning($timeout = 1, $delay = 500000): bool {
-    if ($timeout === FALSE) {
-      return $this->canConnect();
-    }
-
+  protected function isRunning(int $timeout = 1, int $retry = 100000): bool {
     $start = microtime(TRUE);
 
+    $counter = 1;
     while ((microtime(TRUE) - $start) <= $timeout) {
+      $this->debug(sprintf('Checking if server is running. Attempt %s.', $counter));
+
       if ($this->canConnect()) {
+        $this->debug('Server is running.');
+
         return TRUE;
       }
 
-      usleep($delay);
+      usleep($retry);
+      $counter++;
     }
+
+    $this->debug('Server is not running.');
 
     return FALSE;
   }
 
   /**
-   * Check if it is possible to connect to a server.
+   * Check if it is possible to connect to a running PHP server.
    *
    * @return bool
-   *   TRUE if server is running and it is possible to connect to it via
+   *   TRUE if PHP server is running and it is possible to connect to it via
    *   socket, FALSE otherwise.
    */
   protected function canConnect(): bool {
     set_error_handler(
-          static function () : bool {
-              return TRUE;
-          }
-      );
+      static function (): bool {
+        return TRUE;
+      }
+    );
 
-    $sp = fsockopen($this->host, (int) $this->port);
+    $sp = fsockopen($this->host, $this->port);
 
     restore_error_handler();
 
     if ($sp === FALSE) {
+      $this->debug('Unable to connect to the server.');
+
       return FALSE;
     }
 
     fclose($sp);
+
+    $this->debug('Connected to the server.');
 
     return TRUE;
   }
@@ -207,15 +276,13 @@ class PhpServerContext implements Context {
    * @return bool
    *   TRUE if the process was successfully terminated, FALSE otherwise.
    */
-  protected function terminateProcess($pid): bool {
-    // If pid was not provided, do not allow to terminate current process.
-    if (!$pid) {
-      return TRUE;
-    }
-
+  protected function terminateProcess(int $pid): bool {
     $output = [];
     $code = 0;
-    exec('kill ' . (int) $pid, $output, $code);
+
+    $this->debug(sprintf('Terminating PHP server process with PID %s.', $pid));
+
+    exec('kill ' . $pid, $output, $code);
 
     return $code === 0;
   }
@@ -226,38 +293,83 @@ class PhpServerContext implements Context {
    * Note that this will retrieve a PID of the process that could have been
    * started by another process rather then current one.
    *
-   * @param string $port
+   * @param int $port
    *   Port number.
    *
    * @return int
    *   PID as number.
    */
-  protected function getPid($port): int {
+  protected function getPid(int $port): int {
     $pid = 0;
 
     $output = [];
-    // @todo Add support to OSes other then OSX and Ubuntu.
-    exec(sprintf("netstat -peanut 2>/dev/null|grep ':%s'", $port), $output);
+
+    $type = NULL;
+    $command = NULL;
+
+    $this->debug(sprintf('Finding PID of the PHP server process on port %s.', $port));
+
+    if (shell_exec('which lsof')) {
+      $command = sprintf("lsof -i -P -n 2>/dev/null | grep ':%s'", $port);
+      $type = 'lsof';
+    }
+    elseif (shell_exec('which netstat')) {
+      $command = sprintf("netstat -peanut 2>/dev/null | grep ':%s'", $port);
+      $type = 'netstat';
+    }
+
+    $this->debug(sprintf('Using "%s" command to find the PID.', $command));
+
+    if (empty($command)) {
+      throw new \RuntimeException('Unable to determine if PHP server was started: no supported OS utilities found. Manually identify the process and terminate it.');
+    }
+
+    exec($command, $output);
 
     if (!isset($output[0])) {
-      throw new \RuntimeException(
-            'Unable to determine if PHP server was started on current OS.'
-        );
-    }
-    $outputIndexZeroReplaced = preg_replace('/\s+/', ' ', $output[0]);
-    $parts = [];
-    if (!empty($outputIndexZeroReplaced)) {
-      $parts = explode(' ', $outputIndexZeroReplaced);
+      throw new \RuntimeException(sprintf('Unable to determine if PHP server was started: command "%s" returned output "%s". Manually identify the process and terminate it.', $command, implode("\n", $output)));
     }
 
-    if (isset($parts[8]) && $parts[8] !== '-') {
-      [$pid, $name] = explode('/', $parts[8]);
-      if ($name !== 'php') {
-        $pid = 0;
+    $output[0] = preg_replace('/\s+/', ' ', $output[0]);
+
+    $this->debug(sprintf('Command output: %s', $output[0]));
+
+    $parts = [];
+    if (!empty($output[0])) {
+      $parts = explode(' ', $output[0]);
+    }
+
+    if ($type === 'lsof') {
+      if (($parts[0] ?? '') === 'php' && is_numeric($parts[1] ?: '')) {
+        $pid = intval($parts[1]);
+      }
+    }
+    elseif ($type === 'netstat') {
+      if (isset($parts[8]) && $parts[8] !== '-') {
+        [$pid, $name] = explode('/', $parts[8]);
+        $pid = $name !== 'php' ? 0 : intval($pid);
       }
     }
 
-    return (int) $pid;
+    if ($pid === 0) {
+      throw new \RuntimeException(sprintf('Unable to determine if PHP server was started: PID is 0 in command "%s" returned output "%s". Manually identify the process and terminate it.', $command, implode("\n", $output)));
+    }
+
+    return $pid;
+  }
+
+  /**
+   * Print debug message if debug mode is enabled.
+   *
+   * @param string $message
+   *   Message to print.
+   */
+  protected function debug(string $message): void {
+    if ($this->debug) {
+      $backtrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2);
+      $caller = $backtrace[1]['function'] ?? 'unknown';
+      print sprintf('[%s()] %s', $caller, $message) . PHP_EOL;
+    }
   }
 
 }

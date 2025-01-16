@@ -1,4 +1,4 @@
-Feature: Working with PHP server.
+Feature: PHP server.
 
   Ensure that Behat is capable of starting PHP server and asserting the content
   on the test page.
