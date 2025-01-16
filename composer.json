@@ -60,6 +60,6 @@
             "phpcbf"
         ],
         "reset": "rm -Rf vendor composer.lock",
-        "test": "cd ./tests/behat/ && ../../vendor/bin/behat --colors --tags='~@skipped'"
+        "test": "behat"
     }
 }

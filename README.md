@@ -48,10 +48,10 @@ default:
     default:
       contexts:
         - DrevOps\BehatPhpServer\PhpServerContext:
-            webroot: '%paths.base%/features/fixtures' #  Path to the document root
-            host: 127.0.0.1 # PHP server host
-            port: 8888      # PHP server port
+            webroot: '%paths.base%/tests/behat/fixtures' # Path to the PHP server document root
             protocol: http  # PHP server protocol
+            host: 0.0.0.0   # PHP server host
+            port: 8888      # PHP server port
             debug: false    # Enable debug mode for verbose output
 ```
 
@@ -65,10 +65,10 @@ default:
     default:
       contexts:
         - DrevOps\BehatPhpServer\ApiServerContext:
-            webroot: '%paths.base%/../../apiserver' #  Path to the apiserver document root
+            webroot: '%paths.base%/apiserver' # Path to the API server document root
+            protocol: http  # API PHP server protocol
             host: 0.0.0.0   # API PHP server host
             port: 8889      # API PHP server port
-            protocol: http  # API PHP server protocol
             debug: false    # API Enable debug mode for verbose output
 ```
 
