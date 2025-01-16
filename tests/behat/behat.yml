@@ -3,7 +3,12 @@ default:
     default:
       contexts:
         - DrevOps\BehatPhpServer\PhpServerContext:
-          - docroot: '%paths.base%/features/fixtures'
+            webroot: '%paths.base%/features/fixtures'
+            debug: true
+        - DrevOps\BehatPhpServer\ApiServerContext:
+            host: 0.0.0.0
+            port: 8889
+            debug: true
         - FeatureContext
   extensions:
     Behat\MinkExtension:

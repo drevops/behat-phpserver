@@ -7,7 +7,11 @@
     </rule>
     <rule ref="Generic.PHP.RequireStrictTypes"/>
 
-    <file>src/</file>
+    <arg name="colors"/>
+    <arg value="sp"/>
+
+    <file>src</file>
+    <file>apiserver</file>
     <file>tests/</file>
 
 </ruleset>
