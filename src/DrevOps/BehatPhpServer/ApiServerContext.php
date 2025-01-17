@@ -29,6 +29,24 @@ class ApiServerContext extends PhpServerContext {
   const DEFAULT_WEBROOT = __DIR__ . '/../../../apiserver';
 
   /**
+   * Check if the API server is running.
+   *
+   * @Given (the )API server is running
+   */
+  public function apiIsRunning(): void {
+    $client = new Client([
+      'base_uri' => $this->getServerUrl(),
+      'http_errors' => FALSE,
+    ]);
+
+    $response = $client->request('GET', '/admin/status');
+
+    if ($response->getStatusCode() !== 200) {
+      throw new \Exception('API server is not up');
+    }
+  }
+
+  /**
    * Put expected response data to the API server.
    *
    * @Given (the )API will respond with:
@@ -51,10 +69,10 @@ class ApiServerContext extends PhpServerContext {
    * @endcode
    */
   public function apiWillRespondWith(PyStringNode $data): void {
-    $data = $this->prepareData($data->getRaw());
+    $data = $this->prepareResponse($data->getRaw());
 
     $client = new Client([
-      'base_uri' => 'http://' . $this->host . ':' . $this->port,
+      'base_uri' => $this->getServerUrl(),
       'http_errors' => FALSE,
     ]);
 
@@ -68,6 +86,43 @@ class ApiServerContext extends PhpServerContext {
   }
 
   /**
+   * Put expected JSON response data to the API server.
+   *
+   * Shorthand for the API response with JSON body.
+   *
+   * @Given (the )API will respond with JSON:
+   * @Given (the )API will respond with JSON and :code code:
+   *
+   * @code
+   * Given API will respond with JSON:
+   * """
+   * {
+   *   "Id": "test-id-1",
+   *   "Slug": "test-slug-1"
+   * }
+   * """
+   * @endcode
+   *
+   * @code
+   * Given API will respond with JSON and 200 code:
+   * """
+   * {
+   *   "Id": "test-id-1",
+   *   "Slug": "test-slug-1"
+   * }
+   * """
+   * @endcode
+   */
+  public function apiWillRespondWithJson(PyStringNode $json, ?string $code = NULL): void {
+    $data = json_encode([
+      'code' => $code ?? 200,
+      'body' => json_decode($json->getRaw()),
+    ]);
+
+    $this->apiWillRespondWith(new PyStringNode([$data], $json->getLine()));
+  }
+
+  /**
    * Process the response data.
    *
    * @param string $data
@@ -76,8 +131,7 @@ class ApiServerContext extends PhpServerContext {
    * @return array<int, array<string, mixed>>
    *   The response data.
    */
-  protected function prepareData(string $data): array {
-    // Validate the JSON.
+  protected function prepareResponse(string $data): array {
     $data = json_decode($data, TRUE);
     if ($data === NULL || !is_array($data)) {
       throw new \InvalidArgumentException('Request data is not a valid JSON.');

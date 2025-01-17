@@ -49,6 +49,12 @@ class ResponseApiServerUnitTest extends TestCase {
       [['code' => 404], new Response(404), NULL],
       [['code' => 200, 'reason' => 'OK'], new Response(200, 'OK'), NULL],
 
+      [
+        ['code' => 200, 'reason' => 'OK', 'body' => base64_encode((string) json_encode(['key' => 'value']))],
+        new Response(200, 'OK', [], ['key' => 'value']),
+        NULL,
+      ],
+
       [['code' => 500], new Response(500), NULL],
       [['code' => 500, 'reason' => 'Custom error'], new Response(500, 'Custom error'), NULL],
 
