@@ -253,7 +253,16 @@ class Response {
     public array $headers = [],
     mixed $body = '',
   ) {
-    $this->body = is_scalar($body) ? strval($body) : (string) json_encode($body);
+    if (is_scalar($body)) {
+      $this->body = strval($body);
+      if (static::isJson($this->body)) {
+        $this->headers['Content-Type'] = 'application/json';
+      }
+    }
+    else {
+      $this->body = (string) json_encode($body);
+      $this->headers['Content-Type'] = 'application/json';
+    }
     // Set Content-Length header if a body is provided.
     if ($this->body !== '') {
       $this->headers['Content-Length'] = (string) strlen($this->body);
@@ -323,6 +332,19 @@ class Response {
     }
 
     return new static($data['code'], $data['reason'], $data['headers'], $data['body']);
+  }
+
+  /**
+   * Check if the string is a JSON.
+   *
+   * @param string $string
+   *   The string to check.
+   *
+   * @return bool
+   *   TRUE if the string is a JSON, FALSE otherwise.
+   */
+  protected static function isJson(string $string): bool {
+    return json_decode($string) !== NULL || json_last_error() === JSON_ERROR_NONE;
   }
 
 }

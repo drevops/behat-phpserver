@@ -95,32 +95,54 @@ using following JSON format:
 ]
 ```
 
-The `ApiServerContext` provides a step definition to make it easier to queue up
-API responses:
+The `ApiServerContext` provides several step definitions to make it easier to
+work with the API server:
 
 ```gherkin
+# Check if the API server is running.
+Given the API server is running
+
 # Queue up a single API response.
 Given API will respond with:
-"""
-{
-  "code": 200,
-  "headers": {
-    "Content-Type": "application/json"
-  },
-  "body": {
-    "Id": "test-id-1",
-    "Slug": "test-slug-1"
+  """
+  {
+    "code": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "Id": "test-id-1",
+      "Slug": "test-slug-1"
+    }
   }
-}
-"""
+  """
 
 # Queue up a single API response with minimal configuration.
 Given API will respond with:
-"""
-{
-  "code": 200
-}
-"""
+  """
+  {
+    "code": 200
+  }
+  """
+
+# Queue up a single API response with JSON body.
+Given API will respond with JSON:
+  """
+  {
+    "Id": "test-id-1",
+    "Slug": "test-slug-1"
+  }
+  """
+
+# Queue up a single API response with JSON body and expected code.
+
+Given API will respond with JSON and 201 code:
+  """
+  {
+    "Id": "test-id-2",
+    "Slug": "test-slug-2"
+  }
+  """
 ```
 
 See this [test feature](tests/behat/features/apiserver.feature) for more

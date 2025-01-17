@@ -25,6 +25,7 @@
     },
     "require-dev": {
         "behat/mink-browserkit-driver": "^2.2",
+        "dantleech/gherkin-lint": "^0.2.3",
         "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
         "drupal/coder": "^8.3",
         "dvdoug/behat-code-coverage": "^5.3",
@@ -63,7 +64,8 @@
         "lint": [
             "phpcs",
             "phpstan",
-            "rector --clear-cache --dry-run"
+            "rector --clear-cache --dry-run",
+            "gherkinlint lint tests/behat/features"
         ],
         "lint-fix": [
             "rector --clear-cache",
