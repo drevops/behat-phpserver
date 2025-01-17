@@ -1,8 +1,7 @@
 <?php
 
-declare(strict_types=1);
-
 /**
+ * @file
  * API test server to return queued responses to HTTP requests.
  *
  * The requests and responses can be enqueued via `/admin/*` endpoints.
@@ -44,23 +43,27 @@ declare(strict_types=1);
  *   > Content-Type: application/json
  *   > [{'code': 200, 'reason': 'OK', 'headers': {}, 'body': '' }, {'code': 404, 'reason': 'Not found', 'headers': {}, 'body': '' }]
  *
- * This class is intended to be lightweight and limited in functionality.
+ * This class is intended to be lightweight and portable.
  *
  * @phpcs:disable Drupal.Classes.ClassFileName.NoMatch
+ * @phpcs:disable Drupal.Commenting.ClassComment.Missing
  */
+
+declare(strict_types=1);
+
 class ApiServer {
 
   /**
    * The received requests.
    *
-   * @var array<int|string, mixed>
+   * @var array<int|\Request>
    */
   protected array $requests = [];
 
   /**
    * The queued responses.
    *
-   * @var array<mixed>
+   * @var array<int|\Response>
    */
   protected array $responses = [];
 
@@ -86,8 +89,8 @@ class ApiServer {
         throw new \RuntimeException('Failed to read data from the server state file ' . $this->stateFile);
       }
 
-      $state = json_decode($contents, TRUE);
-      if ($state === NULL || !is_array($state)) {
+      $state = unserialize($contents);
+      if (!is_array($state)) {
         throw new \RuntimeException('Failed to load data from the server state file ' . $this->stateFile);
       }
 
@@ -100,133 +103,79 @@ class ApiServer {
    * Destructor to save the state to a file.
    */
   public function __destruct() {
-    file_put_contents($this->stateFile, json_encode([
+    $state = serialize([
       'requests' => $this->requests,
       'responses' => $this->responses,
-    ], JSON_PRETTY_PRINT));
+    ]);
+
+    file_put_contents($this->stateFile, $state);
   }
 
   /**
    * Handle the request.
    */
   public function handleRequest(): void {
-    $request_method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-    $request_uri = is_scalar($_SERVER['REQUEST_URI']) ? strtok(strval($_SERVER['REQUEST_URI']), '?') : '/';
-    $request_body = file_get_contents('php://input');
-    $request_headers = getallheaders();
+    $request = new Request(
+      is_scalar($_SERVER['REQUEST_METHOD']) && is_string($_SERVER['REQUEST_METHOD']) ? $_SERVER['REQUEST_METHOD'] : 'GET',
+      is_scalar($_SERVER['REQUEST_URI']) ? (string) strtok(strval($_SERVER['REQUEST_URI']), '?') : '/',
+      getallheaders(),
+      file_get_contents('php://input') ?: ''
+    );
 
-    $request_body = $request_body === FALSE ? '' : $request_body;
-
-    if ($request_uri === '/admin/status') {
-      $this->sendResponse(200, 'OK');
+    if ($request->uri === '/admin/status') {
+      $this->handleResponse(new Response(200, 'OK'));
     }
-    elseif ($request_uri === '/admin/requests' && $request_method === 'GET') {
-      $response_body = json_encode($this->requests);
-      if ($response_body === FALSE) {
-        $this->sendErrorResponse('Failed to encode the requests to JSON');
-      }
-      $this->sendResponse(200, 'OK', [], $response_body);
+    elseif ($request->uri === '/admin/requests' && $request->method === 'GET') {
+      $this->handleResponse(new Response(200, 'OK', [], $this->requests));
     }
-    elseif ($request_uri === '/admin/requests' && $request_method === 'DELETE') {
+    elseif ($request->uri === '/admin/requests' && $request->method === 'DELETE') {
       $this->requests = [];
-      $this->sendResponse(200, 'OK');
+      $this->handleResponse(new Response(200, 'OK'));
     }
-    elseif ($request_uri === '/admin/responses' && $request_method === 'GET') {
-      $response_body = json_encode($this->responses);
-      if ($response_body === FALSE) {
-        $this->sendErrorResponse('Failed to encode the responses to JSON');
-      }
-      $this->sendResponse(200, 'OK', [], $response_body);
+    elseif ($request->uri === '/admin/responses' && $request->method === 'GET') {
+      $this->handleResponse(new Response(200, 'OK', [], $this->responses));
     }
-    elseif ($request_uri === '/admin/responses' && $request_method === 'DELETE') {
+    elseif ($request->uri === '/admin/responses' && $request->method === 'DELETE') {
       $this->responses = [];
-      $this->sendResponse(200, 'OK');
+      $this->handleResponse(new Response(200, 'OK'));
     }
-    elseif ($request_uri === '/admin/responses' && $request_method === 'PUT') {
-      $responses = json_decode($request_body, TRUE);
-      if ($responses === NULL || !is_array($responses)) {
-        $this->sendErrorResponse('Invalid responses JSON payload provided');
+    elseif ($request->uri === '/admin/responses' && $request->method === 'PUT') {
+      $responses_data = json_decode($request->body, TRUE);
+      if ($responses_data === NULL || !is_array($responses_data)) {
+        throw new \InvalidArgumentException('Invalid responses JSON payload provided: Expected an array of response objects.', 400);
       }
 
-      foreach ($responses as $k => &$response) {
-        if (!is_array($response)) {
-          $this->sendErrorResponse(sprintf('Invalid response #%d payload: Response must be an object.', $k + 1));
+      foreach ($responses_data as $k => $response_data) {
+        if (!is_array($response_data)) {
+          throw new \InvalidArgumentException(sprintf('Invalid response #%d payload: Response must be an object.', $k + 1), 400);
         }
 
-        $response['method'] = $response['method'] ?? 'GET';
-
-        if (!is_string($response['method'])) {
-          $this->sendErrorResponse(sprintf('Invalid response #%d payload: Method must be a string.', $k + 1));
+        try {
+          $response = Response::fromArray($response_data);
+        }
+        catch (\InvalidArgumentException $e) {
+          throw new \InvalidArgumentException(sprintf('Invalid response #%d payload: %s', $k + 1, $e->getMessage()), 400, $e);
         }
 
-        if (!in_array($response['method'], ['GET', 'POST', 'PUT', 'DELETE'])) {
-          $this->sendErrorResponse(sprintf('Invalid response #%d payload: Unsupported HTTP method "%s". Supported methods are GET, POST, PUT, DELETE.', $k + 1, $response['method']));
-        }
-
-        if (empty($response['code'])) {
-          $this->sendErrorResponse(sprintf('Invalid response #%d payload: Response code is required.', $k + 1));
-        }
-
-        $response['headers'] = $response['headers'] ?? [];
-        if (!is_array($response['headers'])) {
-          $this->sendErrorResponse(sprintf('Invalid response #%d payload: Headers must be an array.', $k + 1));
-        }
-
-        if (isset($response['body'])) {
-          if (!is_string($response['body'])) {
-            $this->sendErrorResponse(sprintf('Invalid response #%d payload: Body must be a string.', $k + 1));
-          }
-
-          $response_body = base64_decode($response['body']);
-          // @phpstan-ignore-next-line
-          if ($response_body === FALSE) {
-            $this->sendErrorResponse(sprintf('Invalid response #%d payload: Body is not a valid base64 encoded string.', $k + 1));
-          }
-
-          $response['body'] = $response_body;
-        }
-        else {
-          $response['body'] = '';
-        }
-
-        if (!empty($response['reason']) && !is_string($response['reason'])) {
-          $this->sendErrorResponse(sprintf('Invalid response #%d payload: Reason must be a string.', $k + 1));
-        }
-
-        $response['reason'] = $response['reason'] ?: 'OK';
+        $this->responses[] = $response;
       }
 
-      $this->responses = array_merge($this->responses, $responses);
-
-      $this->sendResponse(201, 'Created');
+      $this->handleResponse(new \Response(201, 'Created'));
     }
     else {
-      $this->requests[] = [
-        'method' => $request_method,
-        'uri' => $request_uri,
-        'headers' => $request_headers,
-        'body' => $request_body,
-      ];
+      $this->requests[] = $request;
 
       if (empty($this->responses)) {
-        $this->sendErrorResponse('No responses in queue', 500, 'No responses in queue');
+        throw new \Exception('No responses in queue', 500);
       }
       else {
         $response = array_shift($this->responses);
 
-        if (
-          !is_array($response) ||
-          empty($response['code']) || !is_numeric($response['code']) || !is_int($response['code']) ||
-          empty($response['reason']) || !is_string($response['reason']) ||
-          !is_array($response['headers']) ||
-          !is_string($response['body'])
-        ) {
-          $this->sendErrorResponse(sprintf('Invalid response in queue: %s', print_r($response, TRUE)), 500, 'Invalid response in queue');
+        if (!$response instanceof \Response) {
+          throw new \Exception(sprintf('Invalid response in queue: %s', print_r($response, TRUE)), 500);
         }
 
-        $response['headers'] = array_map(fn($value): string => is_scalar($value) ? strval($value) : '', $response['headers']);
-
-        $this->sendResponse($response['code'], $response['reason'], $response['headers'], $response['body']);
+        $this->handleResponse($response);
       }
     }
   }
@@ -234,53 +183,145 @@ class ApiServer {
   /**
    * Send the response.
    *
-   * @param int $code
-   *   The response code.
-   * @param string $reason
-   *   The response reason.
-   * @param array<string,scalar> $headers
-   *   The response headers.
-   * @param string $body
-   *   The response body.
+   * @param \Response $response
+   *   The response object.
    */
-  protected function sendResponse(int $code, string $reason, array $headers = [], string $body = ''): void {
-    // Set the full status line manually to include the custom reason.
-    $protocol = is_scalar($_SERVER['SERVER_PROTOCOL']) ? strval($_SERVER['SERVER_PROTOCOL']) : 'HTTP/1.1';
-    header(sprintf('%s %s %s', $protocol, $code, $reason));
-
-    $headers += [
-      'X-Received-Requests' => count($this->requests),
-      'X-Queued-Responses' => count($this->responses),
+  protected function handleResponse(\Response $response): void {
+    $response->headers += [
+      'X-Received-Requests' => (string) count($this->requests),
+      'X-Queued-Responses' => (string) count($this->responses),
     ];
 
-    // Set Content-Length header if a body is provided.
-    if ($body !== '') {
-      $headers['Content-Length'] = strlen($body);
-    }
-
-    // Set additional headers.
-    foreach ($headers as $key => $value) {
-      header(sprintf('%s: %s', $key, $value));
-    }
-
-    print $body;
+    static::sendResponse($response);
   }
 
   /**
-   * Send an error response.
+   * Send the response.
+   *
+   * @param \Response $response
+   *   The response object.
    */
-  protected function sendErrorResponse(string $message, int $code = 400, string $reason = 'Bad Request'): never {
-    $message = json_encode(['error' => $message]);
+  public static function sendResponse(\Response $response): void {
+    // Set the full status line manually to include the custom reason.
+    $protocol = is_scalar($_SERVER['SERVER_PROTOCOL']) ? strval($_SERVER['SERVER_PROTOCOL']) : 'HTTP/1.1';
+    header(sprintf('%s %s %s', $protocol, $response->code, $response->reason));
 
-    if ($message === FALSE) {
-      $message = 'An error occurred while encoding the error message.';
+    // Set additional headers.
+    foreach ($response->headers as $key => $value) {
+      header(sprintf('%s: %s', $key, $value));
     }
 
-    $this->sendResponse($code, $reason, [], $message);
-    exit(1);
+    print $response->body;
+  }
+
+}
+
+class Request {
+
+  final public function __construct(
+    public string $method = 'GET',
+    public string $uri = '/',
+    /**
+     * Headers.
+     *
+     * @var array<string,string>
+     */
+    public array $headers = [],
+    public string $body = '',
+  ) {
+  }
+
+}
+
+class Response {
+
+  /**
+   * Response body.
+   */
+  public string $body;
+
+  final public function __construct(
+    public int $code = 200,
+    public string $reason = 'OK',
+    /**
+     * Headers.
+     *
+     * @var array<string,string>
+     */
+    public array $headers = [],
+    mixed $body = '',
+  ) {
+    $this->body = is_scalar($body) ? strval($body) : (string) json_encode($body);
+    // Set Content-Length header if a body is provided.
+    if ($this->body !== '') {
+      $this->headers['Content-Length'] = (string) strlen($this->body);
+    }
+  }
+
+  /**
+   * Create a response from an array.
+   *
+   * @param array<mixed,mixed> $data
+   *   The response data.
+   *
+   * @return static
+   *   The response object.
+   */
+  public static function fromArray(array $data): static {
+    $data['method'] = $data['method'] ?? 'GET';
+
+    if (!is_string($data['method'])) {
+      throw new \InvalidArgumentException('Method must be a string.');
+    }
+
+    if (!in_array($data['method'], ['GET', 'POST', 'PUT', 'DELETE'])) {
+      throw new \InvalidArgumentException(sprintf('Unsupported HTTP method "%s". Supported methods are GET, POST, PUT, DELETE.', $data['method']));
+    }
+
+    if (empty($data['code'])) {
+      throw new \InvalidArgumentException('Response code is required.');
+    }
+
+    $data['headers'] = $data['headers'] ?? [];
+    if (!is_array($data['headers'])) {
+      throw new \InvalidArgumentException('Headers must be an array.');
+    }
+
+    $data['headers'] = array_map(fn($value): string => is_scalar($value) ? strval($value) : '', $data['headers']);
+
+    if (isset($data['body'])) {
+      if (!is_string($data['body'])) {
+        throw new \InvalidArgumentException('Body must be a string.');
+      }
+
+      $response_body = base64_decode($data['body']);
+      // @phpstan-ignore-next-line
+      if ($response_body === FALSE) {
+        throw new \InvalidArgumentException('Body is not a valid base64 encoded string.');
+      }
+
+      $data['body'] = $response_body;
+    }
+    else {
+      $data['body'] = '';
+    }
+
+    if (!empty($data['reason']) && !is_string($data['reason'])) {
+      throw new \InvalidArgumentException('Reason must be a string.');
+    }
+
+    $data['reason'] = $data['reason'] ?: 'OK';
+
+    return new static($data['code'], $data['reason'], $data['headers'], $data['body']);
   }
 
 }
 
 $server = new ApiServer();
-$server->handleRequest();
+
+try {
+  $server->handleRequest();
+}
+catch (\Throwable $throwable) {
+  ApiServer::sendResponse(new \Response($throwable->getCode(), $throwable->getMessage(), [], ['error' => $throwable->getMessage()]));
+}
