@@ -1,2 +1,4 @@
-vendor
-composer.lock
+/.logs
+/.phpunit.cache
+/composer.lock
+/vendor

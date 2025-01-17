@@ -16,6 +16,7 @@ Feature: API server.
     """
     {
       "code": 200,
+      "reason": "OK",
       "headers": {
         "Content-Type": "application/json"
       },

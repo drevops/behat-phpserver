@@ -27,10 +27,12 @@
         "behat/mink-browserkit-driver": "^2.2",
         "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
         "drupal/coder": "^8.3",
+        "dvdoug/behat-code-coverage": "^5.3",
         "ergebnis/composer-normalize": "^2.45",
         "escapestudios/symfony2-coding-standard": "^3.15",
         "friends-of-behat/mink-extension": "^2.7.5",
         "phpstan/phpstan": "^2",
+        "phpunit/phpunit": "^11",
         "rector/rector": "^2.0",
         "squizlabs/php_codesniffer": "^3.11.2",
         "symfony/http-client": "^6 || ^7.2.2"
@@ -41,6 +43,14 @@
     "autoload": {
         "psr-0": {
             "DrevOps\\BehatPhpServer": "src/"
+        },
+        "classmap": [
+            "apiserver"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "DrevOps\\BehatPhpServer\\Tests\\": "tests/phpunit"
         }
     },
     "config": {
@@ -60,6 +70,8 @@
             "phpcbf"
         ],
         "reset": "rm -Rf vendor composer.lock",
-        "test": "behat"
+        "test": "phpunit --no-coverage",
+        "test-bdd": "behat",
+        "test-coverage": "php -d pcov.directory=. vendor/bin/phpunit"
     }
 }
