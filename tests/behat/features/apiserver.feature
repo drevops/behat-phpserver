@@ -124,7 +124,7 @@ Feature: API server.
 
     When I send a GET request to "/someurl1" in the API server
     Then the response status code should be 500
-    And the response header should contain "X-Received-Requests" with value "1"
-    And the response header should contain "X-Queued-Responses" with value "0"
+    And the response should not contain header "X-Received-Requests"
+    And the response should not contain header "X-Queued-Responses"
     And the response header should contain "Content-Length" with value "33"
     And the response should contain "No responses in queue"
