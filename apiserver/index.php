@@ -51,19 +51,21 @@
 
 declare(strict_types=1);
 
+namespace DrevOps\BehatPhpServer\ApiServer;
+
 class ApiServer {
 
   /**
    * The received requests.
    *
-   * @var array<int|\Request>
+   * @var array<int|Request>
    */
   protected array $requests = [];
 
   /**
    * The queued responses.
    *
-   * @var array<int|\Response>
+   * @var array<int|Response>
    */
   protected array $responses = [];
 
@@ -116,8 +118,8 @@ class ApiServer {
    */
   public function handleRequest(): void {
     $request = new Request(
-      is_scalar($_SERVER['REQUEST_METHOD']) && is_string($_SERVER['REQUEST_METHOD']) ? $_SERVER['REQUEST_METHOD'] : 'GET',
-      is_scalar($_SERVER['REQUEST_URI']) ? (string) strtok(strval($_SERVER['REQUEST_URI']), '?') : '/',
+      isset($_SERVER['REQUEST_METHOD']) && is_scalar($_SERVER['REQUEST_METHOD']) && is_string($_SERVER['REQUEST_METHOD']) ? $_SERVER['REQUEST_METHOD'] : 'GET',
+      isset($_SERVER['REQUEST_URI']) && is_scalar($_SERVER['REQUEST_URI']) ? (string) strtok(strval($_SERVER['REQUEST_URI']), '?') : '/',
       getallheaders(),
       file_get_contents('php://input') ?: ''
     );
@@ -160,7 +162,7 @@ class ApiServer {
         $this->responses[] = $response;
       }
 
-      $this->handleResponse(new \Response(201, 'Created'));
+      $this->handleResponse(new Response(201, 'Created'));
     }
     else {
       $this->requests[] = $request;
@@ -171,7 +173,7 @@ class ApiServer {
       else {
         $response = array_shift($this->responses);
 
-        if (!$response instanceof \Response) {
+        if (!$response instanceof Response) {
           throw new \Exception(sprintf('Invalid response in queue: %s', print_r($response, TRUE)), 500);
         }
 
@@ -183,10 +185,10 @@ class ApiServer {
   /**
    * Send the response.
    *
-   * @param \Response $response
+   * @param \DrevOps\BehatPhpServer\ApiServer\Response $response
    *   The response object.
    */
-  protected function handleResponse(\Response $response): void {
+  protected function handleResponse(Response $response): void {
     $response->headers += [
       'X-Received-Requests' => (string) count($this->requests),
       'X-Queued-Responses' => (string) count($this->responses),
@@ -198,10 +200,10 @@ class ApiServer {
   /**
    * Send the response.
    *
-   * @param \Response $response
+   * @param \DrevOps\BehatPhpServer\ApiServer\Response $response
    *   The response object.
    */
-  public static function sendResponse(\Response $response): void {
+  public static function sendResponse(Response $response): void {
     // Set the full status line manually to include the custom reason.
     $protocol = is_scalar($_SERVER['SERVER_PROTOCOL']) ? strval($_SERVER['SERVER_PROTOCOL']) : 'HTTP/1.1';
     header(sprintf('%s %s %s', $protocol, $response->code, $response->reason));
@@ -268,7 +270,13 @@ class Response {
    *   The response object.
    */
   public static function fromArray(array $data): static {
-    $data['method'] = $data['method'] ?? 'GET';
+    $data += [
+      'method' => 'GET',
+      'code' => 200,
+      'reason' => 'OK',
+      'headers' => [],
+      'body' => '',
+    ];
 
     if (!is_string($data['method'])) {
       throw new \InvalidArgumentException('Method must be a string.');
@@ -282,9 +290,22 @@ class Response {
       throw new \InvalidArgumentException('Response code is required.');
     }
 
+    $data['code'] = intval($data['code']);
+
+    if ($data['code'] < 100 || $data['code'] > 599) {
+      throw new \InvalidArgumentException('Response code must be a number between 100 and 599.');
+    }
+
     $data['headers'] = $data['headers'] ?? [];
     if (!is_array($data['headers'])) {
       throw new \InvalidArgumentException('Headers must be an array.');
+    }
+
+    // Check that both keys and values are strings.
+    foreach ($data['headers'] as $header_name => $header_value) {
+      if (!is_string($header_name) || !is_scalar($header_value)) {
+        throw new \InvalidArgumentException(sprintf('Header "%s" value must be a string.', $header_name));
+      }
     }
 
     $data['headers'] = array_map(fn($value): string => is_scalar($value) ? strval($value) : '', $data['headers']);
@@ -294,34 +315,26 @@ class Response {
         throw new \InvalidArgumentException('Body must be a string.');
       }
 
-      $response_body = base64_decode($data['body']);
-      // @phpstan-ignore-next-line
-      if ($response_body === FALSE) {
-        throw new \InvalidArgumentException('Body is not a valid base64 encoded string.');
-      }
-
-      $data['body'] = $response_body;
-    }
-    else {
-      $data['body'] = '';
+      $data['body'] = base64_decode($data['body']);
     }
 
-    if (!empty($data['reason']) && !is_string($data['reason'])) {
+    if (empty($data['reason']) || !is_string($data['reason'])) {
       throw new \InvalidArgumentException('Reason must be a string.');
     }
-
-    $data['reason'] = $data['reason'] ?: 'OK';
 
     return new static($data['code'], $data['reason'], $data['headers'], $data['body']);
   }
 
 }
 
-$server = new ApiServer();
+// Allow to skip the script run.
+if (getenv('SCRIPT_RUN_SKIP') != 1) {
+  $server = new ApiServer();
 
-try {
-  $server->handleRequest();
-}
-catch (\Throwable $throwable) {
-  ApiServer::sendResponse(new \Response($throwable->getCode(), $throwable->getMessage(), [], ['error' => $throwable->getMessage()]));
+  try {
+    $server->handleRequest();
+  }
+  catch (\Throwable $throwable) {
+    ApiServer::sendResponse(new Response($throwable->getCode(), $throwable->getMessage(), [], ['error' => $throwable->getMessage()]));
+  }
 }

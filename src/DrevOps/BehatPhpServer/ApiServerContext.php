@@ -38,6 +38,7 @@ class ApiServerContext extends PhpServerContext {
    * """
    * {
    *   "code": 200,
+   *   "reason": "OK",
    *   "headers": {
    *     "Content-Type": "application/json"
    *   },
@@ -85,9 +86,9 @@ class ApiServerContext extends PhpServerContext {
     $data += [
       'code' => 200,
       // @todo Validate reason.
-      'reason' => '',
+      'reason' => 'OK',
       'headers' => [],
-      'body' => NULL,
+      'body' => '',
     ];
 
     if (!is_numeric($data['code'])) {

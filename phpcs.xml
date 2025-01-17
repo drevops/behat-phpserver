@@ -14,4 +14,23 @@
     <file>apiserver</file>
     <file>tests/</file>
 
+    <!-- Allow long array lines in tests. -->
+    <rule ref="Drupal.Arrays.Array.LongLineDeclaration">
+        <exclude-pattern>*.Test\.php</exclude-pattern>
+        <exclude-pattern>*.TestCase\.php</exclude-pattern>
+        <exclude-pattern>*.test</exclude-pattern>
+    </rule>
+
+    <!-- Allow missing class names in tests. -->
+    <rule ref="Drupal.Commenting.ClassComment.Missing">
+        <exclude-pattern>*.Test\.php</exclude-pattern>
+        <exclude-pattern>*.TestCase\.php</exclude-pattern>
+        <exclude-pattern>*.test</exclude-pattern>
+    </rule>
+    <!-- Allow missing function names in tests. -->
+    <rule ref="Drupal.Commenting.FunctionComment.Missing">
+        <exclude-pattern>*.Test\.php</exclude-pattern>
+        <exclude-pattern>*.TestCase\.php</exclude-pattern>
+        <exclude-pattern>*.test</exclude-pattern>
+    </rule>
 </ruleset>

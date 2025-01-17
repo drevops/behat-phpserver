@@ -25,3 +25,21 @@ default:
       sessions:
         default:
           browserkit_http: ~
+    DVDoug\Behat\CodeCoverage\Extension:
+      filter:
+        include:
+          directories:
+            '%paths.base%/src': ~
+      reports:
+        text:
+          showColors: true
+          showOnlySummary: true
+        html:
+          target: '%paths.base%/.logs/behat/.coverage-html'
+        cobertura:
+          target: '%paths.base%/.logs/behat/cobertura.xml'
+
+  formatters:
+    pretty: true
+    junit:
+      output_path: '%paths.base%/.logs/behat/test_results'
