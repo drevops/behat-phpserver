@@ -310,7 +310,7 @@ class PhpServerContext implements Context {
     $this->debug(sprintf('Finding PID of the PHP server process on port %s.', $port));
 
     if (shell_exec('which lsof')) {
-      $command = sprintf("lsof -i -P -n 2>/dev/null | grep ':%s'", $port);
+      $command = sprintf("lsof -i -P -n 2>/dev/null | grep 'php' | grep ':%s'", $port);
       $type = 'lsof';
     }
     elseif (shell_exec('which netstat')) {
