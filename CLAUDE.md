@@ -7,6 +7,8 @@
 
 ## Coding Standards
 - This project follows Drupal coding standards
+- Use snake_case for variables and function arguments
+- Use camelCase for class properties and methods
 
 ## Workflow
 - Use `feature/<name>` branches for PRs

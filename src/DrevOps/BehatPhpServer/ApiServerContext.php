@@ -6,6 +6,7 @@ namespace DrevOps\BehatPhpServer;
 
 use Behat\Gherkin\Node\PyStringNode;
 use GuzzleHttp\Client;
+use GuzzleHttp\RequestOptions;
 
 /**
  * Class ApiServerContext.
@@ -29,18 +30,47 @@ class ApiServerContext extends PhpServerContext {
   const DEFAULT_WEBROOT = __DIR__ . '/../../../apiserver';
 
   /**
+   * Default connect timeout in seconds.
+   */
+  const DEFAULT_CONNECT_TIMEOUT = 5;
+
+  /**
+   * Default request timeout in seconds.
+   */
+  const DEFAULT_REQUEST_TIMEOUT = 10;
+
+  /**
+   * Default read timeout in seconds.
+   */
+  const DEFAULT_READ_TIMEOUT = 10;
+
+  /**
+   * Guzzle HTTP client.
+   */
+  protected Client $client;
+
+  /**
+   * {@inheritdoc}
+   */
+  public function __construct(?string $webroot = NULL, string $host = '127.0.0.1', int $port = 8888, string $protocol = 'http', bool $debug = FALSE, ?int $connection_timeout = NULL, ?int $retry_delay = NULL) {
+    parent::__construct($webroot, $host, $port, $protocol, $debug, $connection_timeout, $retry_delay);
+
+    $this->client = $this->createHttpClient();
+  }
+
+  /**
    * Check if the API server is running.
    *
    * @Given (the )API server is running
    */
   public function apiIsRunning(): void {
-    $client = new Client([
-      'base_uri' => $this->getServerUrl(),
-      'http_errors' => FALSE,
-    ]);
+    // First check if server process is running.
+    if (!$this->isRunning()) {
+      $this->debug('API server process is not running. Attempting to start.');
+      $this->start();
+    }
 
-    $response = $client->request('GET', '/admin/status');
-
+    $response = $this->client->request('GET', '/admin/status');
     if ($response->getStatusCode() !== 200) {
       throw new \Exception('API server is not up');
     }
@@ -71,18 +101,15 @@ class ApiServerContext extends PhpServerContext {
   public function apiWillRespondWith(PyStringNode $data): void {
     $data = $this->prepareResponse($data->getRaw());
 
-    $client = new Client([
-      'base_uri' => $this->getServerUrl(),
-      'http_errors' => FALSE,
-    ]);
-
-    $response = $client->request('PUT', '/admin/responses', [
+    $response = $this->client->request('PUT', '/admin/responses', [
       'json' => $data,
     ]);
 
     if ($response->getStatusCode() !== 201) {
       throw new \RuntimeException('Failed to set the API response.');
     }
+
+    $this->debug('Successfully queued API response.');
   }
 
   /**
@@ -115,8 +142,8 @@ class ApiServerContext extends PhpServerContext {
    */
   public function apiWillRespondWithJson(PyStringNode $json, ?string $code = NULL): void {
     $data = json_encode([
-      'code' => $code ?? 200,
       'body' => json_decode($json->getRaw()),
+      'code' => $code ?? 200,
     ]);
 
     $this->apiWillRespondWith(new PyStringNode([$data], $json->getLine()));
@@ -171,6 +198,27 @@ class ApiServerContext extends PhpServerContext {
     }
 
     return [$data];
+  }
+
+  /**
+   * Create a configured HTTP client with proper timeouts and retry handling.
+   *
+   * @param array<string, mixed> $options
+   *   Additional client options to merge with defaults.
+   *
+   * @return \GuzzleHttp\Client
+   *   Configured Guzzle client.
+   */
+  protected function createHttpClient(array $options = []): Client {
+    $defaults = [
+      'base_uri' => $this->getServerUrl(),
+      'http_errors' => FALSE,
+      RequestOptions::CONNECT_TIMEOUT => static::DEFAULT_CONNECT_TIMEOUT,
+      RequestOptions::TIMEOUT => static::DEFAULT_REQUEST_TIMEOUT,
+      RequestOptions::READ_TIMEOUT => static::DEFAULT_READ_TIMEOUT,
+    ];
+
+    return new Client(array_merge($defaults, $options));
   }
 
 }

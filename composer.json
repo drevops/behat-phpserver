@@ -42,8 +42,8 @@
         "integratedexperts/behat-phpserver": "self.version"
     },
     "autoload": {
-        "psr-0": {
-            "DrevOps\\BehatPhpServer": "src/"
+        "psr-4": {
+            "DrevOps\\BehatPhpServer\\": "src/DrevOps/BehatPhpServer/"
         },
         "classmap": [
             "apiserver"

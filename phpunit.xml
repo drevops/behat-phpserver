@@ -26,6 +26,7 @@
             ignoreIndirectDeprecations="true">
         <include>
             <directory>apiserver</directory>
+            <directory>src</directory>
         </include>
         <exclude>
             <directory>tests</directory>
