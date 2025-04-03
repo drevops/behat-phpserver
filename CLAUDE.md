@@ -10,6 +10,7 @@
 
 ## Workflow
 - Use `feature/<name>` branches for PRs
+- Start commit messages with a verb in past tense and end with a period (e.g., "Fixed...", "Added...", "Updated...")
 
 ## Maintenance
 For detailed maintenance information, including linting, testing, and configuration options, please refer to the README.md file.
