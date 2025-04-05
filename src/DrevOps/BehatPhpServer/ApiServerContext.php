@@ -50,12 +50,48 @@ class ApiServerContext extends PhpServerContext {
   protected Client $client;
 
   /**
-   * {@inheritdoc}
+   * The fixtures directory paths.
+   *
+   * @var string[]
    */
-  public function __construct(?string $webroot = NULL, string $host = '127.0.0.1', int $port = 8888, string $protocol = 'http', bool $debug = FALSE, ?int $connection_timeout = NULL, ?int $retry_delay = NULL) {
+  protected array $fixturesPaths = [];
+
+  /**
+   * Constructs the ApiServerContext.
+   *
+   * @param string|null $webroot
+   *   The webroot to use.
+   * @param string $host
+   *   The host to use.
+   * @param int $port
+   *   The port to use.
+   * @param string $protocol
+   *   The protocol to use.
+   * @param bool $debug
+   *   Whether to enable debug mode.
+   * @param int|null $connection_timeout
+   *   The connection timeout.
+   * @param int|null $retry_delay
+   *   The retry delay.
+   * @param string[]|string|null $paths
+   *   An array of fixture paths or a single path string.
+   */
+  public function __construct(?string $webroot = NULL, string $host = '127.0.0.1', int $port = 8888, string $protocol = 'http', bool $debug = FALSE, ?int $connection_timeout = NULL, ?int $retry_delay = NULL, $paths = NULL) {
     parent::__construct($webroot, $host, $port, $protocol, $debug, $connection_timeout, $retry_delay);
 
     $this->client = $this->createHttpClient();
+
+    // Set fixtures paths, with fallback to the default location.
+    if (empty($paths)) {
+      $this->fixturesPaths[] = dirname($this->webroot) . '/tests/behat/fixtures';
+    }
+    elseif (is_array($paths)) {
+      // Handle both string and array.
+      $this->fixturesPaths = array_map('strval', $paths);
+    }
+    else {
+      $this->fixturesPaths[] = (string) $paths;
+    }
   }
 
   /**
@@ -74,6 +110,18 @@ class ApiServerContext extends PhpServerContext {
     if ($response->getStatusCode() !== 200) {
       throw new \Exception('API server is not up');
     }
+  }
+
+  /**
+   * Reset the API server by clearing all responses and requests.
+   *
+   * @Given (the )API server is reset
+   */
+  public function resetApi(): void {
+    $this->client->request('DELETE', '/admin/responses');
+    $this->client->request('DELETE', '/admin/requests');
+
+    $this->debug('API server responses and requests have been reset.');
   }
 
   /**
@@ -147,6 +195,79 @@ class ApiServerContext extends PhpServerContext {
     ]);
 
     $this->apiWillRespondWith(new PyStringNode([$data], $json->getLine()));
+  }
+
+  /**
+   * Put expected file response data to the API server.
+   *
+   * @param string $file_path
+   *   The path to the file, relative to the fixtures directory.
+   * @param string|null $code
+   *   The response code.
+   *
+   * @throws \RuntimeException
+   *   If the file cannot be read.
+   *
+   * @Given (the )API will respond with file :file_path
+   * @Given (the )API will respond with file :file_path and :code code
+   *
+   * @code
+   * Given API will respond with file "test_data.json"
+   * @endcode
+   *
+   * @code
+   * Given API will respond with file "test_content.xml" and 201 code
+   * @endcode
+   */
+  public function apiWillRespondWithFile(string $file_path, ?string $code = NULL): void {
+    // Search for the file in all configured fixture paths.
+    $file_found = FALSE;
+    $absolute_path = '';
+    $error_paths = [];
+
+    foreach ($this->fixturesPaths as $fixtures_path) {
+      $path = $fixtures_path . '/' . $file_path;
+      $error_paths[] = $fixtures_path;
+
+      if (file_exists($path)) {
+        $absolute_path = $path;
+        $file_found = TRUE;
+        break;
+      }
+    }
+
+    if (!$file_found) {
+      throw new \RuntimeException(sprintf(
+        'File "%s" does not exist in any of the configured fixture paths: %s',
+        $file_path,
+        implode(', ', $error_paths)
+      ));
+    }
+
+    $content = file_get_contents($absolute_path);
+    if ($content === FALSE) {
+      throw new \RuntimeException(sprintf('Failed to read file "%s".', $absolute_path));
+    }
+
+    // Determine content type based on file extension.
+    $extension = pathinfo($file_path, PATHINFO_EXTENSION);
+    $content_type = match (strtolower($extension)) {
+      'json' => 'application/json',
+      'xml' => 'application/xml',
+      'html', 'htm' => 'text/html',
+      'txt' => 'text/plain',
+      default => 'application/octet-stream',
+    };
+
+    $data = json_encode([
+      'body' => $content,
+      'code' => $code ?? 200,
+      'headers' => [
+        'Content-Type' => $content_type,
+      ],
+    ]);
+
+    $this->apiWillRespondWith(new PyStringNode([$data], 0));
   }
 
   /**

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<catalog>
+  <book id="bk101">
+    <author>John Smith</author>
+    <title>Introduction to Programming</title>
+    <genre>Technical</genre>
+    <price>44.95</price>
+    <publish_date>2024-02-15</publish_date>
+    <description>A comprehensive guide to programming fundamentals</description>
+  </book>
+  <book id="bk102">
+    <author>Jane Doe</author>
+    <title>Advanced Data Structures</title>
+    <genre>Technical</genre>
+    <price>59.99</price>
+    <publish_date>2024-03-10</publish_date>
+    <description>Deep dive into complex data structures and algorithms</description>
+  </book>
+  <book id="bk103">
+    <author>Robert Johnson</author>
+    <title>Cloud Architecture Patterns</title>
+    <genre>Technical</genre>
+    <price>49.95</price>
+    <publish_date>2024-01-05</publish_date>
+    <description>Best practices for designing cloud-native applications</description>
+  </book>
+</catalog>

@@ -1,0 +1,4 @@
+This is a sample text file in the secondary fixtures directory.
+It will be used to test the multi-path fixture functionality.
+
+The API context should be able to find this file when requested in a Behat scenario.
