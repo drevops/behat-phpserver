@@ -6,6 +6,7 @@ namespace DrevOps\BehatPhpServer\Tests\Unit;
 
 use Behat\Gherkin\Node\PyStringNode;
 use DrevOps\BehatPhpServer\ApiServerContext;
+use DrevOps\BehatPhpServer\Tests\Traits\ReflectionTrait;
 use GuzzleHttp\Client;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -13,6 +14,8 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversClass(ApiServerContext::class)]
 class ApiServerContextTest extends TestCase {
+
+  use ReflectionTrait;
 
   /**
    * Test createHttpClient method.
@@ -278,6 +281,78 @@ class ApiServerContextTest extends TestCase {
         'json_content' => '{"error": "not found"}',
         'code' => '404',
         'expected_code' => 404,
+      ],
+    ];
+  }
+
+  /**
+   * Test fixture paths in constructor.
+   *
+   * @param array<string>|string|null $paths
+   *   Fixture paths to test.
+   * @param array<string>|callable $expected_paths
+   *   Expected fixture paths or a callback that returns expected paths.
+   */
+  #[DataProvider('dataProviderFixturePaths')]
+  public function testFixturePaths(array|string|null $paths, mixed $expected_paths): void {
+    $webroot = sys_get_temp_dir() . '/test_webroot_' . uniqid();
+    mkdir($webroot, 0777, TRUE);
+
+    $context = new ApiServerContext(
+      $webroot,
+      '127.0.0.1',
+      8888,
+      'http',
+      FALSE,
+      NULL,
+      NULL,
+      $paths
+    );
+
+    $actual_paths = self::getProtectedValue($context, 'fixturesPaths');
+
+    // If expected_paths is a callback, execute it to get the actual expected value.
+    if (is_callable($expected_paths)) {
+      $expected_paths = $expected_paths($webroot);
+    }
+
+    $this->assertEquals($expected_paths, $actual_paths);
+
+    // Clean up.
+    rmdir($webroot);
+  }
+
+  /**
+   * Data provider for testFixturePaths.
+   *
+   * @return array<string, array<string, mixed>>
+   *   Test cases.
+   */
+  public static function dataProviderFixturePaths(): array {
+    return [
+      'default path (null)' => [
+        'paths' => NULL,
+        'expected_paths' => function ($webroot): array {
+          return [dirname($webroot) . '/tests/behat/fixtures'];
+        },
+      ],
+      'string path' => [
+        'paths' => '/path/to/fixtures',
+        'expected_paths' => ['/path/to/fixtures'],
+      ],
+      'array of paths' => [
+        'paths' => ['/path/to/fixtures1', '/path/to/fixtures2'],
+        'expected_paths' => ['/path/to/fixtures1', '/path/to/fixtures2'],
+      ],
+      'empty array (fallback to default)' => [
+        'paths' => [],
+        'expected_paths' => function ($webroot): array {
+          return [dirname($webroot) . '/tests/behat/fixtures'];
+        },
+      ],
+      'non-string scalars get converted to string' => [
+        'paths' => '123',
+        'expected_paths' => ['123'],
       ],
     ];
   }

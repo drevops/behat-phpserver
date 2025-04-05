@@ -1,19 +1,47 @@
-Feature: API server.
+@apiserver
+Feature: API Server
+  In order to test API responses
+  As a developer
+  I want to be able to configure the API server in various ways
 
-  Ensure that Behat is capable of starting API PHP server and asserting that
-  it can return the expected responses.
+  # No common background because we need to restart the server for each scenario
 
-  @apiserver
+  #
+  # Basic functionality
+  #
   Scenario: Check the API server is running
-    Given the API server is running
+    Given API server is running
+    And API server is reset
     When I send a GET request to "/admin/status" in the API server
     Then the response status code should be 200
     And the response header should contain "X-Received-Requests" with value "0"
     And the response header should contain "X-Queued-Responses" with value "0"
 
-  @apiserver
+  Scenario: API server reset functionality clears responses and requests
+    Given API server is running
+    And the API will respond with:
+      """
+      {
+        "code": 200,
+        "reason": "OK",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "test": "data"
+        }
+      }
+      """
+    When I send a GET request to "/admin/status" in the API server
+    Then the response header should contain "X-Queued-Responses" with value "1"
+    When API server is reset
+    And I send a GET request to "/admin/status" in the API server
+    Then the response header should contain "X-Received-Requests" with value "0"
+    And the response header should contain "X-Queued-Responses" with value "0"
+
   Scenario: Assert that incorrectly formatted API responses trigger an error
-    Given the API server is running
+    Given API server is running
+    And API server is reset
     When I send a GET request to "/someurl1" in the API server
     Then the response status code should be 500
     And the response should not contain header "X-Received-Requests"
@@ -21,10 +49,13 @@ Feature: API server.
     And the response header should contain "Content-Length" with value "33"
     And the response should contain "No responses in queue"
 
-  @apiserver
+  #
+  # JSON responses
+  #
   Scenario: Assert that a single API response is returned correctly
-    Given the API server is running
-    And the API will respond with:
+    Given API server is running
+    And API server is reset
+    Given the API will respond with:
       """
       {
         "code": 200,
@@ -38,22 +69,20 @@ Feature: API server.
         }
       }
       """
-
     When I send a GET request to "/someurl" in the API server
     Then the response status code should be 200
     And the response header should contain "X-Received-Requests" with value "1"
     And the response header should contain "X-Queued-Responses" with value "0"
     And the response header should contain "Content-Type" with value "application/json"
-
     And the response should contain "Id"
     And the response should contain "test-id-1"
     And the response should contain "Slug"
     And the response should contain "test-slug-1"
 
-  @apiserver
   Scenario: Assert that multiple API responses are returned correctly
-    Given the API server is running
-    And the API will respond with:
+    Given API server is running
+    And API server is reset
+    Given the API will respond with:
       """
       {
         "code": 200,
@@ -85,7 +114,6 @@ Feature: API server.
         "code": 201
       }
       """
-
     When I send a GET request to "/someurl1" in the API server
     Then the response status code should be 200
     And the response header should contain "X-Received-Requests" with value "1"
@@ -118,10 +146,10 @@ Feature: API server.
     And the response should not contain "Slug"
     And the response should not contain "test-slug"
 
-  @apiserver
   Scenario: Assert that "API will respond with JSON:" works correctly
-    Given the API server is running
-    And API will respond with JSON:
+    Given API server is running
+    And API server is reset
+    Given API will respond with JSON:
       """
       {
         "Id": "test-id-1",
@@ -135,7 +163,6 @@ Feature: API server.
         "Slug": "test-slug-2"
       }
       """
-
     When I send a GET request to "/someurl1" in the API server
     Then the response status code should be 200
     And the response header should contain "X-Received-Requests" with value "1"
@@ -157,3 +184,52 @@ Feature: API server.
     And the response should contain "test-id-2"
     And the response should contain "Slug"
     And the response should contain "test-slug-2"
+
+  Scenario: API server responds with JSON file content
+    Given API server is running
+    And API server is reset
+    Given API will respond with file "test_data.json"
+    When I send a GET request to "/"
+    Then the response status code should be 200
+    And the response should contain "Product A"
+    And the response should contain "Product B"
+    And the response should contain "Product C"
+    And the response header "Content-Type" should be "application/json"
+
+  Scenario: API server responds with XML file content
+    Given API server is running
+    And API server is reset
+    Given API will respond with file "test_content.xml" and 201 code
+    When I send a GET request to "/"
+    Then the response status code should be 201
+    And the response should contain "John Smith"
+    And the response should contain "Jane Doe"
+    And the response should contain "Robert Johnson"
+    And the response header "Content-Type" should be "application/xml"
+
+  Scenario: API server responds with HTML file content
+    Given API server is running
+    And API server is reset
+    Given API will respond with file "test_page.html" and 202 code
+    When I send a GET request to "/"
+    Then the response status code should be 202
+    And the response should be HTML
+    And the response header "Content-Type" should contain "text/html"
+
+  Scenario: API server responds with file from primary fixtures path
+    Given API server is running
+    And API server is reset
+    And API will respond with file "test_data.json"
+    When I send a GET request to "/"
+    Then the response status code should be 200
+    And the response should contain "Product A"
+    And the response header "Content-Type" should be "application/json"
+
+  Scenario: API server responds with file from secondary fixtures path
+    Given API server is running
+    And API server is reset
+    And API will respond with file "secondary_data.txt" and 200 code
+    When I send a GET request to "/"
+    Then the response status code should be 200
+    And the response should contain "sample text file in the secondary fixtures directory"
+    And the response header "Content-Type" should contain "text/plain"

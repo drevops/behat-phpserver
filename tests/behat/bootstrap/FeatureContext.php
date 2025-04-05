@@ -55,7 +55,7 @@ class FeatureContext extends MinkContext implements Context {
    * @When /^(?:|I )go to (?:|the )phpserver test page$/
    */
   public function goToPhpServerTestPage(): void {
-    $this->getSession()->visit($this->phpServerUrl . '/testpage.html');
+    $this->getSession()->visit($this->phpServerUrl . '/test_page.html');
   }
 
   /**
@@ -92,6 +92,54 @@ class FeatureContext extends MinkContext implements Context {
 
     if ($actual !== '') {
       throw new \Exception($message);
+    }
+  }
+
+  /**
+   * @When I send a GET request to :path
+   */
+  public function sendGetRequestToPath(string $path): void {
+    $this->sendRequestToApiServer('GET', $path);
+  }
+
+  /**
+   * @Then the response header :name should be :value
+   */
+  public function theResponseHeaderShouldBe(string $name, string $value): void {
+    $actual = (string) $this->getSession()->getResponseHeader($name);
+    $message = sprintf('The header "%s" does not have the value "%s", but has a value of "%s"', $name, $value, $actual);
+
+    if ($actual !== $value) {
+      throw new \Exception($message);
+    }
+  }
+
+  /**
+   * @Then the response header :name should contain :value
+   */
+  public function theResponseHeaderShouldContain(string $name, string $value): void {
+    $actual = (string) $this->getSession()->getResponseHeader($name);
+    $message = sprintf('The header "%s" does not contain the value "%s", but has a value of "%s"', $name, $value, $actual);
+
+    if (!str_contains($actual, $value)) {
+      throw new \Exception($message);
+    }
+  }
+
+  /**
+   * @Then the response should be HTML
+   */
+  public function theResponseShouldBeHtml(): void {
+    $content_type = (string) $this->getSession()->getResponseHeader('Content-Type');
+    $message = sprintf('The response is not HTML, but has Content-Type "%s"', $content_type);
+
+    if (!str_contains(strtolower($content_type), 'text/html')) {
+      throw new \Exception($message);
+    }
+
+    $content = $this->getSession()->getPage()->getContent();
+    if (!str_contains($content, '<html') && !str_contains($content, '<body')) {
+      throw new \Exception('The response content does not appear to be HTML');
     }
   }
 

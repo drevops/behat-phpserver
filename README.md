@@ -71,6 +71,9 @@ default:
             host: 0.0.0.0   # API PHP server host
             port: 8889      # API PHP server port
             debug: false    # API Enable debug mode for verbose output
+            paths:          # Path(s) to fixture files for API responses
+              - '%paths.base%/tests/behat/fixtures'
+              - '%paths.base%/tests/behat/fixtures2'
 ```
 
 API responses can be queued up in the API server server by sending
@@ -135,7 +138,6 @@ Given API will respond with JSON:
   """
 
 # Queue up a single API response with JSON body and expected code.
-
 Given API will respond with JSON and 201 code:
   """
   {
@@ -143,12 +145,49 @@ Given API will respond with JSON and 201 code:
     "Slug": "test-slug-2"
   }
   """
+
+# Reset the API server by clearing all responses and requests.
+Given the API server is reset
+
+# Queue up a file response with automatic content type detection.
+Given API will respond with file "test_data.json"
+
+# Queue up a file response with a custom response code.
+Given API will respond with file "test_content.xml" and 201 code
 ```
 
 See this [test feature](tests/behat/features/apiserver.feature) for more
 examples.
 
-For more information on supported RESTful API enpoints, see
+### Using File Responses
+
+The `apiWillRespondWithFile` step definition allows you to respond with the contents of a file 
+from one of the configured fixture paths. The context will automatically detect the appropriate 
+content type based on the file extension:
+
+- `.json` → `application/json`
+- `.xml` → `application/xml`
+- `.html`, `.htm` → `text/html`
+- `.txt` → `text/plain`
+- All other extensions → `application/octet-stream`
+
+Multiple fixture paths can be configured in the `behat.yml` file. The context will search for the 
+file in each path in the order specified until it finds a match.
+
+### Resetting the API Server
+
+The `resetApi` step definition allows you to clear all queued responses and request history in the API server.
+This is useful for ensuring a clean state between test steps, especially when multiple scenarios 
+interact with the API server:
+
+```gherkin
+# Clear existing state before setting up a new test
+Given API server is reset
+And API will respond with file "test_data.json"
+When I send a GET request to "/"
+```
+
+For more information on supported RESTful API endpoints, see
 the [API server](apiserver/index.php) implementation.
 
 #### Accessing the API server URL from your contexts

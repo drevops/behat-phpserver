@@ -1,0 +1,29 @@
+{
+  "items": [
+    {
+      "id": 1,
+      "name": "Product A",
+      "price": 29.99,
+      "available": true,
+      "tags": ["new", "featured"]
+    },
+    {
+      "id": 2,
+      "name": "Product B",
+      "price": 49.99,
+      "available": false,
+      "tags": ["clearance"]
+    },
+    {
+      "id": 3,
+      "name": "Product C",
+      "price": 19.99,
+      "available": true,
+      "tags": ["popular", "sale"]
+    }
+  ],
+  "metadata": {
+    "totalCount": 3,
+    "lastUpdated": "2025-04-05T10:30:00Z"
+  }
+}
