@@ -145,6 +145,8 @@ Feature: API Server
     And the response should not contain "test-id"
     And the response should not contain "Slug"
     And the response should not contain "test-slug"
+    And the API server should have 3 received requests
+    And the API server should have 0 queued responses
 
   Scenario: Assert that "API will respond with JSON:" works correctly
     Given API server is running
@@ -184,6 +186,8 @@ Feature: API Server
     And the response should contain "test-id-2"
     And the response should contain "Slug"
     And the response should contain "test-slug-2"
+    And the API server should have 2 received requests
+    And the API server should have 0 responses queued
 
   Scenario: API server responds with JSON file content
     Given API server is running
