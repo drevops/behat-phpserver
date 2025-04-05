@@ -342,4 +342,52 @@ class ApiServerContext extends PhpServerContext {
     return new Client(array_merge($defaults, $options));
   }
 
+  /**
+   * Assert that the API server has a specific number of queued responses.
+   *
+   * @param string $count
+   *   The expected number of queued responses.
+   *
+   * @Then (the )API server should have :count queued response(s)
+   * @Then (the )API server should have :count response(s) queued
+   */
+  public function assertQueuedResponsesCount(string $count): void {
+    $response = $this->client->request('GET', '/admin/status');
+    $queued_responses = $response->getHeaderLine('X-Queued-Responses');
+
+    if ($queued_responses !== $count) {
+      throw new \RuntimeException(sprintf(
+        'Expected %s queued responses, got %s',
+        $count,
+        $queued_responses
+      ));
+    }
+
+    $this->debug(sprintf('Verified API server has %s queued responses', $count));
+  }
+
+  /**
+   * Assert that the API server has received a specific number of requests.
+   *
+   * @param string $count
+   *   The expected number of received requests.
+   *
+   * @Then (the )API server should have received :count request(s)
+   * @Then (the )API server should have :count received request(s)
+   */
+  public function assertReceivedRequestsCount(string $count): void {
+    $response = $this->client->request('GET', '/admin/status');
+    $received_requests = $response->getHeaderLine('X-Received-Requests');
+
+    if ($received_requests !== $count) {
+      throw new \RuntimeException(sprintf(
+        'Expected %s received requests, got %s',
+        $count,
+        $received_requests
+      ));
+    }
+
+    $this->debug(sprintf('Verified API server has received %s requests', $count));
+  }
+
 }

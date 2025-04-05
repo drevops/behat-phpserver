@@ -154,6 +154,12 @@ Given API will respond with file "test_data.json"
 
 # Queue up a file response with a custom response code.
 Given API will respond with file "test_content.xml" and 201 code
+
+# Assert the number of requests received by the API server.
+Then the API server should have 3 received requests
+
+# Assert the number of responses queued in the API server.
+Then the API server should have 0 queued responses
 ```
 
 See this [test feature](tests/behat/features/apiserver.feature) for more
@@ -161,8 +167,8 @@ examples.
 
 ### Using File Responses
 
-The `apiWillRespondWithFile` step definition allows you to respond with the contents of a file 
-from one of the configured fixture paths. The context will automatically detect the appropriate 
+The `apiWillRespondWithFile` step definition allows you to respond with the contents of a file
+from one of the configured fixture paths. The context will automatically detect the appropriate
 content type based on the file extension:
 
 - `.json` → `application/json`
@@ -171,13 +177,13 @@ content type based on the file extension:
 - `.txt` → `text/plain`
 - All other extensions → `application/octet-stream`
 
-Multiple fixture paths can be configured in the `behat.yml` file. The context will search for the 
+Multiple fixture paths can be configured in the `behat.yml` file. The context will search for the
 file in each path in the order specified until it finds a match.
 
 ### Resetting the API Server
 
 The `resetApi` step definition allows you to clear all queued responses and request history in the API server.
-This is useful for ensuring a clean state between test steps, especially when multiple scenarios 
+This is useful for ensuring a clean state between test steps, especially when multiple scenarios
 interact with the API server:
 
 ```gherkin
