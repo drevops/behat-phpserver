@@ -597,7 +597,8 @@ class PhpServerContext implements Context {
       return 0;
     }
 
-    $command = sprintf("netstat -an 2>/dev/null | grep ':%s' | grep 'LISTEN'", $port);
+    // -p is only available on Linux.
+    $command = sprintf("netstat -anp 2>/dev/null | grep ':%s' | grep 'LISTEN'", $port);
 
     $output = [];
     $this->executeCommand($command, $output);
