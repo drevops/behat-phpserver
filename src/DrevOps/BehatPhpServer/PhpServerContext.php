@@ -509,8 +509,6 @@ class PhpServerContext implements Context {
    *   PID as number.
    */
   protected function getPid(int $port): int {
-    $pid = 0;
-
     $this->debug(sprintf('Finding PID of the PHP server process on port %s.', $port));
 
     // First, try with the stored PID if we have one.
@@ -519,24 +517,34 @@ class PhpServerContext implements Context {
       return $this->pid;
     }
 
-    // Determine which command to use based on OS.
-    $command = NULL;
-    $type = NULL;
-
-    if ($this->executeCommand('which lsof 2>/dev/null')) {
-      $command = sprintf("lsof -i -P -n 2>/dev/null | grep 'php' | grep ':%s' | grep 'LISTEN'", $port);
-      $type = 'lsof';
-    }
-    elseif ($this->executeCommand('which netstat 2>/dev/null')) {
-      $command = sprintf("netstat -an 2>/dev/null | grep ':%s' | grep 'LISTEN'", $port);
-      $type = 'netstat';
-    }
-    else {
-      $this->debug('No supported OS utilities found for process detection.');
-      throw new \RuntimeException('Unable to determine if PHP server was started: no supported OS utilities found. Manually identify the process and terminate it.');
+    $pid = $this->getPidLsof($port);
+    if ($pid === 0) {
+      $pid = $this->getPidNetstat($port);
     }
 
-    $this->debug(sprintf('Using "%s" command to find the PID.', $command));
+    if ($pid === 0) {
+      $this->debug('Could not identify PHP process using lsof or netstat.');
+      throw new \RuntimeException(sprintf('Unable to determine PHP server process for port %d. Manually identify the process and terminate it.', $port));
+    }
+
+    return $pid;
+  }
+
+  /**
+   * Get PID of the running server on the specified port using lsof.
+   *
+   * @param int $port
+   *   Port number.
+   *
+   * @return int
+   *   PID as number.
+   */
+  protected function getPidLsof(int $port): int {
+    if (!$this->executeCommand('which lsof 2>/dev/null')) {
+      return 0;
+    }
+
+    $command = sprintf("lsof -i -P -n 2>/dev/null | grep 'php' | grep ':%s' | grep 'LISTEN'", $port);
 
     $output = [];
     $this->executeCommand($command, $output);
@@ -550,7 +558,7 @@ class PhpServerContext implements Context {
 
     if (empty($output)) {
       $this->debug('No processes found on port ' . $port);
-      throw new \RuntimeException(sprintf('Unable to find PHP server process on port %s.', $port));
+      return 0;
     }
 
     // Log all found processes.
@@ -558,42 +566,81 @@ class PhpServerContext implements Context {
       $this->debug(sprintf('Found process %d: %s', $i + 1, $line));
     }
 
-    // Try to find PHP process among the results.
     foreach ($output as $line) {
-      $line = preg_replace('/\s+/', ' ', $line);
-      $this->debug(sprintf('Processing line: %s', $line));
-      $parts = explode(' ', (string) $line);
+      $line = trim((string) preg_replace('/\s+/', ' ', $line));
 
-      if ($type === 'lsof') {
-        if (count($parts) > 1 && $parts[0] === 'php' && is_numeric($parts[1])) {
-          $pid = intval($parts[1]);
-          $this->debug(sprintf('Found PHP process with PID %s using lsof.', $pid));
-          break;
-        }
+      $this->debug(sprintf('Processing line: %s', $line));
+      $parts = explode(' ', $line);
+
+      // Accept any executable that *starts with* "php" (php, php-fpm, php8.3…).
+      if (count($parts) > 1 && str_starts_with($parts[0], 'php') && is_numeric($parts[1])) {
+        $pid = intval($parts[1]);
+        $this->debug(sprintf('Found PHP process with PID %s using lsof.', $pid));
+        return $pid;
       }
-      elseif ($type === 'netstat') {
-        if (isset($parts[8]) && strpos($parts[8], '/php') !== FALSE) {
-          $part8 = $parts[8];
-          $pid_name_parts = explode('/', $part8);
+    }
+
+    return 0;
+  }
+
+  /**
+   * Get PID of the running server on the specified port using netstat.
+   *
+   * @param int $port
+   *   Port number.
+   *
+   * @return int
+   *   PID as number.
+   */
+  protected function getPidNetstat(int $port): int {
+    if (!$this->executeCommand('which netstat 2>/dev/null')) {
+      return 0;
+    }
+
+    $command = sprintf("netstat -an 2>/dev/null | grep ':%s' | grep 'LISTEN'", $port);
+
+    $output = [];
+    $this->executeCommand($command, $output);
+
+    if (empty($output)) {
+      // Try without the LISTEN filter in case the process is in another state.
+      $command = str_replace(" | grep 'LISTEN'", '', $command);
+      $this->debug(sprintf('No LISTEN processes found, retrying with command: %s', $command));
+      $this->executeCommand($command, $output);
+    }
+
+    if (empty($output)) {
+      $this->debug('No processes found on port ' . $port);
+      return 0;
+    }
+
+    // Log all found processes.
+    foreach ($output as $i => $line) {
+      $this->debug(sprintf('Found process %d: %s', $i + 1, $line));
+    }
+
+    foreach ($output as $line) {
+      $line = trim((string) preg_replace('/\s+/', ' ', $line));
+      $this->debug(sprintf('Processing line: %s', $line));
+      $parts = explode(' ', $line);
+
+      foreach ($parts as $part) {
+        if (str_contains($part, '/php')) {
+          $pid_name_parts = explode('/', $part);
           if (count($pid_name_parts) > 1) {
             $found_pid = $pid_name_parts[0];
             $name = $pid_name_parts[1];
             if (is_numeric($found_pid) && strpos($name, 'php') === 0) {
               $pid = intval($found_pid);
               $this->debug(sprintf('Found PHP process with PID %s using netstat.', $pid));
-              break;
+              return $pid;
             }
           }
         }
       }
     }
 
-    if ($pid === 0) {
-      $this->debug('Could not identify PHP process from output: ' . implode("\n", $output));
-      throw new \RuntimeException(sprintf('Unable to determine if PHP server was started: PID is 0 in command "%s" output. Manually identify the process and terminate it.', $command));
-    }
-
-    return $pid;
+    return 0;
   }
 
   /**
