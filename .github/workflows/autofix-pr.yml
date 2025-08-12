@@ -1,0 +1,172 @@
+name: Auto-fix PRs with AI
+
+on:
+  check_suite:
+    types: [completed]
+  check_run:
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Branch to fix (must have an open PR)"
+        required: false
+        default: "renovate/deps"   # change to "auto-slash-debs" if you literally want that string
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+  checks: read
+
+env:
+  TARGET_BRANCH_GLOB: "renovate/*"    # <-- wildcard match
+  TARGET_CHECK_NAME: ""               # optional exact check_run name
+  TARGET_APP_SLUG: ""                 # optional app slug (e.g. circleci, buildkite)
+
+jobs:
+  autofix-pr:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Determine trigger mode and branch
+        id: ctx
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TRIGGER="manual"
+            BRANCH="${{ inputs.branch }}"
+            CONCLUSION="failure"   # manual runs skip failure gate
+            APP_SLUG=""
+            CHECK_NAME=""
+          elif [ "${{ github.event_name }}" = "check_suite" ]; then
+            TRIGGER="checks"
+            BRANCH="${{ github.event.check_suite.head_branch }}"
+            CONCLUSION="${{ github.event.check_suite.conclusion }}"
+            APP_SLUG="${{ github.event.check_suite.app.slug }}"
+            CHECK_NAME=""
+          else
+            TRIGGER="checks"
+            BRANCH="${{ github.event.check_run.check_suite.head_branch }}"
+            CONCLUSION="${{ github.event.check_run.conclusion }}"
+            APP_SLUG="${{ github.event.check_run.app.slug }}"
+            CHECK_NAME="${{ github.event.check_run.name }}"
+          fi
+
+          {
+            echo "trigger=$TRIGGER"
+            echo "branch=$BRANCH"
+            echo "conclusion=$CONCLUSION"
+            echo "app_slug=$APP_SLUG"
+            echo "check_name=$CHECK_NAME"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Check failed checks and branch matches wildcard (auto mode)
+        id: gate
+        shell: bash
+        run: |
+          # Manual run skips failure + wildcard gates, but still needs an open PR later.
+          if [ "${{ steps.ctx.outputs.trigger }}" = "manual" ]; then
+            echo "ok=yes" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Must be a failed check
+          if [ "${{ steps.ctx.outputs.conclusion }}" != "failure" ]; then
+            echo "Not a failure. Skip."
+            echo "ok=no" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Wildcard branch match: e.g., renovate/*
+          BRANCH="${{ steps.ctx.outputs.branch }}"
+          case "$BRANCH" in
+            "${{ env.TARGET_BRANCH_GLOB }}")
+              ;;
+            *)
+              echo "Branch '$BRANCH' does not match '${{ env.TARGET_BRANCH_GLOB }}'. Skip."
+              echo "ok=no" >> "$GITHUB_OUTPUT"
+              exit 0
+              ;;
+          esac
+
+          # Optional: CI app slug filter
+          if [ -n "${{ env.TARGET_APP_SLUG }}" ] && [ "${{ steps.ctx.outputs.app_slug }}" != "${{ env.TARGET_APP_SLUG }}" ]; then
+            echo "App slug mismatch. Skip."
+            echo "ok=no" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Optional: specific check name filter (only check_run has name)
+          if [ -n "${{ env.TARGET_CHECK_NAME }}" ] && [ "${{ github.event_name }}" = "check_run" ]; then
+            if [ "${{ steps.ctx.outputs.check_name }}" != "${{ env.TARGET_CHECK_NAME }}" ]; then
+              echo "Check name mismatch. Skip."
+              echo "ok=no" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          fi
+
+          echo "ok=yes" >> "$GITHUB_OUTPUT"
+
+      - name: Exit early if gated out
+        if: steps.gate.outputs.ok != 'yes'
+        run: echo "Gated out."
+
+      - name: Resolve branch to operate on
+        if: steps.gate.outputs.ok == 'yes'
+        id: branch
+        shell: bash
+        run: |
+          echo "value=${{ steps.ctx.outputs.branch }}" >> "$GITHUB_OUTPUT"
+          if [ "${{ steps.ctx.outputs.trigger }}" = "manual" ]; then
+            echo "value=${{ inputs.branch }}" > /tmp/val
+            echo "value=$(cat /tmp/val)" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Find open PR for branch
+        if: steps.gate.outputs.ok == 'yes'
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PR_JSON=$(gh pr list --state open --head "${{ steps.branch.outputs.value }}" --json number,headRef -q '.[0]')
+          if [ -z "$PR_JSON" ] || [ "$PR_JSON" = "null" ]; then
+            echo "No open PR for branch '${{ steps.branch.outputs.value }}'. Exiting."
+            echo "found=no" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          {
+            echo "found=yes"
+            echo "number=$(jq -r .number <<< "$PR_JSON")"
+            echo "headRef=$(jq -r .headRef <<< "$PR_JSON")"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Stop if no PR
+        if: steps.pr.outputs.found != 'yes'
+        run: echo "No PR to fix."
+
+      - name: Checkout PR branch
+        if: steps.pr.outputs.found == 'yes'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.pr.outputs.headRef }}
+          fetch-depth: 0
+
+      - name: Fix with AI
+        if: steps.pr.outputs.found == 'yes'
+        uses: mirrajabi/aider-github-action@v1.1.0
+        timeout-minutes: 12
+        with:
+          api_key_env_name: ANTHROPIC_API_KEY
+          api_key_env_value: ${{ secrets.ANTHROPIC_API_KEY }}
+          branch: ${{ steps.pr.outputs.headRef }}
+          aider_args: >
+            --yes
+            --message "Make the smallest safe edits to fix formatting/lint and obvious test failures for PR #${{ steps.pr.outputs.number }} (branch: ${{ steps.pr.outputs.headRef }}). No refactors."
+            --model claude-3-5-sonnet-20240620
+
+      - name: Push (re-triggers checks)
+        if: steps.pr.outputs.found == 'yes'
+        run: |
+          git config user.name "ai-fix-bot"
+          git config user.email "ai-fix-bot@users.noreply.github.com"
+          git push --no-verify || true
