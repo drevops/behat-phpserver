@@ -128,7 +128,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          PR_JSON=$(gh pr list --state open --head "${{ steps.branch.outputs.value }}" --json number,headRef -q '.[0]')
+          PR_JSON=$(gh pr list --state open --head "${{ steps.branch.outputs.value }}" --json number,headRefName -q '.[0]')
           if [ -z "$PR_JSON" ] || [ "$PR_JSON" = "null" ]; then
             echo "No open PR for branch '${{ steps.branch.outputs.value }}'. Exiting."
             echo "found=no" >> "$GITHUB_OUTPUT"
@@ -137,7 +137,7 @@ jobs:
           {
             echo "found=yes"
             echo "number=$(jq -r .number <<< "$PR_JSON")"
-            echo "headRef=$(jq -r .headRef <<< "$PR_JSON")"
+            echo "headRef=$(jq -r .headRefName <<< "$PR_JSON")"
           } >> "$GITHUB_OUTPUT"
 
       - name: Stop if no PR
