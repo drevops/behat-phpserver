@@ -194,7 +194,7 @@ class ApiServerContext extends PhpServerContext {
       'code' => $code ?? 200,
     ]);
 
-    $this->apiWillRespondWith(new PyStringNode([$data], $json->getLine()));
+    $this->apiWillRespondWith(new PyStringNode([$data ?: ''], $json->getLine()));
   }
 
   /**
@@ -267,7 +267,7 @@ class ApiServerContext extends PhpServerContext {
       ],
     ]);
 
-    $this->apiWillRespondWith(new PyStringNode([$data], 0));
+    $this->apiWillRespondWith(new PyStringNode([$data ?: ''], 0));
   }
 
   /**

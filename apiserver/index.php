@@ -96,7 +96,7 @@ class ApiServer {
         throw new \RuntimeException('Failed to load data from the server state file ' . $this->stateFile);
       }
 
-      $this->requests = $state['requests'] ?? [];
+      $this->requests = is_array($state['requests'] ?? []) ? $state['requests'] : [];
       $this->responses = $state['responses'] ?? [];
     }
   }
