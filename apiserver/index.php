@@ -63,6 +63,10 @@ class ApiServer {
   protected array $requests = [];
 
   /**
+   * @var array<int|Request>
+   */
+
+  /**
    * The queued responses.
    *
    * @var array<int|Response>
@@ -279,6 +283,7 @@ class Response {
    *   The response object.
    */
   public static function fromArray(array $data): static {
+    /** @var array<string, mixed> $data */
     $data += [
       'method' => 'GET',
       'code' => 200,

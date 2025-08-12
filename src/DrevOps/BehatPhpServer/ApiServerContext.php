@@ -148,6 +148,7 @@ class ApiServerContext extends PhpServerContext {
    */
   public function apiWillRespondWith(PyStringNode $data): void {
     $data = $this->prepareResponse($data->getRaw());
+    assert(is_array($data));
 
     $response = $this->client->request('PUT', '/admin/responses', [
       'json' => $data,
@@ -194,6 +195,7 @@ class ApiServerContext extends PhpServerContext {
       'code' => $code ?? 200,
     ]);
 
+    assert($data !== false);
     $this->apiWillRespondWith(new PyStringNode([$data], $json->getLine()));
   }
 
