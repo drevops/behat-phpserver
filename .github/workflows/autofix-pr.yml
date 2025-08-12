@@ -166,7 +166,9 @@ jobs:
           api_key_env_value: ${{ secrets.ANTHROPIC_API_KEY }}
           branch: ${{ steps.pr.outputs.headRef }}
           model: claude-3-5-sonnet-20240620
-          aider_args: '--yes --message "Make the smallest safe edits to fix formatting/lint and obvious test failures for PR #${{ steps.pr.outputs.number }} (branch: ${{ steps.pr.outputs.headRef }}). No refactors."'
+          aider_args: >
+            --yes
+            --message "Checks failed for PR #${{ steps.pr.outputs.number }} (branch: ${{ steps.pr.outputs.headRef }}). Make the smallest safe edits to fix formatting/lint and obvious test failures. No refactors."
 
       - name: Push (re-triggers checks)
         if: steps.pr.outputs.found == 'yes'
