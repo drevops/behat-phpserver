@@ -116,10 +116,10 @@ jobs:
         id: branch
         shell: bash
         run: |
-          echo "value=${{ steps.ctx.outputs.branch }}" >> "$GITHUB_OUTPUT"
           if [ "${{ steps.ctx.outputs.trigger }}" = "manual" ]; then
-            echo "value=${{ inputs.branch }}" > /tmp/val
-            echo "value=$(cat /tmp/val)" >> "$GITHUB_OUTPUT"
+            echo "value=${{ inputs.branch }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=${{ steps.ctx.outputs.branch }}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Find open PR for branch
