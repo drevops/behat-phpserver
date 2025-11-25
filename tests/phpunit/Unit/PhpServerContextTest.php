@@ -66,12 +66,12 @@ class PhpServerContextTest extends TestCase {
     }
 
     // Use reflection to call protected isRunning method.
-    $reflectionClass = new \ReflectionClass(PhpServerContext::class);
-    $isRunningMethod = $reflectionClass->getMethod('isRunning');
-    $isRunningMethod->setAccessible(TRUE);
+    $reflection_class = new \ReflectionClass(PhpServerContext::class);
+    $is_running_method = $reflection_class->getMethod('isRunning');
+    $is_running_method->setAccessible(TRUE);
 
     // Call the method and check results.
-    $result = $isRunningMethod->invoke($mock, $timeout, $retry_delay);
+    $result = $is_running_method->invoke($mock, $timeout, $retry_delay);
     $this->assertEquals($expected_result, $result);
   }
 

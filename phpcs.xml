@@ -6,6 +6,7 @@
         <exclude name="Drupal.Files.LineLength.TooLong"/>
     </rule>
     <rule ref="Generic.PHP.RequireStrictTypes"/>
+    <rule ref="DrevOps"/>
 
     <arg name="colors"/>
     <arg value="sp"/>

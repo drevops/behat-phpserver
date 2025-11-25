@@ -27,6 +27,7 @@
         "behat/mink-browserkit-driver": "^2.2",
         "dantleech/gherkin-lint": "^0.2.3",
         "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
+        "drevops/phpcs-standard": "^0.6",
         "drupal/coder": "^8.3",
         "dvdoug/behat-code-coverage": "^5.3",
         "ergebnis/composer-normalize": "^2.45",
@@ -64,11 +65,11 @@
         "lint": [
             "phpcs",
             "phpstan",
-            "rector --clear-cache --dry-run",
+            "rector --dry-run",
             "gherkinlint lint tests/behat/features"
         ],
         "lint-fix": [
-            "rector --clear-cache",
+            "rector",
             "phpcbf"
         ],
         "reset": "rm -Rf vendor composer.lock",
