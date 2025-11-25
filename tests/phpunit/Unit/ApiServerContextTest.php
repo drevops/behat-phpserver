@@ -39,12 +39,12 @@ class ApiServerContextTest extends TestCase {
       ->willReturn($server_url);
 
     // Use reflection to call protected createHttpClient method.
-    $reflectionClass = new \ReflectionClass(ApiServerContext::class);
-    $createHttpClient = $reflectionClass->getMethod('createHttpClient');
-    $createHttpClient->setAccessible(TRUE);
+    $reflection_class = new \ReflectionClass(ApiServerContext::class);
+    $create_http_client = $reflection_class->getMethod('createHttpClient');
+    $create_http_client->setAccessible(TRUE);
 
     // Call the method.
-    $client = $createHttpClient->invoke($context, $additional_options);
+    $client = $create_http_client->invoke($context, $additional_options);
 
     // Assert the result is a Client instance.
     $this->assertInstanceOf(Client::class, $client);
@@ -86,12 +86,12 @@ class ApiServerContextTest extends TestCase {
       ->getMock();
 
     // Use reflection to call protected prepareResponse method.
-    $reflectionClass = new \ReflectionClass(ApiServerContext::class);
-    $prepareResponse = $reflectionClass->getMethod('prepareResponse');
-    $prepareResponse->setAccessible(TRUE);
+    $reflection_class = new \ReflectionClass(ApiServerContext::class);
+    $prepare_response = $reflection_class->getMethod('prepareResponse');
+    $prepare_response->setAccessible(TRUE);
 
     // Call the method with the test input.
-    $result = $prepareResponse->invoke($context, $json_input);
+    $result = $prepare_response->invoke($context, $json_input);
 
     // Basic assertions for all cases.
     $this->assertIsArray($result);
@@ -179,15 +179,15 @@ class ApiServerContextTest extends TestCase {
       ->getMock();
 
     // Use reflection to call protected prepareResponse method.
-    $reflectionClass = new \ReflectionClass(ApiServerContext::class);
-    $prepareResponse = $reflectionClass->getMethod('prepareResponse');
-    $prepareResponse->setAccessible(TRUE);
+    $reflection_class = new \ReflectionClass(ApiServerContext::class);
+    $prepare_response = $reflection_class->getMethod('prepareResponse');
+    $prepare_response->setAccessible(TRUE);
 
     // Test with the given invalid input.
     if (class_exists($exception_class)) {
       $this->expectException($exception_class);
       $this->expectExceptionMessage($exception_message);
-      $prepareResponse->invoke($context, $json_input);
+      $prepare_response->invoke($context, $json_input);
     }
     else {
       $this->fail(sprintf('Exception class %s does not exist', $exception_class));
@@ -239,7 +239,7 @@ class ApiServerContextTest extends TestCase {
       ->getMock();
 
     // Create a PyStringNode.
-    $pyStringNode = new PyStringNode([$json_content], 1);
+    $py_string_node = new PyStringNode([$json_content], 1);
 
     // Setup the mock expectation.
     $context->expects($this->once())
@@ -256,7 +256,7 @@ class ApiServerContextTest extends TestCase {
       });
 
     // Call the method.
-    $context->apiWillRespondWithJson($pyStringNode, $code);
+    $context->apiWillRespondWithJson($py_string_node, $code);
   }
 
   /**
