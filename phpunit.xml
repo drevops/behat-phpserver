@@ -37,6 +37,7 @@
               disableCodeCoverageIgnore="false">
         <report>
             <html outputDirectory=".logs/phpunit/.coverage-html" lowUpperBound="50" highLowerBound="90"/>
+            <text outputFile=".logs/phpunit/coverage.txt"/>
             <cobertura outputFile=".logs/phpunit/cobertura.xml"/>
         </report>
     </coverage>
