@@ -237,3 +237,37 @@ Feature: API Server
     Then the response status code should be 200
     And the response should contain "sample text file in the secondary fixtures directory"
     And the response header "Content-Type" should contain "text/plain"
+
+  #
+  # Admin operations
+  #
+  Scenario: Clear only responses queue without affecting received requests count
+    Given API server is running
+    And API server is reset
+    And the API will respond with JSON:
+      """
+      {"test": "response1"}
+      """
+    And the API will respond with JSON:
+      """
+      {"test": "response2"}
+      """
+    # Make a request to increment received requests count
+    When I send a GET request to "/someurl" in the API server
+    Then the API server should have 1 received request
+    And the API server should have 1 queued response
+    # Clear only responses - requests count should remain unchanged
+    Given the API has no responses
+    Then the API server should have 1 received request
+    And the API server should have 0 queued responses
+
+  Scenario: Debug API requests shows request information
+    Given API server is running
+    And API server is reset
+    And the API will respond with JSON:
+      """
+      {"status": "ok"}
+      """
+    When I send a GET request to "/test/endpoint" in the API server
+    And I debug API requests
+    Then the API server should have 1 received request

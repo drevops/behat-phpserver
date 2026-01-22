@@ -125,6 +125,49 @@ class ApiServerContext extends PhpServerContext {
   }
 
   /**
+   * Clear expected responses queue in the API server.
+   *
+   * @Given (the )API has no responses
+   *
+   * @code
+   * Given the API has no responses
+   * @endcode
+   *
+   * @see https://github.com/drevops/behat-phpserver/issues/33
+   */
+  public function apiHasNoResponses(): void {
+    $response = $this->client->request('DELETE', '/admin/responses');
+
+    if ($response->getStatusCode() !== 200) {
+      throw new \RuntimeException('Failed to delete the API responses.');
+    }
+
+    $this->debug('API server responses have been cleared.');
+  }
+
+  /**
+   * Fetch debug information about API requests made.
+   *
+   * @When I debug API requests
+   *
+   * @code
+   * When I debug API requests
+   * @endcode
+   */
+  public function debugApiRequests(): void {
+    $response = $this->client->request('GET', '/admin/requests');
+
+    if ($response->getStatusCode() !== 200) {
+      throw new \RuntimeException('Failed to fetch the API requests.');
+    }
+
+    $body = (string) $response->getBody();
+
+    $message = json_encode(json_decode($body, TRUE), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    fwrite(STDOUT, "\nAPI Requests Debug Info:\n" . $message . "\n");
+  }
+
+  /**
    * Put expected response data to the API server.
    *
    * @Given (the )API will respond with:
