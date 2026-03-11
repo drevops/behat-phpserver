@@ -15,6 +15,7 @@
 ![LICENSE](https://img.shields.io/github/license/drevops/behat-phpserver)
 ![Renovate](https://img.shields.io/badge/renovate-enabled-green?logo=renovatebot)
 
+[![Vortex Ecosystem](https://img.shields.io/badge/%F0%9F%8C%80-Vortex%20Ecosystem-65ACBC)](https://github.com/drevops/vortex)
 </div>
 
 ## Features
