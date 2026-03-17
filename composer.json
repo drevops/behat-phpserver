@@ -19,24 +19,24 @@
         "source": "https://github.com/drevops/behat-phpserver"
     },
     "require": {
-        "php": ">=8.2",
-        "behat/behat": "^3.17",
-        "guzzlehttp/guzzle": "^7.9"
+        "php": ">=8.5.4",
+        "behat/behat": "^3.29.0",
+        "guzzlehttp/guzzle": "^7.10.0"
     },
     "require-dev": {
-        "behat/mink-browserkit-driver": "^2.2",
+        "behat/mink-browserkit-driver": "^2.3.0",
         "dantleech/gherkin-lint": "^0.2.3",
-        "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
+        "dealerdirect/phpcodesniffer-composer-installer": "^1.2.0",
         "drevops/phpcs-standard": "^0.7",
-        "drupal/coder": "^8.3",
-        "dvdoug/behat-code-coverage": "^5.3",
-        "ergebnis/composer-normalize": "^2.45",
-        "escapestudios/symfony2-coding-standard": "^3.15",
+        "drupal/coder": "^8.3.31",
+        "dvdoug/behat-code-coverage": "^5.4.1",
+        "ergebnis/composer-normalize": "^2.50.0",
+        "escapestudios/symfony2-coding-standard": "^3.18.0",
         "friends-of-behat/mink-extension": "^2.7.5",
         "phpstan/phpstan": "^2",
-        "phpunit/phpunit": "^11.4",
-        "rector/rector": "^2.0",
-        "squizlabs/php_codesniffer": "^3.11.2",
+        "phpunit/phpunit": "^11.5.55",
+        "rector/rector": "^2.3.9",
+        "squizlabs/php_codesniffer": "^3.13.5",
         "symfony/http-client": "^6 || ^7.2.2 || ^8.0.0"
     },
     "replace": {
