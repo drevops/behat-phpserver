@@ -353,12 +353,12 @@ class ApiServerContext extends PhpServerContext {
     }
 
     // Convert the body to a JSON string as it would be in a real response.
-    if (isset($data['body']) || $data['body'] !== NULL) {
+    if (isset($data['body']) && $data['body'] !== NULL) {
       if (is_array($data['body'])) {
-        $data['body'] = json_encode($data['body']);
+        $data['body'] = json_encode($data['body']) ?: '';
       }
 
-      $data['body'] = \base64_encode($data['body']);
+      $data['body'] = \base64_encode((string) $data['body']);
     }
 
     return [$data];
