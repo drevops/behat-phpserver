@@ -96,8 +96,12 @@ class ApiServer {
         throw new \RuntimeException('Failed to load data from the server state file ' . $this->stateFile);
       }
 
-      $this->requests = is_array($state['requests'] ?? []) ? $state['requests'] : [];
-      $this->responses = $state['responses'] ?? [];
+      /** @var array<int|Request> $requests */
+      $requests = is_array($state['requests'] ?? []) ? $state['requests'] : [];
+      $this->requests = $requests;
+      /** @var array<int|Response> $responses */
+      $responses = is_array($state['responses'] ?? []) ? $state['responses'] : [];
+      $this->responses = $responses;
     }
   }
 
@@ -291,7 +295,7 @@ class Response {
       throw new \InvalidArgumentException('Method must be a string.');
     }
 
-    if (!in_array($data['method'], ['GET', 'POST', 'PUT', 'DELETE'])) {
+    if (!in_array($data['method'], ['GET', 'POST', 'PUT', 'DELETE'], TRUE)) {
       throw new \InvalidArgumentException(sprintf('Unsupported HTTP method "%s". Supported methods are GET, POST, PUT, DELETE.', $data['method']));
     }
 
@@ -299,7 +303,7 @@ class Response {
       throw new \InvalidArgumentException('Response code is required.');
     }
 
-    $data['code'] = intval($data['code']);
+    $data['code'] = is_numeric($data['code']) ? intval($data['code']) : 0;
 
     if ($data['code'] < 100 || $data['code'] > 599) {
       throw new \InvalidArgumentException('Response code must be a number between 100 and 599.');
