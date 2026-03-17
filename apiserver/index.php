@@ -295,7 +295,7 @@ class Response {
       throw new \InvalidArgumentException('Method must be a string.');
     }
 
-    if (!in_array($data['method'], ['GET', 'POST', 'PUT', 'DELETE'])) {
+    if (!in_array($data['method'], ['GET', 'POST', 'PUT', 'DELETE'], TRUE)) {
       throw new \InvalidArgumentException(sprintf('Unsupported HTTP method "%s". Supported methods are GET, POST, PUT, DELETE.', $data['method']));
     }
 
