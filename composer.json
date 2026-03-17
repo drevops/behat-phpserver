@@ -28,7 +28,7 @@
         "dantleech/gherkin-lint": "^0.2.3",
         "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
         "drevops/phpcs-standard": "^0.6",
-        "drupal/coder": "^8.3",
+        "drupal/coder": "^9.0",
         "dvdoug/behat-code-coverage": "^5.3",
         "ergebnis/composer-normalize": "^2.45",
         "escapestudios/symfony2-coding-standard": "^3.15",
