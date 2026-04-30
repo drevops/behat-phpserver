@@ -315,13 +315,14 @@ class Response {
     }
 
     // Check that both keys and values are strings.
+    $headers = [];
     foreach ($data['headers'] as $header_name => $header_value) {
       if (!is_string($header_name) || !is_scalar($header_value)) {
         throw new \InvalidArgumentException(sprintf('Header "%s" value must be a string.', $header_name));
       }
+      $headers[$header_name] = strval($header_value);
     }
-
-    $data['headers'] = array_map(fn($value): string => is_scalar($value) ? strval($value) : '', $data['headers']);
+    $data['headers'] = $headers;
 
     if (isset($data['body'])) {
       if (!is_string($data['body'])) {
