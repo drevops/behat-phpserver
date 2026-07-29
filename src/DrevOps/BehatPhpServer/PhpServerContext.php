@@ -65,7 +65,7 @@ class PhpServerContext implements Context {
   /**
    * Debug mode.
    */
-  protected bool $debug = FALSE;
+  protected bool $debug;
 
   /**
    * Connection retry timeout in seconds.
