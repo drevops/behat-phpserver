@@ -174,15 +174,14 @@ class ApiServer {
       if (empty($this->responses)) {
         throw new \Exception('No responses in queue', 500);
       }
-      else {
-        $response = array_shift($this->responses);
 
-        if (!$response instanceof Response) {
-          throw new \Exception(sprintf('Invalid response in queue: %s', print_r($response, TRUE)), 500);
-        }
+      $response = array_shift($this->responses);
 
-        $this->handleResponse($response);
+      if (!$response instanceof Response) {
+        throw new \Exception(sprintf('Invalid response in queue: %s', print_r($response, TRUE)), 500);
       }
+
+      $this->handleResponse($response);
     }
   }
 

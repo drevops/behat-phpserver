@@ -645,7 +645,7 @@ class PhpServerContextTest extends TestCase {
           $code = $this->lsofExists ? 0 : 1;
           return $this->lsofExists;
         }
-        elseif (strpos($command, 'lsof -i -P -n') !== FALSE) {
+        if (strpos($command, 'lsof -i -P -n') !== FALSE) {
           $output = $this->mockOutput;
           $code = empty($output) ? 1 : 0;
           return !empty($output);
@@ -776,7 +776,7 @@ class PhpServerContextTest extends TestCase {
           $code = $this->netstatExists ? 0 : 1;
           return $this->netstatExists;
         }
-        elseif (strpos($command, 'netstat -an') !== FALSE) {
+        if (strpos($command, 'netstat -an') !== FALSE) {
           $output = $this->mockOutput;
           $code = empty($output) ? 1 : 0;
           return !empty($output);
