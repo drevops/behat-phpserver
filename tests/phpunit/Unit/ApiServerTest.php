@@ -144,15 +144,17 @@ class ApiServerTest extends TestCase {
    *   Expected response code.
    * @param string $expected_reason
    *   Expected response reason.
+   * @param string|null $expected_error
+   *   Expected error in the response body, or NULL when it is the message.
    */
   #[DataProvider('dataProviderErrorResponse')]
-  public function testErrorResponse(\Throwable $throwable, int $expected_code, string $expected_reason): void {
+  public function testErrorResponse(\Throwable $throwable, int $expected_code, string $expected_reason, ?string $expected_error = NULL): void {
     $response = static::callProtectedMethod(ApiServer::class, 'errorResponse', [$throwable]);
 
     $this->assertInstanceOf(Response::class, $response);
     $this->assertSame($expected_code, $response->code);
     $this->assertSame($expected_reason, $response->reason);
-    $this->assertSame(['error' => $throwable->getMessage()], json_decode($response->body, TRUE));
+    $this->assertSame(['error' => $expected_error ?? $throwable->getMessage()], json_decode($response->body, TRUE));
   }
 
   /**
@@ -213,6 +215,12 @@ class ApiServerTest extends TestCase {
         'expected_code' => 500,
         'expected_reason' => 'Unknown error',
       ],
+      'message with invalid UTF-8' => [
+        'throwable' => new \Exception("Broken \xB1 byte"),
+        'expected_code' => 500,
+        'expected_reason' => "Broken \xB1 byte",
+        'expected_error' => "Broken \u{FFFD} byte",
+      ],
     ];
   }
 
@@ -226,7 +234,25 @@ class ApiServerTest extends TestCase {
       ApiServer::run();
     });
 
-    $this->assertSame(sprintf('Failed to load data from the server state file %s', $this->stateFile), $this->errorFromResponse($output));
+    $this->assertSame(sprintf('Failed to load data from the server state file %s.', $this->stateFile), $this->errorFromResponse($output));
+  }
+
+  /**
+   * Test that a state file holding data that is not serialised is reported.
+   */
+  public function testRunReportsMalformedStateFile(): void {
+    file_put_contents($this->stateFile, 'not serialised at all');
+
+    $output = $this->captureRun(static function (): void {
+      ApiServer::run();
+    });
+
+    // The warning raised by deserialising is reported through the response
+    // rather than printed into its body.
+    $error = $this->errorFromResponse($output);
+
+    $this->assertStringStartsWith(sprintf('Failed to load data from the server state file %s.', $this->stateFile), $error);
+    $this->assertStringContainsString('unserialize()', $error);
   }
 
   /**
@@ -243,9 +269,12 @@ class ApiServerTest extends TestCase {
 
     $output = $this->captureRun(static function (): void {
       ApiServer::run();
-    }, TRUE);
+    });
 
-    $this->assertSame(sprintf('Failed to read data from the server state file %s', $this->stateFile), $this->errorFromResponse($output));
+    $error = $this->errorFromResponse($output);
+
+    $this->assertStringStartsWith(sprintf('Failed to read data from the server state file %s.', $this->stateFile), $error);
+    $this->assertStringContainsString('file_get_contents(', $error);
   }
 
   /**
@@ -273,28 +302,15 @@ class ApiServerTest extends TestCase {
    *
    * @param callable $runner
    *   The entry point to call.
-   * @param bool $suppress_warnings
-   *   Whether to swallow the PHP warnings raised while running.
    *
    * @return string
    *   The printed output.
    */
-  protected function captureRun(callable $runner, bool $suppress_warnings = FALSE): string {
-    if ($suppress_warnings) {
-      set_error_handler(static fn(): bool => TRUE);
-    }
+  protected function captureRun(callable $runner): string {
+    ob_start();
+    $runner();
 
-    try {
-      ob_start();
-      $runner();
-
-      return (string) ob_get_clean();
-    }
-    finally {
-      if ($suppress_warnings) {
-        restore_error_handler();
-      }
-    }
+    return (string) ob_get_clean();
   }
 
   /**
