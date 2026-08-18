@@ -240,7 +240,7 @@ class PhpServerContextTest extends TestCase {
       'command execution returned empty output' => [
         'pid' => 0,
         'stop_result' => TRUE,
-      // Command succeeded but returned empty output.
+        // Command succeeded but returned empty output.
         'command_success' => TRUE,
         'is_running' => FALSE,
         'expect_exception' => TRUE,
