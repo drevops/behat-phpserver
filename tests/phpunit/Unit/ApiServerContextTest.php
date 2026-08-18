@@ -111,7 +111,7 @@ class ApiServerContextTest extends TestCase {
         $this->assertEquals(
           base64_encode($body_raw),
           $result[0]['body'],
-          "Body should be base64 encoded correctly"
+          'Body should be base64 encoded correctly'
         );
       }
       // Regular assertion.

@@ -877,15 +877,15 @@ class PhpServerContextTest extends TestCase {
       'valid process' => [
         'pid' => 12345,
         'output' => [
-          "  PID TTY      STAT   TIME COMMAND",
-          "12345 ?        Ss     0:00 php",
+          '  PID TTY      STAT   TIME COMMAND',
+          '12345 ?        Ss     0:00 php',
         ],
         'expected_result' => TRUE,
       ],
       'invalid process' => [
         'pid' => 12345,
         'output' => [
-          "  PID TTY      STAT   TIME COMMAND",
+          '  PID TTY      STAT   TIME COMMAND',
         ],
         'expected_result' => FALSE,
       ],
