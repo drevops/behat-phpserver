@@ -13,7 +13,7 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversClass(ApiServer::class)]
 #[CoversClass(Request::class)]
-class ApiServerUnitTest extends TestCase {
+class ApiServerTest extends TestCase {
 
   /**
    * Test that a request falls back to the defaults.

@@ -10,7 +10,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(Response::class)]
-class ResponseApiServerUnitTest extends TestCase {
+class ResponseTest extends TestCase {
 
   /**
    * Test Response::fromArray().
