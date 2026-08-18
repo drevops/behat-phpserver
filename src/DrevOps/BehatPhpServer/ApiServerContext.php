@@ -359,7 +359,7 @@ class ApiServerContext extends PhpServerContext {
       }
 
       if (is_string($data['body'])) {
-        $data['body'] = \base64_encode($data['body']);
+        $data['body'] = base64_encode($data['body']);
       }
     }
 

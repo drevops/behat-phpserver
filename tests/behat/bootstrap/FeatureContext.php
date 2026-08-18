@@ -78,7 +78,7 @@ class FeatureContext extends MinkContext implements Context {
     $actual = (string) $this->getSession()->getResponseHeader($name);
     $message = sprintf('The header "%s" does not contain the value "%s", but has a value of "%s"', $name, $value, $actual);
 
-    if (!\str_contains(strtolower($actual), strtolower($value))) {
+    if (!str_contains(strtolower($actual), strtolower($value))) {
       throw new \Exception($message);
     }
   }
