@@ -371,9 +371,7 @@ class PhpServerContext implements Context {
   protected function canConnect(?int $timeout = NULL): bool {
     $timeout ??= $this->connectionTimeout;
 
-    set_error_handler(
-      static fn(): bool => TRUE
-    );
+    set_error_handler(static fn(): bool => TRUE);
 
     // Use timeout to avoid hanging connections.
     $connection = @fsockopen($this->host, $this->port, $errno, $errstr, $timeout);
