@@ -23,8 +23,16 @@ class ApiServerTest extends TestCase {
    */
   protected string $stateFile;
 
+  /**
+   * The PROCESS_TIMESTAMP value from before the test, or NULL when unset.
+   */
+  protected ?string $originalTimestamp;
+
   protected function setUp(): void {
     parent::setUp();
+
+    $original_timestamp = getenv('PROCESS_TIMESTAMP');
+    $this->originalTimestamp = $original_timestamp === FALSE ? NULL : $original_timestamp;
 
     // The server names its state file after PROCESS_TIMESTAMP, so pinning the
     // variable gives each test a state file of its own.
@@ -35,7 +43,12 @@ class ApiServerTest extends TestCase {
   }
 
   protected function tearDown(): void {
-    putenv('PROCESS_TIMESTAMP');
+    if ($this->originalTimestamp === NULL) {
+      putenv('PROCESS_TIMESTAMP');
+    }
+    else {
+      putenv('PROCESS_TIMESTAMP=' . $this->originalTimestamp);
+    }
 
     if (file_exists($this->stateFile)) {
       unlink($this->stateFile);
