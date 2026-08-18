@@ -346,7 +346,7 @@ class ApiServerContext extends PhpServerContext {
     if (!is_numeric($data['code'])) {
       throw new \InvalidArgumentException('Status code must be a number.');
     }
-    $data['code'] = intval($data['code']);
+    $data['code'] = (int) $data['code'];
 
     if (!is_array($data['headers'])) {
       throw new \InvalidArgumentException('Headers must be an array.');

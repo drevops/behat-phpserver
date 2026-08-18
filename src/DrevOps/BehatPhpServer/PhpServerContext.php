@@ -543,7 +543,7 @@ class PhpServerContext implements Context {
 
       // Accept any executable that *starts with* "php" (php, php-fpm, php8.3…).
       if (count($parts) > 1 && str_starts_with($parts[0], 'php') && is_numeric($parts[1])) {
-        $pid = intval($parts[1]);
+        $pid = (int) $parts[1];
         $this->debug(sprintf('Found PHP process with PID %s using lsof.', $pid));
         return $pid;
       }
@@ -601,7 +601,7 @@ class PhpServerContext implements Context {
             $found_pid = $pid_name_parts[0];
             $name = $pid_name_parts[1];
             if (is_numeric($found_pid) && str_starts_with($name, 'php')) {
-              $pid = intval($found_pid);
+              $pid = (int) $found_pid;
               $this->debug(sprintf('Found PHP process with PID %s using netstat.', $pid));
               return $pid;
             }
