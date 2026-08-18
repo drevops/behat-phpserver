@@ -73,6 +73,8 @@ Tests use PHPUnit 11 attributes:
 
 Linting, the coverage threshold check and the Codecov uploads run once, on Ubuntu with PHP 8.4 and normal dependencies.
 
+The coverage threshold check fails the build when coverage drops below 80%, and it reads the PHPUnit report only. Behat coverage does not count towards it even though Codecov merges both, so a change that is covered solely by a feature file will still push the measured number down. The threshold can be moved with the `CI_CODE_COVERAGE_THRESHOLD` repository variable.
+
 ## Known issues
 
 Behat tests for the API server can fail on some environments because of connection issues. This usually comes down to port binding and process handling differing between operating systems, which is why CI covers both Linux and macOS.
