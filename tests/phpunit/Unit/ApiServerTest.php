@@ -85,6 +85,15 @@ class ApiServerTest extends TestCase {
   }
 
   /**
+   * Test that a response sends when the protocol is missing from $_SERVER.
+   */
+  public function testSendResponseWithoutServerProtocol(): void {
+    $output = $this->captureResponse(new Response(200, 'OK', [], 'hello'), NULL);
+
+    $this->assertEquals('hello', $output);
+  }
+
+  /**
    * Send a response and capture what it printed.
    *
    * Sending reads the protocol out of $_SERVER, so the original value is put
@@ -92,13 +101,21 @@ class ApiServerTest extends TestCase {
    *
    * @param \DrevOps\BehatPhpServer\ApiServer\Response $response
    *   The response to send.
+   * @param string|null $protocol
+   *   Protocol to expose in $_SERVER, or NULL to leave it unset.
    *
    * @return string
    *   The printed output.
    */
-  protected function captureResponse(Response $response): string {
+  protected function captureResponse(Response $response, ?string $protocol = 'HTTP/1.1'): string {
     $original_protocol = $_SERVER['SERVER_PROTOCOL'] ?? NULL;
-    $_SERVER['SERVER_PROTOCOL'] = 'HTTP/1.1';
+
+    if ($protocol === NULL) {
+      unset($_SERVER['SERVER_PROTOCOL']);
+    }
+    else {
+      $_SERVER['SERVER_PROTOCOL'] = $protocol;
+    }
 
     try {
       ob_start();
