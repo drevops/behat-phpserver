@@ -159,8 +159,8 @@ class ApiServer {
         try {
           $response = Response::fromArray($response_data);
         }
-        catch (\InvalidArgumentException $e) {
-          throw new \InvalidArgumentException(sprintf('Invalid response #%d payload: %s', $k + 1, $e->getMessage()), 400, $e);
+        catch (\InvalidArgumentException $exception) {
+          throw new \InvalidArgumentException(sprintf('Invalid response #%d payload: %s', $k + 1, $exception->getMessage()), 400, $exception);
         }
 
         $this->responses[] = $response;
@@ -212,8 +212,8 @@ class ApiServer {
     header(sprintf('%s %s %s', $protocol, $response->code, $response->reason));
 
     // Set additional headers.
-    foreach ($response->headers as $key => $value) {
-      header(sprintf('%s: %s', $key, $value));
+    foreach ($response->headers as $header_name => $header_value) {
+      header(sprintf('%s: %s', $header_name, $header_value));
     }
 
     print $response->body;
