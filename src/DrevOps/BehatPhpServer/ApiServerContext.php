@@ -90,7 +90,7 @@ class ApiServerContext extends PhpServerContext {
       $this->fixturesPaths[] = dirname($this->webroot) . '/tests/behat/fixtures';
     }
     elseif (is_array($paths)) {
-      // Handle both string and array.
+      // Normalise every path in the array to a string.
       $this->fixturesPaths = array_map(strval(...), $paths);
     }
     else {
@@ -350,7 +350,7 @@ class ApiServerContext extends PhpServerContext {
       }
     }
 
-    // Convert the body to a JSON string as it would be in a real response.
+    // Serialise an array body to JSON, then base64-encode it for transport.
     if (isset($data['body'])) {
       if (is_array($data['body'])) {
         $data['body'] = json_encode($data['body']) ?: '';
@@ -365,7 +365,7 @@ class ApiServerContext extends PhpServerContext {
   }
 
   /**
-   * Create a configured HTTP client with proper timeouts and retry handling.
+   * Create an HTTP client configured with the server base URI and timeouts.
    *
    * @param array<string, mixed> $options
    *   Additional client options to merge with defaults.

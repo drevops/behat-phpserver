@@ -142,7 +142,7 @@ class PhpServerContext implements Context {
     }
 
     $command = sprintf(
-    // Pass a random process ID to the server so it can be accessed from
+    // Pass a per-run timestamp to the server so it can be accessed from
     // within the scripts.
       'PROCESS_TIMESTAMP=%s php -S %s:%d -t %s >/dev/null 2>&1 & echo $!',
       microtime(TRUE),
@@ -292,6 +292,7 @@ class PhpServerContext implements Context {
       return TRUE;
     }
 
+    // Error 61 = Connection refused (macOS and BSD)
     // Error 111 = Connection refused (Linux)
     // Error 10061 = Connection refused (Windows)
     $connection_refused = in_array($errno, [61, 111, 10061], TRUE);
@@ -591,7 +592,7 @@ class PhpServerContext implements Context {
   }
 
   /**
-   * Execute a shell command and return the exit code.
+   * Execute a shell command and report whether it succeeded.
    *
    * @param string $command
    *   The command to execute.

@@ -4,7 +4,8 @@
  * @file
  * API test server to return queued responses to HTTP requests.
  *
- * The requests and responses can be enqueued via `/admin/*` endpoints.
+ * Responses can be enqueued via the `/admin/*` endpoints. Requests are
+ * recorded automatically as they arrive.
  *
  * Supported endpoints:
  * - GET `/admin/status`: Check the server status.
@@ -43,7 +44,7 @@
  *   > Content-Type: application/json
  *   > [{'code': 200, 'reason': 'OK', 'headers': {}, 'body': '' }, {'code': 404, 'reason': 'Not found', 'headers': {}, 'body': '' }]
  *
- * This class is intended to be lightweight and portable.
+ * This file is intended to be lightweight and portable.
  *
  * @phpcs:disable Drupal.Classes.ClassFileName.NoMatch
  * @phpcs:disable Drupal.Commenting.ClassComment.Missing
@@ -311,7 +312,7 @@ class Response {
       throw new \InvalidArgumentException('Headers must be an array.');
     }
 
-    // Check that both keys and values are strings.
+    // Require string keys and scalar values, cast to string below.
     $headers = [];
     foreach ($data['headers'] as $header_name => $header_value) {
       if (!is_string($header_name) || !is_scalar($header_value)) {
