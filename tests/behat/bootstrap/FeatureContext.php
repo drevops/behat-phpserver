@@ -86,7 +86,7 @@ class FeatureContext extends MinkContext implements Context {
   /**
    * @Then the response should not contain header :name
    */
-  public function responseHasNoHeader(string $name): void {
+  public function theResponseShouldNotContainHeader(string $name): void {
     $actual = (string) $this->getSession()->getResponseHeader($name);
     $message = sprintf('The header "%s" is present in the response with a value of "%s", but it should not be.', $name, $actual);
 
