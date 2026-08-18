@@ -78,7 +78,7 @@ class ApiServer {
   /**
    * ApiServer constructor.
    */
-  public function __construct() {
+  final public function __construct() {
     // Include the unique per-server run ID in the state file name so each
     // server instance has its own state file.
     $timestamp = getenv('PROCESS_TIMESTAMP') ?: getmypid();
@@ -88,7 +88,7 @@ class ApiServer {
       $contents = file_get_contents($this->stateFile);
 
       if ($contents === FALSE) {
-        throw new \RuntimeException(sprintf('Failed to read data from the server state file %s', $this->stateFile));
+        throw new \RuntimeException(sprintf('Failed to read data from the server state file %s', $this->stateFile), 500);
       }
 
       // Restrict deserialisation to the 2 value objects the state can hold, so
@@ -96,7 +96,7 @@ class ApiServer {
       // magic methods.
       $state = unserialize($contents, ['allowed_classes' => [Request::class, Response::class]]);
       if (!is_array($state)) {
-        throw new \RuntimeException(sprintf('Failed to load data from the server state file %s', $this->stateFile));
+        throw new \RuntimeException(sprintf('Failed to load data from the server state file %s', $this->stateFile), 500);
       }
 
       // The state file is untrusted input, so keep only the entries that
@@ -119,6 +119,21 @@ class ApiServer {
     ]);
 
     file_put_contents($this->stateFile, $state);
+  }
+
+  /**
+   * Serve the current request, reporting any failure as a response.
+   */
+  public static function run(): void {
+    try {
+      // The constructor reads the state file, so it belongs inside the block
+      // that turns a failure into a response.
+      $server = new static();
+      $server->handleRequest();
+    }
+    catch (\Throwable $throwable) {
+      static::sendResponse(static::errorResponse($throwable));
+    }
   }
 
   /**
@@ -216,6 +231,32 @@ class ApiServer {
     }
 
     print $response->body;
+  }
+
+  /**
+   * Build the response that reports a failure.
+   *
+   * @param \Throwable $throwable
+   *   The failure to report.
+   *
+   * @return \DrevOps\BehatPhpServer\ApiServer\Response
+   *   The response object.
+   */
+  protected static function errorResponse(\Throwable $throwable): Response {
+    $message = $throwable->getMessage();
+
+    // A throwable carrying no code reports 0, which is not a status.
+    $code = $throwable->getCode();
+
+    if ($code < 100 || $code > 599) {
+      $code = 500;
+    }
+
+    // The reason is written into the status line, which holds a single line
+    // of text. The body carries the message as it was thrown.
+    $reason = trim(preg_replace('/[[:cntrl:]\s]+/', ' ', $message) ?? '');
+
+    return new Response($code, $reason === '' ? 'Unknown error' : $reason, [], ['error' => $message]);
   }
 
 }
@@ -354,12 +395,5 @@ class Response {
 
 // Allow skipping the script run.
 if (getenv('SCRIPT_RUN_SKIP') !== '1') {
-  $server = new ApiServer();
-
-  try {
-    $server->handleRequest();
-  }
-  catch (\Throwable $throwable) {
-    ApiServer::sendResponse(new Response($throwable->getCode(), $throwable->getMessage(), [], ['error' => $throwable->getMessage()]));
-  }
+  ApiServer::run();
 }
