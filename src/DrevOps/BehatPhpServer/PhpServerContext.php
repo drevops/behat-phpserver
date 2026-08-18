@@ -87,7 +87,7 @@ class PhpServerContext implements Context {
     $this->webroot = $webroot ?: static::DEFAULT_WEBROOT;
 
     if (!file_exists($this->webroot)) {
-      throw new \RuntimeException(sprintf('"webroot" directory %s does not exist', $this->webroot));
+      throw new \RuntimeException(sprintf('"webroot" directory %s does not exist.', $this->webroot));
     }
     $this->connectionTimeout = $connection_timeout ?? static::DEFAULT_CONNECTION_TIMEOUT;
     $this->retryDelay = $retry_delay ?? static::DEFAULT_RETRY_DELAY;
@@ -166,7 +166,7 @@ class PhpServerContext implements Context {
     }
     else {
       $this->debug(sprintf('Command execution failed with code %d or empty/invalid output: %s', $code, implode(', ', $output)));
-      throw new \RuntimeException(sprintf('Unable to start PHP server: Command failed with code %d', $code));
+      throw new \RuntimeException(sprintf('Unable to start PHP server: Command failed with code %d.', $code));
     }
 
     $this->debug(sprintf('PHP server started with PID %s.', $this->pid));

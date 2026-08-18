@@ -117,7 +117,7 @@ class ApiServerContext extends PhpServerContext {
 
     $response = $this->client->request('GET', '/admin/status');
     if ($response->getStatusCode() !== 200) {
-      throw new \Exception('API server is not up');
+      throw new \Exception('API server is not up.');
     }
   }
 
@@ -409,7 +409,7 @@ class ApiServerContext extends PhpServerContext {
 
     if ($queued_responses !== $count) {
       throw new \RuntimeException(sprintf(
-        'Expected %s queued responses, got %s',
+        'Expected %s queued responses, got %s.',
         $count,
         $queued_responses
       ));
@@ -433,7 +433,7 @@ class ApiServerContext extends PhpServerContext {
 
     if ($received_requests !== $count) {
       throw new \RuntimeException(sprintf(
-        'Expected %s received requests, got %s',
+        'Expected %s received requests, got %s.',
         $count,
         $received_requests
       ));
