@@ -295,8 +295,8 @@ class ApiServerContextTest extends TestCase {
    * @param array<string>|callable $expected_paths
    *   Expected fixture paths or a callback that returns expected paths.
    */
-  #[DataProvider('dataProviderFixturePaths')]
-  public function testFixturePaths(array|string|null $paths, mixed $expected_paths): void {
+  #[DataProvider('dataProviderConstructorFixturesPaths')]
+  public function testConstructorFixturesPaths(array|string|null $paths, mixed $expected_paths): void {
     $webroot = sys_get_temp_dir() . '/test_webroot_' . uniqid();
     mkdir($webroot, 0777, TRUE);
 
@@ -325,12 +325,12 @@ class ApiServerContextTest extends TestCase {
   }
 
   /**
-   * Data provider for testFixturePaths.
+   * Data provider for testConstructorFixturesPaths.
    *
    * @return array<string, array<string, mixed>>
    *   Test cases.
    */
-  public static function dataProviderFixturePaths(): array {
+  public static function dataProviderConstructorFixturesPaths(): array {
     return [
       'default path (null)' => [
         'paths' => NULL,
