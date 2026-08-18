@@ -862,8 +862,8 @@ class PhpServerContextTest extends TestCase {
         return TRUE;
       });
 
-    $actual = $this->callProtectedMethod($context, 'processExists', [$pid]);
-    $this->assertEquals($expected_result, $actual);
+    $result = $this->callProtectedMethod($context, 'processExists', [$pid]);
+    $this->assertEquals($expected_result, $result);
   }
 
   /**
@@ -954,8 +954,8 @@ class PhpServerContextTest extends TestCase {
     $this->setProtectedValue($context, 'retryDelay', 10);
     $this->setProtectedValue($context, 'pid', $pid);
 
-    $actual = $this->callProtectedMethod($context, 'terminateProcess', [$pid]);
-    $this->assertEquals($expected_result, $actual);
+    $result = $this->callProtectedMethod($context, 'terminateProcess', [$pid]);
+    $this->assertEquals($expected_result, $result);
   }
 
   /**

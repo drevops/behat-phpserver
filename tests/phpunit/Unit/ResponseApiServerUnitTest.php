@@ -29,10 +29,10 @@ class ResponseApiServerUnitTest extends TestCase {
       $this->expectExceptionMessage($exception);
     }
 
-    $actual = Response::fromArray($data);
+    $result = Response::fromArray($data);
 
     if (!$exception) {
-      $this->assertEquals($expected, $actual);
+      $this->assertEquals($expected, $result);
     }
   }
 

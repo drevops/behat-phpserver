@@ -311,14 +311,14 @@ class ApiServerContextTest extends TestCase {
       $paths
     );
 
-    $actual_paths = self::getProtectedValue($context, 'fixturesPaths');
+    $result = self::getProtectedValue($context, 'fixturesPaths');
 
     // If expected_paths is a callback, execute it to get the actual expected value.
     if (is_callable($expected_paths)) {
       $expected_paths = $expected_paths($webroot);
     }
 
-    $this->assertEquals($expected_paths, $actual_paths);
+    $this->assertEquals($expected_paths, $result);
 
     // Clean up.
     rmdir($webroot);
