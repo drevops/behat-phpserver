@@ -758,14 +758,14 @@ class PhpServerContextTest extends TestCase {
   }
 
   /**
-   * Test the isProcessExists method with mocked executeCommand.
+   * Test the processExists method with mocked executeCommand.
    *
    * @param int $pid
    *   The process ID to test with.
    * @param array<string> $output
    *   The mocked output for executeCommand.
    * @param bool $expected_result
-   *   The expected result of isProcessExists.
+   *   The expected result of processExists.
    */
   #[DataProvider('dataProviderProcessExists')]
   public function testProcessExists(int $pid, array $output, bool $expected_result): void {
@@ -786,7 +786,7 @@ class PhpServerContextTest extends TestCase {
   }
 
   /**
-   * Data provider for isProcessExists tests.
+   * Data provider for processExists tests.
    *
    * @return array<string, array<string, mixed>>
    *   Test cases.

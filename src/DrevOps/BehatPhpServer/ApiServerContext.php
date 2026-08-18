@@ -11,7 +11,7 @@ use GuzzleHttp\RequestOptions;
 /**
  * Behat context to enable ApiServer support in tests.
  *
- * @see \DrevOps\BehatPhpServer\ApiServer
+ * @see \DrevOps\BehatPhpServer\ApiServer\ApiServer
  */
 class ApiServerContext extends PhpServerContext {
 
