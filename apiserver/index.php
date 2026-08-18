@@ -91,7 +91,10 @@ class ApiServer {
         throw new \RuntimeException(sprintf('Failed to read data from the server state file %s', $this->stateFile));
       }
 
-      $state = unserialize($contents);
+      // Restrict deserialisation to the 2 value objects the state can hold, so
+      // a tampered state file cannot instantiate anything else or reach its
+      // magic methods.
+      $state = unserialize($contents, ['allowed_classes' => [Request::class, Response::class]]);
       if (!is_array($state)) {
         throw new \RuntimeException(sprintf('Failed to load data from the server state file %s', $this->stateFile));
       }
