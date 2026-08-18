@@ -122,7 +122,7 @@ class ApiServer {
    */
   public function handleRequest(): void {
     $request = new Request(
-      isset($_SERVER['REQUEST_METHOD']) && is_scalar($_SERVER['REQUEST_METHOD']) && is_string($_SERVER['REQUEST_METHOD']) ? $_SERVER['REQUEST_METHOD'] : 'GET',
+      isset($_SERVER['REQUEST_METHOD']) && is_string($_SERVER['REQUEST_METHOD']) ? $_SERVER['REQUEST_METHOD'] : 'GET',
       isset($_SERVER['REQUEST_URI']) && is_scalar($_SERVER['REQUEST_URI']) ? (string) strtok((string) $_SERVER['REQUEST_URI'], '?') : '/',
       getallheaders(),
       file_get_contents('php://input') ?: ''
