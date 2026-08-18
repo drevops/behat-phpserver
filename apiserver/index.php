@@ -59,14 +59,14 @@ class ApiServer {
   /**
    * The received requests.
    *
-   * @var array<int|Request>
+   * @var array<int, Request>
    */
   protected array $requests = [];
 
   /**
    * The queued responses.
    *
-   * @var array<int|Response>
+   * @var array<int, Response>
    */
   protected array $responses = [];
 
@@ -96,12 +96,13 @@ class ApiServer {
         throw new \RuntimeException(sprintf('Failed to load data from the server state file %s', $this->stateFile));
       }
 
-      /** @var array<int|Request> $requests */
-      $requests = is_array($state['requests'] ?? []) ? $state['requests'] : [];
-      $this->requests = $requests;
-      /** @var array<int|Response> $responses */
-      $responses = is_array($state['responses'] ?? []) ? $state['responses'] : [];
-      $this->responses = $responses;
+      // The state file is untrusted input, so keep only the entries that
+      // survived deserialisation as the objects they claim to be.
+      $requests = $state['requests'] ?? [];
+      $responses = $state['responses'] ?? [];
+
+      $this->requests = is_array($requests) ? array_values(array_filter($requests, static fn(mixed $item): bool => $item instanceof Request)) : [];
+      $this->responses = is_array($responses) ? array_values(array_filter($responses, static fn(mixed $item): bool => $item instanceof Response)) : [];
     }
   }
 
@@ -176,10 +177,6 @@ class ApiServer {
       }
 
       $response = array_shift($this->responses);
-
-      if (!$response instanceof Response) {
-        throw new \Exception(sprintf('Invalid response in queue: %s', print_r($response, TRUE)), 500);
-      }
 
       $this->handleResponse($response);
     }
