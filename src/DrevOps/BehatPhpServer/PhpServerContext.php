@@ -9,11 +9,7 @@ use Behat\Behat\Hook\Scope\AfterScenarioScope;
 use Behat\Behat\Hook\Scope\BeforeScenarioScope;
 
 /**
- * Class PhpServerContext.
- *
  * Behat context to enable PHPServer support in tests.
- *
- * @package DrevOps\BehatPhpServer
  */
 class PhpServerContext implements Context {
 
@@ -141,7 +137,6 @@ class PhpServerContext implements Context {
    *   If unable to start a server.
    */
   public function start(): int {
-    // Make sure any existing server is stopped.
     if (!$this->stop()) {
       throw new \RuntimeException(sprintf('Unable to stop existing server on port %d.', $this->port));
     }
@@ -199,7 +194,6 @@ class PhpServerContext implements Context {
     }
 
     try {
-      // Check if port is still in use.
       if ($this->isPortInUse($this->port)) {
         $this->debug(sprintf('Port %d is still in use. Attempting to free it.', $this->port));
         $port_freed = $this->freePort($this->port);
@@ -209,7 +203,6 @@ class PhpServerContext implements Context {
           return FALSE;
         }
 
-        // Double-check the port is actually free now.
         if ($this->isPortInUse($this->port)) {
           $this->debug(sprintf('Failed to free port %d. Port is still in use after freeing attempt.', $this->port));
           return FALSE;
@@ -247,12 +240,10 @@ class PhpServerContext implements Context {
 
     $start = microtime(TRUE);
 
-    // First, if we have a PID, check if the process is actually running.
     if ($this->pid > 0 && !$this->processExists($this->pid)) {
       return FALSE;
     }
 
-    // Next, try to make a connection to verify server is accepting connections.
     $counter = 1;
     while ((microtime(TRUE) - $start) <= $timeout) {
       $this->debug(sprintf('Checking if server is running. Attempt %s.', $counter));
@@ -282,7 +273,6 @@ class PhpServerContext implements Context {
   protected function isPortInUse(int $port): bool {
     $this->debug(sprintf('Checking if port %d is already in use.', $port));
 
-    // Temporarily suppress errors.
     set_error_handler(static fn(): bool => TRUE);
 
     // Use very short timeout to avoid hanging.
@@ -294,17 +284,14 @@ class PhpServerContext implements Context {
       0.1
     );
 
-    // Restore error handler.
     restore_error_handler();
 
-    // If connection succeeded, the port is in use.
     if ($connection !== FALSE) {
       fclose($connection);
       $this->debug(sprintf('Port %d is already in use (connection succeeded).', $port));
       return TRUE;
     }
 
-    // If connection failed because the port is unreachable, it's not in use.
     // Error 111 = Connection refused (Linux)
     // Error 10061 = Connection refused (Windows)
     $connection_refused = in_array($errno, [61, 111, 10061], TRUE);
@@ -338,7 +325,6 @@ class PhpServerContext implements Context {
         $this->debug(sprintf('Found process with PID %d using port %d.', $pid, $port));
         $result = $this->terminateProcess($pid);
 
-        // Verify the port is now free.
         $is_free = !$this->isPortInUse($port);
 
         if (!$is_free) {
@@ -349,7 +335,6 @@ class PhpServerContext implements Context {
         return $result;
       }
 
-      // No process found, consider the port free.
       return TRUE;
     }
     catch (\Exception $exception) {
@@ -373,7 +358,6 @@ class PhpServerContext implements Context {
 
     set_error_handler(static fn(): bool => TRUE);
 
-    // Use timeout to avoid hanging connections.
     $connection = @fsockopen($this->host, $this->port, $errno, $errstr, $timeout);
 
     restore_error_handler();
@@ -404,19 +388,16 @@ class PhpServerContext implements Context {
 
     $this->debug(sprintf('Terminating PHP server process with PID %s.', $pid));
 
-    // First check if the process exists.
     if (!$this->processExists($pid)) {
       $this->debug(sprintf('Process with PID %d does not exist, no need to terminate.', $pid));
       return TRUE;
     }
 
     $output = [];
-    // First try graceful termination (SIGTERM).
     $success = $this->executeCommand('kill ' . $pid . ' 2>/dev/null', $output);
 
     if (!$success) {
       $this->debug('Graceful termination failed, trying forceful termination (SIGKILL).');
-      // If the first attempt fails, try force kill.
       $success = $this->executeCommand('kill -9 ' . $pid . ' 2>/dev/null', $output);
       $termination_status = $success ? 'forceful' : 'failed';
     }
@@ -427,7 +408,6 @@ class PhpServerContext implements Context {
     // Wait a short time for the process to terminate.
     usleep($this->retryDelay);
 
-    // Verify process is actually gone.
     if ($this->processExists($pid)) {
       $this->debug(sprintf(
         'Process termination verification failed (%s termination status), process may still be running.',
@@ -468,8 +448,8 @@ class PhpServerContext implements Context {
   /**
    * Get PID of the running server on the specified port.
    *
-   * Note that this will retrieve a PID of the process that could have been
-   * started by another process rather then current one.
+   * The retrieved PID may belong to a process that was started by another
+   * process rather than the current one.
    *
    * @param int $port
    *   Port number.
@@ -480,7 +460,6 @@ class PhpServerContext implements Context {
   protected function getPid(int $port): int {
     $this->debug(sprintf('Finding PID of the PHP server process on port %s.', $port));
 
-    // First, try with the stored PID if we have one.
     if ($this->pid > 0 && $this->processExists($this->pid)) {
       $this->debug(sprintf('Found existing process with PID %s is still running.', $this->pid));
       return $this->pid;
@@ -530,7 +509,6 @@ class PhpServerContext implements Context {
       return 0;
     }
 
-    // Log all found processes.
     foreach ($output as $i => $line) {
       $this->debug(sprintf('Found process %d: %s', $i + 1, $line));
     }
@@ -541,7 +519,7 @@ class PhpServerContext implements Context {
       $this->debug(sprintf('Processing line: %s', $line));
       $parts = explode(' ', $line);
 
-      // Accept any executable that *starts with* "php" (php, php-fpm, php8.3…).
+      // Accept any executable that starts with "php" (php, php-fpm, php8.3).
       if (count($parts) > 1 && str_starts_with($parts[0], 'php') && is_numeric($parts[1])) {
         $pid = (int) $parts[1];
         $this->debug(sprintf('Found PHP process with PID %s using lsof.', $pid));
@@ -584,7 +562,6 @@ class PhpServerContext implements Context {
       return 0;
     }
 
-    // Log all found processes.
     foreach ($output as $i => $line) {
       $this->debug(sprintf('Found process %d: %s', $i + 1, $line));
     }

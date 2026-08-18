@@ -33,18 +33,15 @@ class PhpServerContextTest extends TestCase {
    */
   #[DataProvider('dataProviderIsRunning')]
   public function testIsRunning(int $pid, bool $process_exists, bool $can_connect, int $timeout, int $retry_delay, bool $expected_result): void {
-    // Create a mock with several methods mocked.
     $context = $this->getMockBuilder(PhpServerContext::class)
       ->disableOriginalConstructor()
       ->onlyMethods(['processExists', 'canConnect', 'debug'])
       ->getMock();
 
-    // Set up properties.
     $this->setProtectedValue($context, 'pid', $pid);
     $this->setProtectedValue($context, 'connectionTimeout', $timeout);
     $this->setProtectedValue($context, 'retryDelay', $retry_delay);
 
-    // Set up mock methods behavior.
     if ($pid > 0) {
       $context->expects($this->once())
         ->method('processExists')
@@ -58,7 +55,6 @@ class PhpServerContextTest extends TestCase {
         ->willReturn($can_connect);
     }
 
-    // Call the method and check results.
     $result = static::callProtectedMethod($context, 'isRunning', [$timeout, $retry_delay]);
     $this->assertEquals($expected_result, $result);
   }
@@ -146,24 +142,20 @@ class PhpServerContextTest extends TestCase {
       ->onlyMethods(['stop', 'executeCommand', 'debug', 'isRunning'])
       ->getMock();
 
-    // Set up properties.
     $this->setProtectedValue($context, 'host', '127.0.0.1');
     $this->setProtectedValue($context, 'port', 8888);
     $this->setProtectedValue($context, 'webroot', __DIR__);
     $this->setProtectedValue($context, 'connectionTimeout', 2);
-    // Always start with 0, actual pid should be set by start()
+    // Always start with 0; the actual pid should be set by start().
     $this->setProtectedValue($context, 'pid', 0);
 
-    // Set up mock methods behavior.
-    // Mock stop() to return the configured result.
     $context->method('stop')
       ->willReturn($stop_result);
 
-    // Mock executeCommand() to return appropriate output based on test case.
     $context->method('executeCommand')
       ->willReturnCallback(function ($command, &$output, &$code) use ($pid, $command_success): bool {
         if ($command_success) {
-          // For the "command execution returned empty output" case.
+          // Pid 0 covers the "command execution returned empty output" case.
           $output = $pid === 0 ? [] : [$pid];
           $code = 0;
         }
@@ -174,11 +166,9 @@ class PhpServerContextTest extends TestCase {
         return $command_success;
       });
 
-    // Mock isRunning() to return the configured result.
     $context->method('isRunning')
       ->willReturn($is_running);
 
-    // Call the start method and check results.
     if (!$expect_exception) {
       $result = $context->start();
       $this->assertEquals($expected_pid, $result);
@@ -236,7 +226,6 @@ class PhpServerContextTest extends TestCase {
       'command execution returned empty output' => [
         'pid' => 0,
         'stop_result' => TRUE,
-        // Command succeeded but returned empty output.
         'command_success' => TRUE,
         'is_running' => FALSE,
         'expect_exception' => TRUE,
@@ -291,25 +280,21 @@ class PhpServerContextTest extends TestCase {
       ->onlyMethods(['processExists', 'terminateProcess', 'isPortInUse', 'freePort', 'debug'])
       ->getMock();
 
-    // Set up properties.
     $this->setProtectedValue($context, 'pid', $pid);
     $this->setProtectedValue($context, 'port', 8888);
 
-    // Set up mock methods behavior.
     $context->method('processExists')
       ->willReturn($process_exists);
 
     $context->method('terminateProcess')
       ->willReturn($termination_result);
 
-    // Configure isPortInUse to return different values on consecutive calls.
     $context->method('isPortInUse')
       ->willReturnOnConsecutiveCalls($port_in_use, $port_in_use_after);
 
     $context->method('freePort')
       ->willReturn($free_port_result);
 
-    // Call the stop method and check results.
     $result = $context->stop();
     $this->assertEquals($expected_result, $result);
     $this->assertEquals($expected_pid, $this->getProtectedValue($context, 'pid'));
@@ -395,22 +380,18 @@ class PhpServerContextTest extends TestCase {
       ->onlyMethods(['processExists', 'terminateProcess', 'isPortInUse', 'debug'])
       ->getMock();
 
-    // Set up properties.
     $this->setProtectedValue($context, 'pid', 12345);
     $this->setProtectedValue($context, 'port', 8888);
 
-    // Set up mock methods behavior.
     $context->method('processExists')
       ->willReturn(TRUE);
 
     $context->method('terminateProcess')
       ->willReturn(TRUE);
 
-    // Configure isPortInUse to throw an exception.
     $context->method('isPortInUse')
       ->willThrowException(new \RuntimeException('Test exception'));
 
-    // Call the stop method and check results.
     $result = $context->stop();
     $this->assertFalse($result);
     $this->assertEquals(0, $this->getProtectedValue($context, 'pid'), 'PID should be reset to 0 even when exception occurs');
@@ -419,8 +400,6 @@ class PhpServerContextTest extends TestCase {
   #[DataProvider('dataProviderGetPid')]
   public function testGetPid(bool $has_pid, int $lsof_pid, int $netstat_pid, ?int $expected_pid, bool $expect_exception = FALSE): void {
 
-    // Skip exception expectation - we'll handle it manually
-    // Create a subclass of PhpServerContext that we can customize.
     $context = new class($has_pid, $lsof_pid, $netstat_pid, $expect_exception) extends PhpServerContext {
       /**
        * Flag indicating if the mock has a PID.
@@ -476,8 +455,8 @@ class PhpServerContextTest extends TestCase {
       }
 
       public function testGetPid(int $port): int {
-        // For the failure case, if we're expecting an exception,
-        // throw it directly instead of letting the real method throw it.
+        // When an exception is expected in the failure case, throw it
+        // directly instead of letting the real method throw it.
         if ($this->expectException && $this->lsofPid === 0 && $this->netstatPid === 0) {
           throw new \RuntimeException('Unable to determine PHP server process for port ' . $port);
         }
@@ -541,7 +520,7 @@ class PhpServerContextTest extends TestCase {
   }
 
   /**
-   * Test the getPidLsof method with a more direct approach.
+   * Test the getPidLsof method.
    *
    * @param bool $lsof_exists
    *   Whether lsof exists on the system.
@@ -553,7 +532,6 @@ class PhpServerContextTest extends TestCase {
   #[DataProvider('dataProviderGetPidLsof')]
   public function testGetPidLsof(bool $lsof_exists, array $output, int $expected_pid): void {
 
-    // Create a subclass of PhpServerContext that we can customize.
     $context = new class($lsof_exists, $output) extends PhpServerContext {
       /**
        * Flag indicating if lsof exists on the system.
@@ -661,7 +639,7 @@ class PhpServerContextTest extends TestCase {
   }
 
   /**
-   * Test the getPidNetstat method with a more direct approach.
+   * Test the getPidNetstat method.
    *
    * @param bool $netstat_exists
    *   Whether netstat exists on the system.
@@ -673,7 +651,6 @@ class PhpServerContextTest extends TestCase {
   #[DataProvider('dataProviderGetPidNetstat')]
   public function testGetPidNetstat(bool $netstat_exists, array $output, int $expected_pid): void {
 
-    // Create a subclass of PhpServerContext that we can customize.
     $context = new class($netstat_exists, $output) extends PhpServerContext {
       /**
        * Flag indicating if netstat exists on the system.
@@ -870,7 +847,7 @@ class PhpServerContextTest extends TestCase {
       ->willReturnOnConsecutiveCalls($process_exists, $process_exists_after);
 
     if (is_array($kill_return_code)) {
-      // For testing the graceful->forceful termination path.
+      // An array covers the graceful then forceful termination path.
       $context->expects($this->exactly(2))
         ->method('executeCommand')
         ->willReturnOnConsecutiveCalls(
@@ -979,9 +956,6 @@ class PhpServerContextTest extends TestCase {
     return [$server, (int) substr($name, $position + 1)];
   }
 
-  /**
-   * Test that the constructor applies the default configuration.
-   */
   public function testConstructorAppliesDefaults(): void {
     $context = new PhpServerContext(static::getFixturesPath());
 
@@ -990,9 +964,6 @@ class PhpServerContextTest extends TestCase {
     $this->assertEquals(PhpServerContext::DEFAULT_RETRY_DELAY, static::getProtectedValue($context, 'retryDelay'));
   }
 
-  /**
-   * Test that the constructor honours explicitly provided timeouts.
-   */
   public function testConstructorAcceptsExplicitTimeouts(): void {
     $context = new PhpServerContext(static::getFixturesPath(), '127.0.0.1', 9999, 'https', FALSE, 7, 500);
 
@@ -1001,9 +972,6 @@ class PhpServerContextTest extends TestCase {
     $this->assertEquals(500, static::getProtectedValue($context, 'retryDelay'));
   }
 
-  /**
-   * Test that a webroot that does not exist is rejected.
-   */
   public function testConstructorThrowsWhenWebrootMissing(): void {
     $this->expectException(\RuntimeException::class);
     $this->expectExceptionMessage('"webroot" directory /nonexistent/webroot does not exist');

@@ -11,8 +11,6 @@ use DrevOps\BehatPhpServer\ApiServerContext;
 use DrevOps\BehatPhpServer\PhpServerContext;
 
 /**
- * Class FeatureContext.
- *
  * Defines application features from the specific context.
  *
  * @phpcs:disable Drupal.Commenting.DocComment.MissingShort
@@ -30,8 +28,6 @@ class FeatureContext extends MinkContext implements Context {
   protected string $apiServerUrl;
 
   /**
-   * Initialize the context.
-   *
    * @beforeScenario
    */
   public function beforeScenarioInit(BeforeScenarioScope $scope): void {
@@ -49,8 +45,6 @@ class FeatureContext extends MinkContext implements Context {
   }
 
   /**
-   * Go to the phpserver test page.
-   *
    * @Given (I )am on (the )phpserver test page
    * @When (I )go to (the )phpserver test page
    */

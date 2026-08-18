@@ -32,21 +32,17 @@ class ApiServerContextTest extends TestCase {
    */
   #[DataProvider('dataProviderCreateHttpClient')]
   public function testCreateHttpClient(string $server_url, array $additional_options): void {
-    // Create a mock for ApiServerContext.
     $context = $this->getMockBuilder(ApiServerContext::class)
       ->disableOriginalConstructor()
       ->onlyMethods(['getServerUrl'])
       ->getMock();
 
-    // Setup expected server URL.
     $context->expects($this->once())
       ->method('getServerUrl')
       ->willReturn($server_url);
 
-    // Call the method.
     $client = static::callProtectedMethod($context, 'createHttpClient', [$additional_options]);
 
-    // Assert the result is a Client instance.
     $this->assertInstanceOf(Client::class, $client);
   }
 
@@ -79,22 +75,17 @@ class ApiServerContextTest extends TestCase {
    */
   #[DataProvider('dataProviderPrepareResponse')]
   public function testPrepareResponse(string $json_input, array $expected_values): void {
-    // Create a mock for ApiServerContext.
     $context = $this->getMockBuilder(ApiServerContext::class)
       ->disableOriginalConstructor()
       ->onlyMethods(['debug'])
       ->getMock();
 
-    // Call the method with the test input.
     $result = static::callProtectedMethod($context, 'prepareResponse', [$json_input]);
 
-    // Basic assertions for all cases.
     $this->assertIsArray($result);
     $this->assertCount(1, $result);
 
-    // Check each expected value.
     foreach ($expected_values as $key => $expected) {
-      // Special case for base64 encoding assertion.
       if ($key === 'body_encoded' && isset($expected_values['body_raw'])) {
         $body_raw = $expected_values['body_raw'];
         $this->assertIsArray($result[0], 'Result should be an array');
@@ -106,7 +97,6 @@ class ApiServerContextTest extends TestCase {
           'Body should be base64 encoded correctly'
         );
       }
-      // Regular assertion.
       elseif ($key !== 'body_raw') {
         $path = explode('.', $key);
         $value = $result[0];
@@ -167,13 +157,11 @@ class ApiServerContextTest extends TestCase {
    */
   #[DataProvider('dataProviderPrepareResponseInvalid')]
   public function testPrepareResponseInvalid(string $json_input, string $exception_class, string $exception_message): void {
-    // Create a mock for ApiServerContext.
     $context = $this->getMockBuilder(ApiServerContext::class)
       ->disableOriginalConstructor()
       ->onlyMethods(['debug'])
       ->getMock();
 
-    // Test with the given invalid input.
     if (class_exists($exception_class)) {
       $this->expectException($exception_class);
       $this->expectExceptionMessage($exception_message);
@@ -222,16 +210,13 @@ class ApiServerContextTest extends TestCase {
    */
   #[DataProvider('dataProviderApiWillRespondWithJson')]
   public function testApiWillRespondWithJson(string $json_content, ?string $code, int $expected_code): void {
-    // Create a mock for ApiServerContext.
     $context = $this->getMockBuilder(ApiServerContext::class)
       ->disableOriginalConstructor()
       ->onlyMethods(['apiWillRespondWith'])
       ->getMock();
 
-    // Create a PyStringNode.
     $py_string_node = new PyStringNode([$json_content], 1);
 
-    // Setup the mock expectation.
     $context->expects($this->once())
       ->method('apiWillRespondWith')
       ->willReturnCallback(function (PyStringNode $node) use ($expected_code): null {
@@ -245,7 +230,6 @@ class ApiServerContextTest extends TestCase {
         return NULL;
       });
 
-    // Call the method.
     $context->apiWillRespondWithJson($py_string_node, $code);
   }
 
@@ -301,14 +285,12 @@ class ApiServerContextTest extends TestCase {
 
     $result = self::getProtectedValue($context, 'fixturesPaths');
 
-    // If expected_paths is a callback, execute it to get the actual expected value.
     if (is_callable($expected_paths)) {
       $expected_paths = $expected_paths($webroot);
     }
 
     $this->assertEquals($expected_paths, $result);
 
-    // Clean up.
     rmdir($webroot);
   }
 

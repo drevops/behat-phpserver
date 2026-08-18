@@ -78,12 +78,11 @@ class ApiServer {
    * ApiServer constructor.
    */
   public function __construct() {
-    // Use the unique per-server run ID as part of the state file name to ensure
-    // unique state file for each server instance.
+    // Include the unique per-server run ID in the state file name so each
+    // server instance has its own state file.
     $timestamp = getenv('PROCESS_TIMESTAMP') ?: getmypid();
     $this->stateFile = sys_get_temp_dir() . '/api_server_state.' . $timestamp . '.json';
 
-    // Load state from the file if it exists.
     if (file_exists($this->stateFile)) {
       $contents = file_get_contents($this->stateFile);
 
@@ -211,7 +210,6 @@ class ApiServer {
     $protocol = is_scalar($_SERVER['SERVER_PROTOCOL']) ? (string) $_SERVER['SERVER_PROTOCOL'] : 'HTTP/1.1';
     header(sprintf('%s %s %s', $protocol, $response->code, $response->reason));
 
-    // Set additional headers.
     foreach ($response->headers as $header_name => $header_value) {
       header(sprintf('%s: %s', $header_name, $header_value));
     }
@@ -266,7 +264,7 @@ class Response {
       $this->body = (string) json_encode($body);
       $this->headers['Content-Type'] = 'application/json';
     }
-    // Set Content-Length header if a body is provided.
+
     if ($this->body !== '') {
       $this->headers['Content-Length'] = (string) strlen($this->body);
     }
@@ -353,7 +351,7 @@ class Response {
 
 }
 
-// Allow to skip the script run.
+// Allow skipping the script run.
 if (getenv('SCRIPT_RUN_SKIP') != 1) {
   $server = new ApiServer();
 

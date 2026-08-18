@@ -9,13 +9,9 @@ use GuzzleHttp\Client;
 use GuzzleHttp\RequestOptions;
 
 /**
- * Class ApiServerContext.
- *
  * Behat context to enable ApiServer support in tests.
  *
  * @see \DrevOps\BehatPhpServer\ApiServer
- *
- * @package DrevOps\BehatPhpServer
  */
 class ApiServerContext extends PhpServerContext {
 
@@ -90,7 +86,6 @@ class ApiServerContext extends PhpServerContext {
 
     $this->client = $this->createHttpClient();
 
-    // Set fixtures paths, with fallback to the default location.
     if (empty($paths)) {
       $this->fixturesPaths[] = dirname($this->webroot) . '/tests/behat/fixtures';
     }
@@ -109,7 +104,6 @@ class ApiServerContext extends PhpServerContext {
    * @Given (the )API server is running
    */
   public function apiIsRunning(): void {
-    // First check if server process is running.
     if (!$this->isRunning()) {
       $this->debug('API server process is not running. Attempting to start.');
       $this->start();
@@ -270,7 +264,6 @@ class ApiServerContext extends PhpServerContext {
    * @endcode
    */
   public function apiWillRespondWithFile(string $file_path, ?string $code = NULL): void {
-    // Search for the file in all configured fixture paths.
     $file_found = FALSE;
     $absolute_path = '';
     $error_paths = [];
@@ -299,7 +292,6 @@ class ApiServerContext extends PhpServerContext {
       throw new \RuntimeException(sprintf('Failed to read file "%s".', $absolute_path));
     }
 
-    // Determine content type based on file extension.
     $extension = pathinfo($file_path, PATHINFO_EXTENSION);
     $content_type = match (strtolower($extension)) {
       'json' => 'application/json',
@@ -352,7 +344,6 @@ class ApiServerContext extends PhpServerContext {
       throw new \InvalidArgumentException('Headers must be an array.');
     }
 
-    // Check that the headers are valid.
     foreach ($data['headers'] as $header_name => $header_value) {
       if (!is_string($header_name) || !is_string($header_value)) {
         throw new \InvalidArgumentException(sprintf('Header %s value must be a string.', $header_name));
