@@ -2,6 +2,7 @@
     "extends": ["config:recommended"],
     "automerge": true,
     "rangeStrategy": "bump",
+    "constraintsFiltering": "strict",
     "dependencyDashboard": true,
     "pinDigests": true,
     "branchPrefix": "deps/",

@@ -20,23 +20,22 @@
     },
     "require": {
         "php": ">=8.2",
-        "behat/behat": "^3.17",
-        "guzzlehttp/guzzle": "^7.9"
+        "behat/behat": "^3.32.0",
+        "guzzlehttp/guzzle": "^7.15.3"
     },
     "require-dev": {
-        "behat/mink-browserkit-driver": "^2.2",
-        "dantleech/gherkin-lint": "^0.2.3",
+        "behat/mink-browserkit-driver": "^2.3.0",
+        "dantleech/gherkin-lint": "^0.2.4",
         "dealerdirect/phpcodesniffer-composer-installer": "^1.2.1",
         "drevops/phpcs-standard": "^0.7",
-        "drupal/coder": "^8.3",
-        "dvdoug/behat-code-coverage": "^5.3",
+        "drupal/coder": "^8.3.31",
+        "dvdoug/behat-code-coverage": "~5.3.7",
         "ergebnis/composer-normalize": "^2.52.0",
-        "escapestudios/symfony2-coding-standard": "^3.15",
         "friends-of-behat/mink-extension": "^2.7.5",
         "phpstan/phpstan": "^2.2.8",
         "phpunit/phpunit": "^11.5.56",
         "rector/rector": "^2.6.2",
-        "squizlabs/php_codesniffer": "^3.11.2",
+        "squizlabs/php_codesniffer": "^3.13.6",
         "symfony/http-client": "^6 || ^7.2.2 || ^8.0.0"
     },
     "replace": {
