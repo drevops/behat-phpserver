@@ -699,14 +699,14 @@ class ApiServerContextTest extends TestCase {
    *   Value of the header returned by the server.
    * @param string $expected_count
    *   Count to assert against.
-   * @param bool $should_throw
+   * @param bool $expect_exception
    *   Whether the assertion is expected to fail.
    */
   #[DataProvider('dataProviderAssertQueuedResponsesCount')]
-  public function testAssertQueuedResponsesCount(string $header_value, string $expected_count, bool $should_throw): void {
+  public function testAssertQueuedResponsesCount(string $header_value, string $expected_count, bool $expect_exception): void {
     $context = $this->createContextWithClient([new Response(200, ['X-Queued-Responses' => $header_value])]);
 
-    if ($should_throw) {
+    if ($expect_exception) {
       $this->expectException(\RuntimeException::class);
       $this->expectExceptionMessage(sprintf('Expected %s queued responses, got %s', $expected_count, $header_value));
     }
@@ -727,17 +727,17 @@ class ApiServerContextTest extends TestCase {
       'matching count' => [
         'header_value' => '3',
         'expected_count' => '3',
-        'should_throw' => FALSE,
+        'expect_exception' => FALSE,
       ],
       'empty queue' => [
         'header_value' => '0',
         'expected_count' => '0',
-        'should_throw' => FALSE,
+        'expect_exception' => FALSE,
       ],
       'mismatched count' => [
         'header_value' => '1',
         'expected_count' => '5',
-        'should_throw' => TRUE,
+        'expect_exception' => TRUE,
       ],
     ];
   }
@@ -749,14 +749,14 @@ class ApiServerContextTest extends TestCase {
    *   Value of the header returned by the server.
    * @param string $expected_count
    *   Count to assert against.
-   * @param bool $should_throw
+   * @param bool $expect_exception
    *   Whether the assertion is expected to fail.
    */
   #[DataProvider('dataProviderAssertReceivedRequestsCount')]
-  public function testAssertReceivedRequestsCount(string $header_value, string $expected_count, bool $should_throw): void {
+  public function testAssertReceivedRequestsCount(string $header_value, string $expected_count, bool $expect_exception): void {
     $context = $this->createContextWithClient([new Response(200, ['X-Received-Requests' => $header_value])]);
 
-    if ($should_throw) {
+    if ($expect_exception) {
       $this->expectException(\RuntimeException::class);
       $this->expectExceptionMessage(sprintf('Expected %s received requests, got %s', $expected_count, $header_value));
     }
@@ -777,17 +777,17 @@ class ApiServerContextTest extends TestCase {
       'matching count' => [
         'header_value' => '2',
         'expected_count' => '2',
-        'should_throw' => FALSE,
+        'expect_exception' => FALSE,
       ],
       'no requests yet' => [
         'header_value' => '0',
         'expected_count' => '0',
-        'should_throw' => FALSE,
+        'expect_exception' => FALSE,
       ],
       'mismatched count' => [
         'header_value' => '4',
         'expected_count' => '1',
-        'should_throw' => TRUE,
+        'expect_exception' => TRUE,
       ],
     ];
   }
