@@ -78,22 +78,21 @@ class ApiServer {
    * ApiServer constructor.
    */
   public function __construct() {
-    // Use the unique per-server run ID as part of the state file name to ensure
-    // unique state file for each server instance.
+    // Include the unique per-server run ID in the state file name so each
+    // server instance has its own state file.
     $timestamp = getenv('PROCESS_TIMESTAMP') ?: getmypid();
     $this->stateFile = sys_get_temp_dir() . '/api_server_state.' . $timestamp . '.json';
 
-    // Load state from the file if it exists.
     if (file_exists($this->stateFile)) {
       $contents = file_get_contents($this->stateFile);
 
       if ($contents === FALSE) {
-        throw new \RuntimeException('Failed to read data from the server state file ' . $this->stateFile);
+        throw new \RuntimeException(sprintf('Failed to read data from the server state file %s', $this->stateFile));
       }
 
       $state = unserialize($contents);
       if (!is_array($state)) {
-        throw new \RuntimeException('Failed to load data from the server state file ' . $this->stateFile);
+        throw new \RuntimeException(sprintf('Failed to load data from the server state file %s', $this->stateFile));
       }
 
       /** @var array<int|Request> $requests */
@@ -122,8 +121,8 @@ class ApiServer {
    */
   public function handleRequest(): void {
     $request = new Request(
-      isset($_SERVER['REQUEST_METHOD']) && is_scalar($_SERVER['REQUEST_METHOD']) && is_string($_SERVER['REQUEST_METHOD']) ? $_SERVER['REQUEST_METHOD'] : 'GET',
-      isset($_SERVER['REQUEST_URI']) && is_scalar($_SERVER['REQUEST_URI']) ? (string) strtok(strval($_SERVER['REQUEST_URI']), '?') : '/',
+      isset($_SERVER['REQUEST_METHOD']) && is_string($_SERVER['REQUEST_METHOD']) ? $_SERVER['REQUEST_METHOD'] : 'GET',
+      isset($_SERVER['REQUEST_URI']) && is_scalar($_SERVER['REQUEST_URI']) ? (string) strtok((string) $_SERVER['REQUEST_URI'], '?') : '/',
       getallheaders(),
       file_get_contents('php://input') ?: ''
     );
@@ -159,8 +158,8 @@ class ApiServer {
         try {
           $response = Response::fromArray($response_data);
         }
-        catch (\InvalidArgumentException $e) {
-          throw new \InvalidArgumentException(sprintf('Invalid response #%d payload: %s', $k + 1, $e->getMessage()), 400, $e);
+        catch (\InvalidArgumentException $exception) {
+          throw new \InvalidArgumentException(sprintf('Invalid response #%d payload: %s', $k + 1, $exception->getMessage()), 400, $exception);
         }
 
         $this->responses[] = $response;
@@ -208,12 +207,11 @@ class ApiServer {
    */
   public static function sendResponse(Response $response): void {
     // Set the full status line manually to include the custom reason.
-    $protocol = is_scalar($_SERVER['SERVER_PROTOCOL']) ? strval($_SERVER['SERVER_PROTOCOL']) : 'HTTP/1.1';
+    $protocol = is_scalar($_SERVER['SERVER_PROTOCOL']) ? (string) $_SERVER['SERVER_PROTOCOL'] : 'HTTP/1.1';
     header(sprintf('%s %s %s', $protocol, $response->code, $response->reason));
 
-    // Set additional headers.
-    foreach ($response->headers as $key => $value) {
-      header(sprintf('%s: %s', $key, $value));
+    foreach ($response->headers as $header_name => $header_value) {
+      header(sprintf('%s: %s', $header_name, $header_value));
     }
 
     print $response->body;
@@ -257,7 +255,7 @@ class Response {
     mixed $body = '',
   ) {
     if (is_scalar($body)) {
-      $this->body = strval($body);
+      $this->body = (string) $body;
       if (static::isJson($this->body)) {
         $this->headers['Content-Type'] = 'application/json';
       }
@@ -266,7 +264,7 @@ class Response {
       $this->body = (string) json_encode($body);
       $this->headers['Content-Type'] = 'application/json';
     }
-    // Set Content-Length header if a body is provided.
+
     if ($this->body !== '') {
       $this->headers['Content-Length'] = (string) strlen($this->body);
     }
@@ -302,7 +300,7 @@ class Response {
       throw new \InvalidArgumentException('Response code is required.');
     }
 
-    $data['code'] = is_numeric($data['code']) ? intval($data['code']) : 0;
+    $data['code'] = is_numeric($data['code']) ? (int) $data['code'] : 0;
 
     if ($data['code'] < 100 || $data['code'] > 599) {
       throw new \InvalidArgumentException('Response code must be a number between 100 and 599.');
@@ -319,7 +317,7 @@ class Response {
       if (!is_string($header_name) || !is_scalar($header_value)) {
         throw new \InvalidArgumentException(sprintf('Header "%s" value must be a string.', $header_name));
       }
-      $headers[$header_name] = strval($header_value);
+      $headers[$header_name] = (string) $header_value;
     }
     $data['headers'] = $headers;
 
@@ -353,7 +351,7 @@ class Response {
 
 }
 
-// Allow to skip the script run.
+// Allow skipping the script run.
 if (getenv('SCRIPT_RUN_SKIP') != 1) {
   $server = new ApiServer();
 

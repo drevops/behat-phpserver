@@ -10,29 +10,29 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(Response::class)]
-class ResponseApiServerUnitTest extends TestCase {
+class ResponseTest extends TestCase {
 
   /**
    * Test Response::fromArray().
    *
    * @param array<string,mixed> $data
    *   The data to test.
-   * @param \DrevOps\BehatPhpServer\ApiServer\Response|null $expected
+   * @param \DrevOps\BehatPhpServer\ApiServer\Response|null $expected_response
    *   The expected response.
    * @param string|null $exception
    *   The expected exception message.
    */
   #[DataProvider('dataProviderFromArray')]
-  public function testFromArray(array $data, ?Response $expected, ?string $exception = NULL): void {
+  public function testFromArray(array $data, ?Response $expected_response, ?string $exception = NULL): void {
     if ($exception) {
       $this->expectException(\InvalidArgumentException::class);
       $this->expectExceptionMessage($exception);
     }
 
-    $actual = Response::fromArray($data);
+    $result = Response::fromArray($data);
 
     if (!$exception) {
-      $this->assertEquals($expected, $actual);
+      $this->assertEquals($expected_response, $result);
     }
   }
 

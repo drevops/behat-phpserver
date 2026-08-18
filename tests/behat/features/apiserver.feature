@@ -39,7 +39,7 @@ Feature: API Server
     Then the response header should contain "X-Received-Requests" with value "0"
     And the response header should contain "X-Queued-Responses" with value "0"
 
-  Scenario: Assert that incorrectly formatted API responses trigger an error
+  Scenario: Incorrectly formatted API responses trigger an error
     Given API server is running
     And API server is reset
     When I send a GET request to "/someurl1" in the API server
@@ -52,7 +52,7 @@ Feature: API Server
   #
   # JSON responses
   #
-  Scenario: Assert that a single API response is returned correctly
+  Scenario: A single API response is returned correctly
     Given API server is running
     And API server is reset
     Given the API will respond with:
@@ -79,7 +79,7 @@ Feature: API Server
     And the response should contain "Slug"
     And the response should contain "test-slug-1"
 
-  Scenario: Assert that multiple API responses are returned correctly
+  Scenario: Multiple API responses are returned correctly
     Given API server is running
     And API server is reset
     Given the API will respond with:
@@ -148,7 +148,7 @@ Feature: API Server
     And the API server should have 3 received requests
     And the API server should have 0 queued responses
 
-  Scenario: Assert that "API will respond with JSON:" works correctly
+  Scenario: "API will respond with JSON:" works correctly
     Given API server is running
     And API server is reset
     Given API will respond with JSON:

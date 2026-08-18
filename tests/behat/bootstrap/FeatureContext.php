@@ -11,8 +11,6 @@ use DrevOps\BehatPhpServer\ApiServerContext;
 use DrevOps\BehatPhpServer\PhpServerContext;
 
 /**
- * Class FeatureContext.
- *
  * Defines application features from the specific context.
  *
  * @phpcs:disable Drupal.Commenting.DocComment.MissingShort
@@ -30,15 +28,13 @@ class FeatureContext extends MinkContext implements Context {
   protected string $apiServerUrl;
 
   /**
-   * Initialize the context.
-   *
    * @beforeScenario
    */
   public function beforeScenarioInit(BeforeScenarioScope $scope): void {
     $environment = $scope->getEnvironment();
 
     if (!$environment instanceof InitializedContextEnvironment) {
-      throw new \Exception('Environment is not initialized');
+      throw new \Exception('Environment is not initialized.');
     }
 
     $context = $environment->getContext(PhpServerContext::class);
@@ -49,10 +45,8 @@ class FeatureContext extends MinkContext implements Context {
   }
 
   /**
-   * Go to the phpserver test page.
-   *
-   * @Given /^(?:|I )am on (?:|the )phpserver test page$/
-   * @When /^(?:|I )go to (?:|the )phpserver test page$/
+   * @Given (I )am on (the )phpserver test page
+   * @When (I )go to (the )phpserver test page
    */
   public function goToPhpServerTestPage(): void {
     $this->getSession()->visit($this->phpServerUrl . '/test_page.html');
@@ -65,7 +59,7 @@ class FeatureContext extends MinkContext implements Context {
     $driver = $this->getSession()->getDriver();
 
     if (!$driver instanceof BrowserKitDriver) {
-      throw new \Exception('This step requires BrowserKitDriver');
+      throw new \Exception('This step requires BrowserKitDriver.');
     }
 
     $driver->getClient()->request($method, $this->apiServerUrl . $path);
@@ -76,9 +70,9 @@ class FeatureContext extends MinkContext implements Context {
    */
   public function responseHeaderContains(string $name, string $value): void {
     $actual = (string) $this->getSession()->getResponseHeader($name);
-    $message = sprintf('The header "%s" does not contain the value "%s", but has a value of "%s"', $name, $value, $actual);
+    $message = sprintf('The header "%s" does not contain the value "%s", but has a value of "%s".', $name, $value, $actual);
 
-    if (!\str_contains(strtolower($actual), strtolower($value))) {
+    if (!str_contains(strtolower($actual), strtolower($value))) {
       throw new \Exception($message);
     }
   }
@@ -86,7 +80,7 @@ class FeatureContext extends MinkContext implements Context {
   /**
    * @Then the response should not contain header :name
    */
-  public function responseHasNoHeader(string $name): void {
+  public function theResponseShouldNotContainHeader(string $name): void {
     $actual = (string) $this->getSession()->getResponseHeader($name);
     $message = sprintf('The header "%s" is present in the response with a value of "%s", but it should not be.', $name, $actual);
 
@@ -107,7 +101,7 @@ class FeatureContext extends MinkContext implements Context {
    */
   public function theResponseHeaderShouldBe(string $name, string $value): void {
     $actual = (string) $this->getSession()->getResponseHeader($name);
-    $message = sprintf('The header "%s" does not have the value "%s", but has a value of "%s"', $name, $value, $actual);
+    $message = sprintf('The header "%s" does not have the value "%s", but has a value of "%s".', $name, $value, $actual);
 
     if ($actual !== $value) {
       throw new \Exception($message);
@@ -119,7 +113,7 @@ class FeatureContext extends MinkContext implements Context {
    */
   public function theResponseHeaderShouldContain(string $name, string $value): void {
     $actual = (string) $this->getSession()->getResponseHeader($name);
-    $message = sprintf('The header "%s" does not contain the value "%s", but has a value of "%s"', $name, $value, $actual);
+    $message = sprintf('The header "%s" does not contain the value "%s", but has a value of "%s".', $name, $value, $actual);
 
     if (!str_contains($actual, $value)) {
       throw new \Exception($message);
@@ -131,7 +125,7 @@ class FeatureContext extends MinkContext implements Context {
    */
   public function theResponseShouldBeHtml(): void {
     $content_type = (string) $this->getSession()->getResponseHeader('Content-Type');
-    $message = sprintf('The response is not HTML, but has Content-Type "%s"', $content_type);
+    $message = sprintf('The response is not HTML, but has Content-Type "%s".', $content_type);
 
     if (!str_contains(strtolower($content_type), 'text/html')) {
       throw new \Exception($message);
@@ -139,7 +133,7 @@ class FeatureContext extends MinkContext implements Context {
 
     $content = $this->getSession()->getPage()->getContent();
     if (!str_contains($content, '<html') && !str_contains($content, '<body')) {
-      throw new \Exception('The response content does not appear to be HTML');
+      throw new \Exception('The response content does not appear to be HTML.');
     }
   }
 

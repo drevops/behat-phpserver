@@ -32,25 +32,17 @@ class ApiServerContextTest extends TestCase {
    */
   #[DataProvider('dataProviderCreateHttpClient')]
   public function testCreateHttpClient(string $server_url, array $additional_options): void {
-    // Create a mock for ApiServerContext.
     $context = $this->getMockBuilder(ApiServerContext::class)
       ->disableOriginalConstructor()
       ->onlyMethods(['getServerUrl'])
       ->getMock();
 
-    // Setup expected server URL.
     $context->expects($this->once())
       ->method('getServerUrl')
       ->willReturn($server_url);
 
-    // Use reflection to call protected createHttpClient method.
-    $reflection_class = new \ReflectionClass(ApiServerContext::class);
-    $create_http_client = $reflection_class->getMethod('createHttpClient');
+    $client = static::callProtectedMethod($context, 'createHttpClient', [$additional_options]);
 
-    // Call the method.
-    $client = $create_http_client->invoke($context, $additional_options);
-
-    // Assert the result is a Client instance.
     $this->assertInstanceOf(Client::class, $client);
   }
 
@@ -83,26 +75,17 @@ class ApiServerContextTest extends TestCase {
    */
   #[DataProvider('dataProviderPrepareResponse')]
   public function testPrepareResponse(string $json_input, array $expected_values): void {
-    // Create a mock for ApiServerContext.
     $context = $this->getMockBuilder(ApiServerContext::class)
       ->disableOriginalConstructor()
       ->onlyMethods(['debug'])
       ->getMock();
 
-    // Use reflection to call protected prepareResponse method.
-    $reflection_class = new \ReflectionClass(ApiServerContext::class);
-    $prepare_response = $reflection_class->getMethod('prepareResponse');
+    $result = static::callProtectedMethod($context, 'prepareResponse', [$json_input]);
 
-    // Call the method with the test input.
-    $result = $prepare_response->invoke($context, $json_input);
-
-    // Basic assertions for all cases.
     $this->assertIsArray($result);
     $this->assertCount(1, $result);
 
-    // Check each expected value.
     foreach ($expected_values as $key => $expected) {
-      // Special case for base64 encoding assertion.
       if ($key === 'body_encoded' && isset($expected_values['body_raw'])) {
         $body_raw = $expected_values['body_raw'];
         $this->assertIsArray($result[0], 'Result should be an array');
@@ -111,10 +94,9 @@ class ApiServerContextTest extends TestCase {
         $this->assertEquals(
           base64_encode($body_raw),
           $result[0]['body'],
-          "Body should be base64 encoded correctly"
+          'Body should be base64 encoded correctly'
         );
       }
-      // Regular assertion.
       elseif ($key !== 'body_raw') {
         $path = explode('.', $key);
         $value = $result[0];
@@ -175,21 +157,15 @@ class ApiServerContextTest extends TestCase {
    */
   #[DataProvider('dataProviderPrepareResponseInvalid')]
   public function testPrepareResponseInvalid(string $json_input, string $exception_class, string $exception_message): void {
-    // Create a mock for ApiServerContext.
     $context = $this->getMockBuilder(ApiServerContext::class)
       ->disableOriginalConstructor()
       ->onlyMethods(['debug'])
       ->getMock();
 
-    // Use reflection to call protected prepareResponse method.
-    $reflection_class = new \ReflectionClass(ApiServerContext::class);
-    $prepare_response = $reflection_class->getMethod('prepareResponse');
-
-    // Test with the given invalid input.
     if (class_exists($exception_class)) {
       $this->expectException($exception_class);
       $this->expectExceptionMessage($exception_message);
-      $prepare_response->invoke($context, $json_input);
+      static::callProtectedMethod($context, 'prepareResponse', [$json_input]);
     }
     else {
       $this->fail(sprintf('Exception class %s does not exist', $exception_class));
@@ -234,16 +210,13 @@ class ApiServerContextTest extends TestCase {
    */
   #[DataProvider('dataProviderApiWillRespondWithJson')]
   public function testApiWillRespondWithJson(string $json_content, ?string $code, int $expected_code): void {
-    // Create a mock for ApiServerContext.
     $context = $this->getMockBuilder(ApiServerContext::class)
       ->disableOriginalConstructor()
       ->onlyMethods(['apiWillRespondWith'])
       ->getMock();
 
-    // Create a PyStringNode.
     $py_string_node = new PyStringNode([$json_content], 1);
 
-    // Setup the mock expectation.
     $context->expects($this->once())
       ->method('apiWillRespondWith')
       ->willReturnCallback(function (PyStringNode $node) use ($expected_code): null {
@@ -257,7 +230,6 @@ class ApiServerContextTest extends TestCase {
         return NULL;
       });
 
-    // Call the method.
     $context->apiWillRespondWithJson($py_string_node, $code);
   }
 
@@ -295,8 +267,8 @@ class ApiServerContextTest extends TestCase {
    * @param array<string>|callable $expected_paths
    *   Expected fixture paths or a callback that returns expected paths.
    */
-  #[DataProvider('dataProviderFixturePaths')]
-  public function testFixturePaths(array|string|null $paths, mixed $expected_paths): void {
+  #[DataProvider('dataProviderConstructorFixturesPaths')]
+  public function testConstructorFixturesPaths(array|string|null $paths, mixed $expected_paths): void {
     $webroot = sys_get_temp_dir() . '/test_webroot_' . uniqid();
     mkdir($webroot, 0777, TRUE);
 
@@ -311,26 +283,24 @@ class ApiServerContextTest extends TestCase {
       $paths
     );
 
-    $actual_paths = self::getProtectedValue($context, 'fixturesPaths');
+    $result = self::getProtectedValue($context, 'fixturesPaths');
 
-    // If expected_paths is a callback, execute it to get the actual expected value.
     if (is_callable($expected_paths)) {
       $expected_paths = $expected_paths($webroot);
     }
 
-    $this->assertEquals($expected_paths, $actual_paths);
+    $this->assertEquals($expected_paths, $result);
 
-    // Clean up.
     rmdir($webroot);
   }
 
   /**
-   * Data provider for testFixturePaths.
+   * Data provider for testConstructorFixturesPaths.
    *
    * @return array<string, array<string, mixed>>
    *   Test cases.
    */
-  public static function dataProviderFixturePaths(): array {
+  public static function dataProviderConstructorFixturesPaths(): array {
     return [
       'default path (null)' => [
         'paths' => NULL,
@@ -399,7 +369,7 @@ class ApiServerContextTest extends TestCase {
    * @return \Psr\Http\Message\RequestInterface
    *   The recorded request.
    */
-  protected function historyRequest(\ArrayObject $history, int $index): RequestInterface {
+  protected function getHistoryRequest(\ArrayObject $history, int $index): RequestInterface {
     $transaction = $history[$index] ?? NULL;
 
     if ($transaction === NULL) {
@@ -445,7 +415,7 @@ class ApiServerContextTest extends TestCase {
    * @return string
    *   The value.
    */
-  protected function queuedResponseString(array $payload, string $key): string {
+  protected function getQueuedResponseString(array $payload, string $key): string {
     $value = $payload[$key] ?? NULL;
 
     if (!is_string($value)) {
@@ -464,7 +434,7 @@ class ApiServerContextTest extends TestCase {
    * @return array<mixed, mixed>
    *   The headers.
    */
-  protected function queuedResponseHeaders(array $payload): array {
+  protected function getQueuedResponseHeaders(array $payload): array {
     $headers = $payload['headers'] ?? NULL;
 
     if (!is_array($headers)) {
@@ -486,7 +456,7 @@ class ApiServerContextTest extends TestCase {
     $context->apiIsRunning();
 
     $this->assertCount(1, $history);
-    $this->assertEquals('/admin/status', (string) $this->historyRequest($history, 0)->getUri());
+    $this->assertEquals('/admin/status', (string) $this->getHistoryRequest($history, 0)->getUri());
   }
 
   /**
@@ -527,11 +497,11 @@ class ApiServerContextTest extends TestCase {
 
     $this->assertCount(2, $history);
 
-    $responses_request = $this->historyRequest($history, 0);
+    $responses_request = $this->getHistoryRequest($history, 0);
     $this->assertEquals('DELETE', $responses_request->getMethod());
     $this->assertEquals('/admin/responses', (string) $responses_request->getUri());
 
-    $requests_request = $this->historyRequest($history, 1);
+    $requests_request = $this->getHistoryRequest($history, 1);
     $this->assertEquals('DELETE', $requests_request->getMethod());
     $this->assertEquals('/admin/requests', (string) $requests_request->getUri());
   }
@@ -547,7 +517,7 @@ class ApiServerContextTest extends TestCase {
 
     $this->assertCount(1, $history);
 
-    $request = $this->historyRequest($history, 0);
+    $request = $this->getHistoryRequest($history, 0);
     $this->assertEquals('DELETE', $request->getMethod());
     $this->assertEquals('/admin/responses', (string) $request->getUri());
   }
@@ -587,13 +557,13 @@ class ApiServerContextTest extends TestCase {
 
     $this->assertCount(1, $history);
 
-    $request = $this->historyRequest($history, 0);
+    $request = $this->getHistoryRequest($history, 0);
     $this->assertEquals('PUT', $request->getMethod());
     $this->assertEquals('/admin/responses', (string) $request->getUri());
 
     $queued = $this->decodeQueuedResponse($request);
     $this->assertEquals(201, $queued['code']);
-    $this->assertEquals('hello', base64_decode($this->queuedResponseString($queued, 'body')));
+    $this->assertEquals('hello', base64_decode($this->getQueuedResponseString($queued, 'body')));
   }
 
   /**
@@ -627,10 +597,10 @@ class ApiServerContextTest extends TestCase {
 
     $context->apiWillRespondWithFile($file_path);
 
-    $queued = $this->decodeQueuedResponse($this->historyRequest($history, 0));
+    $queued = $this->decodeQueuedResponse($this->getHistoryRequest($history, 0));
 
     $this->assertEquals(200, $queued['code']);
-    $this->assertEquals($expected_type, $this->queuedResponseHeaders($queued)['Content-Type'] ?? NULL);
+    $this->assertEquals($expected_type, $this->getQueuedResponseHeaders($queued)['Content-Type'] ?? NULL);
     $this->assertNotEmpty($queued['body']);
   }
 
@@ -674,7 +644,7 @@ class ApiServerContextTest extends TestCase {
 
     $context->apiWillRespondWithFile('test_data.json', '404');
 
-    $queued = $this->decodeQueuedResponse($this->historyRequest($history, 0));
+    $queued = $this->decodeQueuedResponse($this->getHistoryRequest($history, 0));
 
     $this->assertEquals(404, $queued['code']);
   }
@@ -699,14 +669,14 @@ class ApiServerContextTest extends TestCase {
    *   Value of the header returned by the server.
    * @param string $expected_count
    *   Count to assert against.
-   * @param bool $should_throw
+   * @param bool $expect_exception
    *   Whether the assertion is expected to fail.
    */
   #[DataProvider('dataProviderAssertQueuedResponsesCount')]
-  public function testAssertQueuedResponsesCount(string $header_value, string $expected_count, bool $should_throw): void {
+  public function testAssertQueuedResponsesCount(string $header_value, string $expected_count, bool $expect_exception): void {
     $context = $this->createContextWithClient([new Response(200, ['X-Queued-Responses' => $header_value])]);
 
-    if ($should_throw) {
+    if ($expect_exception) {
       $this->expectException(\RuntimeException::class);
       $this->expectExceptionMessage(sprintf('Expected %s queued responses, got %s', $expected_count, $header_value));
     }
@@ -727,17 +697,17 @@ class ApiServerContextTest extends TestCase {
       'matching count' => [
         'header_value' => '3',
         'expected_count' => '3',
-        'should_throw' => FALSE,
+        'expect_exception' => FALSE,
       ],
       'empty queue' => [
         'header_value' => '0',
         'expected_count' => '0',
-        'should_throw' => FALSE,
+        'expect_exception' => FALSE,
       ],
       'mismatched count' => [
         'header_value' => '1',
         'expected_count' => '5',
-        'should_throw' => TRUE,
+        'expect_exception' => TRUE,
       ],
     ];
   }
@@ -749,14 +719,14 @@ class ApiServerContextTest extends TestCase {
    *   Value of the header returned by the server.
    * @param string $expected_count
    *   Count to assert against.
-   * @param bool $should_throw
+   * @param bool $expect_exception
    *   Whether the assertion is expected to fail.
    */
   #[DataProvider('dataProviderAssertReceivedRequestsCount')]
-  public function testAssertReceivedRequestsCount(string $header_value, string $expected_count, bool $should_throw): void {
+  public function testAssertReceivedRequestsCount(string $header_value, string $expected_count, bool $expect_exception): void {
     $context = $this->createContextWithClient([new Response(200, ['X-Received-Requests' => $header_value])]);
 
-    if ($should_throw) {
+    if ($expect_exception) {
       $this->expectException(\RuntimeException::class);
       $this->expectExceptionMessage(sprintf('Expected %s received requests, got %s', $expected_count, $header_value));
     }
@@ -777,17 +747,17 @@ class ApiServerContextTest extends TestCase {
       'matching count' => [
         'header_value' => '2',
         'expected_count' => '2',
-        'should_throw' => FALSE,
+        'expect_exception' => FALSE,
       ],
       'no requests yet' => [
         'header_value' => '0',
         'expected_count' => '0',
-        'should_throw' => FALSE,
+        'expect_exception' => FALSE,
       ],
       'mismatched count' => [
         'header_value' => '4',
         'expected_count' => '1',
-        'should_throw' => TRUE,
+        'expect_exception' => TRUE,
       ],
     ];
   }

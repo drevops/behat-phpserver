@@ -13,11 +13,8 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversClass(ApiServer::class)]
 #[CoversClass(Request::class)]
-class ApiServerUnitTest extends TestCase {
+class ApiServerTest extends TestCase {
 
-  /**
-   * Test that a request falls back to the defaults.
-   */
   public function testRequestDefaults(): void {
     $request = new Request();
 
@@ -72,9 +69,6 @@ class ApiServerUnitTest extends TestCase {
     ];
   }
 
-  /**
-   * Test that sending a response prints its body.
-   */
   public function testSendResponsePrintsBody(): void {
     $output = $this->captureResponse(new Response(200, 'OK', ['X-Custom' => 'value'], 'hello'));
 

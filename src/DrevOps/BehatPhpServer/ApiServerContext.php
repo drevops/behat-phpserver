@@ -9,13 +9,9 @@ use GuzzleHttp\Client;
 use GuzzleHttp\RequestOptions;
 
 /**
- * Class ApiServerContext.
- *
  * Behat context to enable ApiServer support in tests.
  *
  * @see \DrevOps\BehatPhpServer\ApiServer
- *
- * @package DrevOps\BehatPhpServer
  */
 class ApiServerContext extends PhpServerContext {
 
@@ -76,12 +72,20 @@ class ApiServerContext extends PhpServerContext {
    * @param string[]|string|null $paths
    *   An array of fixture paths or a single path string.
    */
-  public function __construct(?string $webroot = NULL, string $host = '127.0.0.1', int $port = 8888, string $protocol = 'http', bool $debug = FALSE, ?int $connection_timeout = NULL, ?int $retry_delay = NULL, $paths = NULL) {
+  public function __construct(
+    ?string $webroot = NULL,
+    string $host = '127.0.0.1',
+    int $port = 8888,
+    string $protocol = 'http',
+    bool $debug = FALSE,
+    ?int $connection_timeout = NULL,
+    ?int $retry_delay = NULL,
+    $paths = NULL,
+  ) {
     parent::__construct($webroot, $host, $port, $protocol, $debug, $connection_timeout, $retry_delay);
 
     $this->client = $this->createHttpClient();
 
-    // Set fixtures paths, with fallback to the default location.
     if (empty($paths)) {
       $this->fixturesPaths[] = dirname($this->webroot) . '/tests/behat/fixtures';
     }
@@ -100,7 +104,6 @@ class ApiServerContext extends PhpServerContext {
    * @Given (the )API server is running
    */
   public function apiIsRunning(): void {
-    // First check if server process is running.
     if (!$this->isRunning()) {
       $this->debug('API server process is not running. Attempting to start.');
       $this->start();
@@ -108,7 +111,7 @@ class ApiServerContext extends PhpServerContext {
 
     $response = $this->client->request('GET', '/admin/status');
     if ($response->getStatusCode() !== 200) {
-      throw new \Exception('API server is not up');
+      throw new \Exception('API server is not up.');
     }
   }
 
@@ -132,8 +135,6 @@ class ApiServerContext extends PhpServerContext {
    * @code
    * Given the API has no responses
    * @endcode
-   *
-   * @see https://github.com/drevops/behat-phpserver/issues/33
    */
   public function apiHasNoResponses(): void {
     $response = $this->client->request('DELETE', '/admin/responses');
@@ -193,7 +194,7 @@ class ApiServerContext extends PhpServerContext {
     $data = $this->prepareResponse($data->getRaw());
 
     $response = $this->client->request('PUT', '/admin/responses', [
-      'json' => $data,
+      RequestOptions::JSON => $data,
     ]);
 
     if ($response->getStatusCode() !== 201) {
@@ -263,7 +264,6 @@ class ApiServerContext extends PhpServerContext {
    * @endcode
    */
   public function apiWillRespondWithFile(string $file_path, ?string $code = NULL): void {
-    // Search for the file in all configured fixture paths.
     $file_found = FALSE;
     $absolute_path = '';
     $error_paths = [];
@@ -292,7 +292,6 @@ class ApiServerContext extends PhpServerContext {
       throw new \RuntimeException(sprintf('Failed to read file "%s".', $absolute_path));
     }
 
-    // Determine content type based on file extension.
     $extension = pathinfo($file_path, PATHINFO_EXTENSION);
     $content_type = match (strtolower($extension)) {
       'json' => 'application/json',
@@ -339,13 +338,12 @@ class ApiServerContext extends PhpServerContext {
     if (!is_numeric($data['code'])) {
       throw new \InvalidArgumentException('Status code must be a number.');
     }
-    $data['code'] = intval($data['code']);
+    $data['code'] = (int) $data['code'];
 
     if (!is_array($data['headers'])) {
       throw new \InvalidArgumentException('Headers must be an array.');
     }
 
-    // Check that the headers are valid.
     foreach ($data['headers'] as $header_name => $header_value) {
       if (!is_string($header_name) || !is_string($header_value)) {
         throw new \InvalidArgumentException(sprintf('Header %s value must be a string.', $header_name));
@@ -359,7 +357,7 @@ class ApiServerContext extends PhpServerContext {
       }
 
       if (is_string($data['body'])) {
-        $data['body'] = \base64_encode($data['body']);
+        $data['body'] = base64_encode($data['body']);
       }
     }
 
@@ -378,7 +376,7 @@ class ApiServerContext extends PhpServerContext {
   protected function createHttpClient(array $options = []): Client {
     $defaults = [
       'base_uri' => $this->getServerUrl(),
-      'http_errors' => FALSE,
+      RequestOptions::HTTP_ERRORS => FALSE,
       RequestOptions::CONNECT_TIMEOUT => static::DEFAULT_CONNECT_TIMEOUT,
       RequestOptions::TIMEOUT => static::DEFAULT_REQUEST_TIMEOUT,
       RequestOptions::READ_TIMEOUT => static::DEFAULT_READ_TIMEOUT,
@@ -402,7 +400,7 @@ class ApiServerContext extends PhpServerContext {
 
     if ($queued_responses !== $count) {
       throw new \RuntimeException(sprintf(
-        'Expected %s queued responses, got %s',
+        'Expected %s queued responses, got %s.',
         $count,
         $queued_responses
       ));
@@ -426,7 +424,7 @@ class ApiServerContext extends PhpServerContext {
 
     if ($received_requests !== $count) {
       throw new \RuntimeException(sprintf(
-        'Expected %s received requests, got %s',
+        'Expected %s received requests, got %s.',
         $count,
         $received_requests
       ));
