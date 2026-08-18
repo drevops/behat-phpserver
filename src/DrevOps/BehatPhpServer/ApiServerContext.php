@@ -87,7 +87,7 @@ class ApiServerContext extends PhpServerContext {
     }
     elseif (is_array($paths)) {
       // Handle both string and array.
-      $this->fixturesPaths = array_map('strval', $paths);
+      $this->fixturesPaths = array_map(strval(...), $paths);
     }
     else {
       $this->fixturesPaths[] = (string) $paths;

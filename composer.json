@@ -26,22 +26,24 @@
     "require-dev": {
         "behat/mink-browserkit-driver": "^2.2",
         "dantleech/gherkin-lint": "^0.2.3",
-        "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
+        "dealerdirect/phpcodesniffer-composer-installer": "^1.2.1",
         "drevops/phpcs-standard": "^0.7",
         "drupal/coder": "^8.3",
         "dvdoug/behat-code-coverage": "^5.3",
-        "ergebnis/composer-normalize": "^2.45",
+        "ergebnis/composer-normalize": "^2.52.0",
         "escapestudios/symfony2-coding-standard": "^3.15",
         "friends-of-behat/mink-extension": "^2.7.5",
-        "phpstan/phpstan": "^2",
-        "phpunit/phpunit": "^11.4",
-        "rector/rector": "^2.0",
+        "phpstan/phpstan": "^2.2.8",
+        "phpunit/phpunit": "^11.5.56",
+        "rector/rector": "^2.6.2",
         "squizlabs/php_codesniffer": "^3.11.2",
         "symfony/http-client": "^6 || ^7.2.2 || ^8.0.0"
     },
     "replace": {
         "integratedexperts/behat-phpserver": "self.version"
     },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
     "autoload": {
         "psr-4": {
             "DrevOps\\BehatPhpServer\\": "src/DrevOps/BehatPhpServer/"
@@ -59,7 +61,18 @@
         "allow-plugins": {
             "dealerdirect/phpcodesniffer-composer-installer": true,
             "ergebnis/composer-normalize": true
-        }
+        },
+        "discard-changes": true,
+        "policy": {
+            "advisories": {
+                "block": true,
+                "audit": "fail"
+            },
+            "abandoned": {
+                "audit": "report"
+            }
+        },
+        "sort-packages": true
     },
     "scripts": {
         "lint": [

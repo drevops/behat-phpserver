@@ -2,14 +2,19 @@
 <ruleset name="behat-phpserver">
     <description>The coding standard for behat-phpserver.</description>
 
+    <!-- Using Drupal coding standard as a base. -->
     <rule ref="Drupal">
         <exclude name="Drupal.Files.LineLength.TooLong"/>
     </rule>
-    <rule ref="Generic.PHP.RequireStrictTypes"/>
     <rule ref="DrevOps"/>
+    <!-- Checks that the strict_types has been declared. -->
+    <rule ref="Generic.PHP.RequireStrictTypes"/>
 
+    <!-- Show sniff codes in all reports -->
+    <arg value="s"/>
+    <!-- Show progress of the run. -->
+    <arg value="p"/>
     <arg name="colors"/>
-    <arg value="sp"/>
 
     <file>src</file>
     <file>apiserver</file>
@@ -28,6 +33,7 @@
         <exclude-pattern>*.TestCase\.php</exclude-pattern>
         <exclude-pattern>*.test</exclude-pattern>
     </rule>
+
     <!-- Allow missing function names in tests. -->
     <rule ref="Drupal.Commenting.FunctionComment.Missing">
         <exclude-pattern>*.Test\.php</exclude-pattern>
