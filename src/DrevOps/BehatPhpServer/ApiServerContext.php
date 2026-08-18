@@ -90,7 +90,6 @@ class ApiServerContext extends PhpServerContext {
       $this->fixturesPaths[] = dirname($this->webroot) . '/tests/behat/fixtures';
     }
     elseif (is_array($paths)) {
-      // Normalise every path in the array to a string.
       $this->fixturesPaths = array_map(strval(...), $paths);
     }
     else {
@@ -110,6 +109,7 @@ class ApiServerContext extends PhpServerContext {
     }
 
     $response = $this->client->request('GET', '/admin/status');
+
     if ($response->getStatusCode() !== 200) {
       throw new \Exception('API server is not up.');
     }
@@ -264,30 +264,27 @@ class ApiServerContext extends PhpServerContext {
    * @endcode
    */
   public function apiWillRespondWithFile(string $file_path, ?string $code = NULL): void {
-    $file_found = FALSE;
     $absolute_path = '';
-    $error_paths = [];
 
     foreach ($this->fixturesPaths as $fixtures_path) {
       $path = $fixtures_path . '/' . $file_path;
-      $error_paths[] = $fixtures_path;
 
       if (file_exists($path)) {
         $absolute_path = $path;
-        $file_found = TRUE;
         break;
       }
     }
 
-    if (!$file_found) {
+    if ($absolute_path === '') {
       throw new \RuntimeException(sprintf(
         'File "%s" does not exist in any of the configured fixture paths: %s',
         $file_path,
-        implode(', ', $error_paths)
+        implode(', ', $this->fixturesPaths)
       ));
     }
 
     $content = file_get_contents($absolute_path);
+
     if ($content === FALSE) {
       throw new \RuntimeException(sprintf('Failed to read file "%s".', $absolute_path));
     }
@@ -323,6 +320,7 @@ class ApiServerContext extends PhpServerContext {
    */
   protected function prepareResponse(string $data): array {
     $data = json_decode($data, TRUE);
+
     if ($data === NULL || !is_array($data)) {
       throw new \InvalidArgumentException('Request data is not a valid JSON.');
     }
@@ -338,6 +336,7 @@ class ApiServerContext extends PhpServerContext {
     if (!is_numeric($data['code'])) {
       throw new \InvalidArgumentException('Status code must be a number.');
     }
+
     $data['code'] = (int) $data['code'];
 
     if (!is_array($data['headers'])) {

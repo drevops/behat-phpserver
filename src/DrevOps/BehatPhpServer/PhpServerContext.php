@@ -160,9 +160,8 @@ class PhpServerContext implements Context {
       throw new \RuntimeException(sprintf('Unable to stop existing server on port %d.', $this->port));
     }
 
+    // The per-run timestamp is passed so the served scripts can read it.
     $command = sprintf(
-    // Pass a per-run timestamp to the server so it can be accessed from
-    // within the scripts.
       'PROCESS_TIMESTAMP=%s php -S %s:%d -t %s >/dev/null 2>&1 & echo $!',
       microtime(TRUE),
       $this->host,
@@ -175,13 +174,14 @@ class PhpServerContext implements Context {
     $output = [];
     $code = 0;
     $success = $this->executeCommand($command, $output, $code);
-    if ($success && !empty($output[0]) && is_numeric($output[0])) {
-      $this->pid = (int) $output[0];
-    }
-    else {
+
+    if (!$success || empty($output[0]) || !is_numeric($output[0])) {
       $this->debug(sprintf('Command execution failed with code %d or empty/invalid output: %s', $code, implode(', ', $output)));
+
       throw new \RuntimeException(sprintf('Unable to start PHP server: Command failed with code %d.', $code));
     }
+
+    $this->pid = (int) $output[0];
 
     $this->debug(sprintf('PHP server started with PID %s.', $this->pid));
 
@@ -194,6 +194,7 @@ class PhpServerContext implements Context {
     }
 
     $this->debug('PHP server is now running and accepting connections.');
+
     return $this->pid;
   }
 
@@ -239,6 +240,7 @@ class PhpServerContext implements Context {
     }
 
     $this->pid = 0;
+
     return TRUE;
   }
 
@@ -277,6 +279,7 @@ class PhpServerContext implements Context {
     }
 
     $this->debug('Server is not responding to connection attempts.');
+
     return FALSE;
   }
 
@@ -294,7 +297,7 @@ class PhpServerContext implements Context {
 
     set_error_handler(static fn(): bool => TRUE);
 
-    // Use very short timeout to avoid hanging.
+    // A very short timeout avoids hanging.
     $connection = @fsockopen(
       $this->host === '0.0.0.0' ? '127.0.0.1' : $this->host,
       $port,
@@ -323,6 +326,7 @@ class PhpServerContext implements Context {
 
     // For any other errors, assume the port is in use to be safe.
     $this->debug(sprintf('Port %d status check resulted in error %d: %s. Assuming it is in use.', $port, $errno, $errstr));
+
     return TRUE;
   }
 
@@ -425,7 +429,7 @@ class PhpServerContext implements Context {
       $termination_status = 'graceful';
     }
 
-    // Wait a short time for the process to terminate.
+    // The process needs a short time to terminate.
     usleep($this->retryDelay);
 
     if ($this->processExists($pid)) {
@@ -437,6 +441,7 @@ class PhpServerContext implements Context {
     }
 
     $this->debug(sprintf('Process terminated successfully with %s termination.', $termination_status));
+
     return $success;
   }
 
@@ -486,6 +491,7 @@ class PhpServerContext implements Context {
     }
 
     $pid = $this->getPidLsof($port);
+
     if ($pid === 0) {
       $pid = $this->getPidNetstat($port);
     }
@@ -518,7 +524,8 @@ class PhpServerContext implements Context {
     $this->executeCommand($command, $output);
 
     if (empty($output)) {
-      // Try without the LISTEN filter in case the process is in another state.
+      // The process may be in another state, so retry without the LISTEN
+      // filter.
       $command = str_replace(" | grep 'LISTEN'", '', $command);
       $this->debug(sprintf('No LISTEN processes found, retrying with command: %s', $command));
       $this->executeCommand($command, $output);
@@ -571,7 +578,8 @@ class PhpServerContext implements Context {
     $this->executeCommand($command, $output);
 
     if (empty($output)) {
-      // Try without the LISTEN filter in case the process is in another state.
+      // The process may be in another state, so retry without the LISTEN
+      // filter.
       $command = str_replace(" | grep 'LISTEN'", '', $command);
       $this->debug(sprintf('No LISTEN processes found, retrying with command: %s', $command));
       $this->executeCommand($command, $output);
@@ -592,18 +600,27 @@ class PhpServerContext implements Context {
       $parts = explode(' ', $line);
 
       foreach ($parts as $part) {
-        if (str_contains($part, '/php')) {
-          $pid_name_parts = explode('/', $part);
-          if (count($pid_name_parts) > 1) {
-            $found_pid = $pid_name_parts[0];
-            $name = $pid_name_parts[1];
-            if (is_numeric($found_pid) && str_starts_with($name, 'php')) {
-              $pid = (int) $found_pid;
-              $this->debug(sprintf('Found PHP process with PID %s using netstat.', $pid));
-              return $pid;
-            }
-          }
+        if (!str_contains($part, '/php')) {
+          continue;
         }
+
+        $pid_name_parts = explode('/', $part);
+
+        if (count($pid_name_parts) < 2) {
+          continue;
+        }
+
+        $found_pid = $pid_name_parts[0];
+        $name = $pid_name_parts[1];
+
+        if (!is_numeric($found_pid) || !str_starts_with($name, 'php')) {
+          continue;
+        }
+
+        $pid = (int) $found_pid;
+        $this->debug(sprintf('Found PHP process with PID %s using netstat.', $pid));
+
+        return $pid;
       }
     }
 

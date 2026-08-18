@@ -1,6 +1,6 @@
 <div align="center">
-  <a href="" rel="noopener">
-  <img width=200px height=200px src="https://placehold.jp/000000/ffffff/200x200.png?text=Behat+PHP+server&css=%7B%22border-radius%22%3A%22%20100px%22%7D" alt="Yourproject logo"></a>
+  <a href="https://github.com/drevops/behat-phpserver" rel="noopener">
+  <img width=200px height=200px src="https://placehold.jp/000000/ffffff/200x200.png?text=Behat+PHP+server&css=%7B%22border-radius%22%3A%22%20100px%22%7D" alt="Behat PHP server logo"></a>
 </div>
 
 <h1 align="center">PHP and API server for Behat tests</h1>
@@ -18,31 +18,29 @@
 [![Vortex Ecosystem](https://img.shields.io/badge/%F0%9F%8C%80-Vortex%20Ecosystem-2C5A68?style=for-the-badge&labelColor=65ACBC)](https://github.com/drevops/vortex)
 </div>
 
-## Features
+## ✨ Features
 
-- [`PhpServerContext`](src/DrevOps/BehatPhpServer/PhpServerContext.php) context
-  to start and stop PHP server:
-  - Automatically start and stop PHP server for each scenario.
-  - Serve files from a configurable document root.
-  - Configurable PHP server protocol, host and port.
-- [`ApiServerContext`](src/DrevOps/BehatPhpServer/ApiServerContext.php) context
-  to serve queued API responses for API mocking:
-  - A RESTful [API server](apiserver/index.php) used to queue up expected API
-    responses.
-  - Step definition to queue up API responses.
-  - Automatically start and stop PHP server for each scenario.
-  - Serve files from a configurable document root.
-  - Configurable PHP server protocol, host and port.
+- [`PhpServerContext`](src/DrevOps/BehatPhpServer/PhpServerContext.php) - starts and stops PHP's built-in web server around each scenario:
+  - Serves files from a configurable document root.
+  - Configurable protocol, host and port.
+  - Tag a scenario or a whole feature with `@phpserver` to opt in.
+- [`ApiServerContext`](src/DrevOps/BehatPhpServer/ApiServerContext.php) - runs a mock [API server](apiserver/index.php) that replays queued responses:
+  - Step definitions to queue responses inline, as JSON, or from a fixture file.
+  - Step definitions to assert how many requests arrived and how many responses are still queued.
+  - Records every received request for debugging.
+  - Tag a scenario or a whole feature with `@apiserver` to opt in.
 
-## Installation
+## 📦 Installation
+
+Requires PHP 8.2 or newer.
 
     composer require --dev drevops/behat-phpserver
 
-## Usage
+## 🚀 Usage
 
 ### `PhpServerContext`
 
-Used to serve assets from a pre-defined document root.
+Serves static assets from a pre-defined document root.
 
 ```yaml
 default:
@@ -50,16 +48,28 @@ default:
     default:
       contexts:
         - DrevOps\BehatPhpServer\PhpServerContext:
-            webroot: '%paths.base%/tests/behat/fixtures' # Path to the PHP server document root
-            protocol: http  # PHP server protocol
-            host: 0.0.0.0   # PHP server host
-            port: 8888      # PHP server port
-            debug: false    # Enable debug mode for verbose output
+            webroot: '%paths.base%/tests/behat/fixtures'
+            protocol: http
+            host: 0.0.0.0
+            port: 8888
+            debug: false
 ```
+
+This context adds no step definitions. It starts the server before a tagged scenario and stops it afterwards, so tag the scenarios that need it:
+
+```gherkin
+@phpserver
+Scenario: Visit a page served by the PHP server
+  ...
+```
+
+Tagging the `Feature:` line instead starts the server for every scenario in that feature.
+
+Reach the running server through `getServerUrl()` - see [Accessing the server URL from your own context](#accessing-the-server-url-from-your-own-context).
 
 ### `ApiServerContext`
 
-Used to serve a pre-set API responses from a pre-defined document root.
+Serves pre-set API responses. It extends `PhpServerContext`, so it accepts the same options plus `paths`.
 
 ```yaml
 default:
@@ -67,50 +77,57 @@ default:
     default:
       contexts:
         - DrevOps\BehatPhpServer\ApiServerContext:
-            webroot: '%paths.base%/apiserver' # Path to the API server document root
-            protocol: http  # API PHP server protocol
-            host: 0.0.0.0   # API PHP server host
-            port: 8889      # API PHP server port
-            debug: false    # API Enable debug mode for verbose output
-            paths:          # Path(s) to fixture files for API responses
+            webroot: '%paths.base%/apiserver'
+            protocol: http
+            host: 0.0.0.0
+            port: 8889
+            debug: false
+            paths:
               - '%paths.base%/tests/behat/fixtures'
               - '%paths.base%/tests/behat/fixtures2'
 ```
 
-API responses can be queued up in the API server server by sending
-`PUT` requests to `/admin/responses` as an array of the expected responses
-using following JSON format:
+### Context options
 
-```json
-[
-  {
-    "code": 200,
-    "reason": "OK",
-    "headers": {},
-    "body": ""
-  },
-  {
-    "code": 404,
-    "reason": "Not found",
-    "headers": {
-    },
-    "body": ""
-  }
-]
-```
+| Option               | Default                      | Description                                                                 |
+|----------------------|------------------------------|-----------------------------------------------------------------------------|
+| `webroot`            | See below                    | Document root the server serves from. Must exist, or the constructor throws. |
+| `host`               | `127.0.0.1`                  | Server host.                                                                |
+| `port`               | `8888`                       | Server port.                                                                |
+| `protocol`           | `http`                       | Server protocol, used to build the server URL.                              |
+| `debug`              | `false`                      | Print verbose output about server start, stop and connection attempts.      |
+| `connection_timeout` | `2`                          | Seconds to keep retrying a connection before the server is declared failed.  |
+| `retry_delay`        | `100000`                     | Microseconds to wait between connection retries.                            |
+| `paths`              | `<webroot>/../tests/behat/fixtures` | `ApiServerContext` only. One path or a list of paths searched, in order, for file responses. |
 
-The `ApiServerContext` provides several step definitions to make it easier to
-work with the API server:
+`ApiServerContext` defaults `webroot` to the bundled `apiserver` directory. `PhpServerContext` has no usable default, so always set it.
+
+Both contexts default to port `8888`. When both are registered, give each one its own port, as shown above.
+
+## 📖 Step definitions
+
+### Server lifecycle
 
 ```gherkin
-# Check if the API server is running.
+# Start the API server if it is not already running.
 Given the API server is running
 
-# Queue up a single API response.
+# Clear all queued responses and all recorded requests.
+Given the API server is reset
+
+# Clear only the queued responses, leaving recorded requests intact.
+Given the API has no responses
+```
+
+### Queueing responses
+
+```gherkin
+# Queue a response with full control over code, reason, headers and body.
 Given API will respond with:
   """
   {
     "code": 200,
+    "reason": "OK",
     "headers": {
       "Content-Type": "application/json"
     },
@@ -121,7 +138,7 @@ Given API will respond with:
   }
   """
 
-# Queue up a single API response with minimal configuration.
+# Every field except "code" may be omitted.
 Given API will respond with:
   """
   {
@@ -129,7 +146,7 @@ Given API will respond with:
   }
   """
 
-# Queue up a single API response with JSON body.
+# Queue a JSON body, defaulting to a 200 response.
 Given API will respond with JSON:
   """
   {
@@ -138,7 +155,7 @@ Given API will respond with JSON:
   }
   """
 
-# Queue up a single API response with JSON body and expected code.
+# Queue a JSON body with an explicit response code.
 Given API will respond with JSON and 201 code:
   """
   {
@@ -147,61 +164,48 @@ Given API will respond with JSON and 201 code:
   }
   """
 
-# Reset the API server by clearing all responses and requests.
-Given the API server is reset
-
-# Queue up a file response with automatic content type detection.
+# Queue the contents of a fixture file, with the content type detected
+# from its extension.
 Given API will respond with file "test_data.json"
 
-# Queue up a file response with a custom response code.
+# Queue a fixture file with an explicit response code.
 Given API will respond with file "test_content.xml" and 201 code
-
-# Assert the number of requests received by the API server.
-Then the API server should have 3 received requests
-
-# Assert the number of responses queued in the API server.
-Then the API server should have 0 queued responses
 ```
 
-See this [test feature](tests/behat/features/apiserver.feature) for more
-examples.
+Responses are replayed in the order they were queued, one per request.
 
-### Using File Responses
-
-The `apiWillRespondWithFile` step definition allows you to respond with the contents of a file
-from one of the configured fixture paths. The context will automatically detect the appropriate
-content type based on the file extension:
-
-- `.json` → `application/json`
-- `.xml` → `application/xml`
-- `.html`, `.htm` → `text/html`
-- `.txt` → `text/plain`
-- All other extensions → `application/octet-stream`
-
-Multiple fixture paths can be configured in the `behat.yml` file. The context will search for the
-file in each path in the order specified until it finds a match.
-
-### Resetting the API Server
-
-The `resetApi` step definition allows you to clear all queued responses and request history in the API server.
-This is useful for ensuring a clean state between test steps, especially when multiple scenarios
-interact with the API server:
+### Assertions and debugging
 
 ```gherkin
-# Clear existing state before setting up a new test
-Given API server is reset
-And API will respond with file "test_data.json"
-When I send a GET request to "/"
+# Assert how many requests the server received.
+Then the API server should have 3 received requests
+
+# Assert how many responses are still waiting to be replayed.
+Then the API server should have 0 queued responses
+
+# Print every recorded request to stdout.
+When I debug API requests
 ```
 
-For more information on supported RESTful API endpoints, see
-the [API server](apiserver/index.php) implementation.
+Both assertion steps also accept the alternative phrasings `the API server should have received 3 requests` and `the API server should have 0 responses queued`, and both accept a singular noun for a count of one.
 
-#### Accessing the API server URL from your contexts
+See the [test feature](tests/behat/features/apiserver.feature) for worked examples of every step.
 
-If you need to access the API server URL from your context to update the base
-URL of your API client, you can do so by using `beforeScenario` in your
-`FeatureContext` class:
+### File responses
+
+`API will respond with file` reads a file from the configured `paths`, searching each path in the order given until it finds a match. The content type is derived from the file extension:
+
+| Extension        | `Content-Type`             |
+|------------------|----------------------------|
+| `.json`          | `application/json`         |
+| `.xml`           | `application/xml`          |
+| `.html`, `.htm`  | `text/html`                |
+| `.txt`           | `text/plain`               |
+| anything else    | `application/octet-stream` |
+
+### Accessing the server URL from your own context
+
+To point an API client at the running server, read the URL in a `beforeScenario` hook:
 
 ```php
 <?php
@@ -246,24 +250,49 @@ class FeatureContext implements Context {
   }
 
 }
-
 ```
 
-## Maintenance
+## 🔌 API server HTTP endpoints
 
-### Lint code
+The step definitions cover the common cases. The mock server also exposes the endpoints directly, which is useful when driving it from code rather than from Gherkin.
 
-```bash
-composer lint
-composer lint-fix
+| Method   | Endpoint           | Result                                                          |
+|----------|--------------------|-----------------------------------------------------------------|
+| `GET`    | `/admin/status`    | `200 OK`. Reports the counts in the headers below.              |
+| `GET`    | `/admin/requests`  | `200 OK` with the recorded requests as JSON.                     |
+| `DELETE` | `/admin/requests`  | `200 OK`. Clears the recorded requests.                          |
+| `GET`    | `/admin/responses` | `200 OK` with the queued responses as JSON.                      |
+| `DELETE` | `/admin/responses` | `200 OK`. Clears the queued responses.                           |
+| `PUT`    | `/admin/responses` | `201 Created`. Appends the posted responses to the queue.        |
+
+These endpoints and the replayed responses carry an `X-Received-Requests` and an `X-Queued-Responses` header with the current counts. Error responses do not.
+
+Any other request is recorded and answered with the next queued response. When the queue is empty, the server answers `500` with `No responses in queue`.
+
+`PUT /admin/responses` takes an array of response objects:
+
+```json
+[
+  {
+    "code": 200,
+    "reason": "OK",
+    "headers": {},
+    "body": ""
+  },
+  {
+    "code": 404,
+    "reason": "Not found",
+    "headers": {},
+    "body": ""
+  }
+]
 ```
 
-### Run tests
+`body` must be **base64-encoded** - the server decodes it before replaying the response. The step definitions do this encoding for you, so it only matters when calling the endpoint directly. `code` must be between 100 and 599; `reason` must be a non-empty string; header names and values must be scalars.
 
-```bash
-composer test
-composer test-bdd
-```
+## 🤝 Contributing
+
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for local setup, linting, testing and maintenance.
 
 ---
 _This repository was created using the [Scaffold](https://getscaffold.dev/) project template_

@@ -23,3 +23,7 @@ There are two suites. PHPUnit covers the classes, and Behat exercises both conte
 To produce coverage reports, run `composer test-coverage`. PHPUnit writes to `.logs/phpunit/` and Behat writes to `.logs/behat/`.
 
 The Behat suite binds real ports, so it can fail on machines where those ports are already in use, or where process handling differs. If a run fails to connect, check that ports 8888 and 8889 are free.
+
+## Maintenance
+
+This project is generated from the [Scaffold](https://getscaffold.dev/) template and can pull the template's latest CI workflows, linting and test configuration at any time. See [`AGENTS.md`](AGENTS.md) for the update procedure and the manual reconciliation it needs.
