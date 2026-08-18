@@ -76,7 +76,16 @@ class ApiServerContext extends PhpServerContext {
    * @param string[]|string|null $paths
    *   An array of fixture paths or a single path string.
    */
-  public function __construct(?string $webroot = NULL, string $host = '127.0.0.1', int $port = 8888, string $protocol = 'http', bool $debug = FALSE, ?int $connection_timeout = NULL, ?int $retry_delay = NULL, $paths = NULL) {
+  public function __construct(
+    ?string $webroot = NULL,
+    string $host = '127.0.0.1',
+    int $port = 8888,
+    string $protocol = 'http',
+    bool $debug = FALSE,
+    ?int $connection_timeout = NULL,
+    ?int $retry_delay = NULL,
+    $paths = NULL,
+  ) {
     parent::__construct($webroot, $host, $port, $protocol, $debug, $connection_timeout, $retry_delay);
 
     $this->client = $this->createHttpClient();

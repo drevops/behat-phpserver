@@ -32,14 +32,7 @@ class PhpServerContextTest extends TestCase {
    *   Expected result.
    */
   #[DataProvider('dataProviderIsRunning')]
-  public function testIsRunning(
-    int $pid,
-    bool $process_exists,
-    bool $can_connect,
-    int $timeout,
-    int $retry_delay,
-    bool $expected_result,
-  ): void {
+  public function testIsRunning(int $pid, bool $process_exists, bool $can_connect, int $timeout, int $retry_delay, bool $expected_result): void {
     // Create a mock with several methods mocked.
     $context = $this->getMockBuilder(PhpServerContext::class)
       ->disableOriginalConstructor()
@@ -917,13 +910,7 @@ class PhpServerContextTest extends TestCase {
    *   The expected result of terminateProcess.
    */
   #[DataProvider('dataProviderTerminateProcess')]
-  public function testTerminateProcess(
-    int $pid,
-    bool $process_exists,
-    int|array $kill_return_code,
-    bool $process_exists_after,
-    bool $expected_result,
-  ): void {
+  public function testTerminateProcess(int $pid, bool $process_exists, int|array $kill_return_code, bool $process_exists_after, bool $expected_result): void {
     $context = $this->getMockBuilder(PhpServerContext::class)
       ->disableOriginalConstructor()
       ->onlyMethods(['executeCommand', 'debug', 'processExists'])
