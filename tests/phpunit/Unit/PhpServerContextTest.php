@@ -58,12 +58,8 @@ class PhpServerContextTest extends TestCase {
         ->willReturn($can_connect);
     }
 
-    // Use reflection to call protected isRunning method.
-    $reflection_class = new \ReflectionClass(PhpServerContext::class);
-    $is_running_method = $reflection_class->getMethod('isRunning');
-
     // Call the method and check results.
-    $result = $is_running_method->invoke($context, $timeout, $retry_delay);
+    $result = static::callProtectedMethod($context, 'isRunning', [$timeout, $retry_delay]);
     $this->assertEquals($expected_result, $result);
   }
 
@@ -625,17 +621,13 @@ class PhpServerContextTest extends TestCase {
         return FALSE;
       }
 
-      public function testGetPidLsof(int $port): int {
-        return $this->getPidLsof($port);
-      }
-
       protected function debug(string $message): void {
         // Skip debug output.
       }
 
     };
 
-    $result = $context->testGetPidLsof(8888);
+    $result = static::callProtectedMethod($context, 'getPidLsof', [8888]);
     $this->assertEquals($expected_pid, $result);
   }
 
@@ -756,17 +748,13 @@ class PhpServerContextTest extends TestCase {
         return FALSE;
       }
 
-      public function testGetPidNetstat(int $port): int {
-        return $this->getPidNetstat($port);
-      }
-
       protected function debug(string $message): void {
         // Skip debug output.
       }
 
     };
 
-    $result = $context->testGetPidNetstat(8888);
+    $result = static::callProtectedMethod($context, 'getPidNetstat', [8888]);
     $this->assertEquals($expected_pid, $result);
   }
 
