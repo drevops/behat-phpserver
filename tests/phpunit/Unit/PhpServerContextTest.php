@@ -513,58 +513,38 @@ class PhpServerContextTest extends TestCase {
   /**
    * Data provider for getPid tests.
    *
-   * @return array<string, list<mixed>>
+   * @return array<string, array<string, mixed>>
    *   Test cases.
    */
   public static function dataProviderGetPid(): array {
     return [
       'existing pid is used' => [
-    // has_pid.
-        TRUE,
-    // Lsof pid (not used because existing pid is found)
-        0,
-    // Netstat pid (not used because existing pid is found)
-        0,
-    // Expected pid.
-        12345,
-    // No exception.
-        FALSE,
+        'has_pid' => TRUE,
+        'lsof_pid' => 0,
+        'netstat_pid' => 0,
+        'expected_pid' => 12345,
+        'expect_exception' => FALSE,
       ],
       'no existing pid, lsof succeeds' => [
-      // No existing pid.
-        FALSE,
-      // Lsof pid.
-        12345,
-      // Netstat pid (not used because lsof succeeds)
-        0,
-      // Expected pid from lsof.
-        12345,
-      // No exception.
-        FALSE,
+        'has_pid' => FALSE,
+        'lsof_pid' => 12345,
+        'netstat_pid' => 0,
+        'expected_pid' => 12345,
+        'expect_exception' => FALSE,
       ],
       'no existing pid, lsof fails, netstat succeeds' => [
-      // No existing pid.
-        FALSE,
-      // Lsof pid (fails)
-        0,
-      // Netstat pid succeeds.
-        12345,
-      // Expected pid from netstat.
-        12345,
-      // No exception.
-        FALSE,
+        'has_pid' => FALSE,
+        'lsof_pid' => 0,
+        'netstat_pid' => 12345,
+        'expected_pid' => 12345,
+        'expect_exception' => FALSE,
       ],
       'no existing pid, both utilities fail' => [
-      // No existing pid.
-        FALSE,
-      // Lsof pid (fails)
-        0,
-      // Netstat pid (fails)
-        0,
-      // Expected pid null.
-        NULL,
-      // Exception expected.
-        TRUE,
+        'has_pid' => FALSE,
+        'lsof_pid' => 0,
+        'netstat_pid' => 0,
+        'expected_pid' => NULL,
+        'expect_exception' => TRUE,
       ],
     ];
   }
