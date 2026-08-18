@@ -376,16 +376,16 @@ class PhpServerContext implements Context {
     );
 
     // Use timeout to avoid hanging connections.
-    $sp = @fsockopen($this->host, $this->port, $errno, $errstr, $timeout);
+    $connection = @fsockopen($this->host, $this->port, $errno, $errstr, $timeout);
 
     restore_error_handler();
 
-    if ($sp === FALSE) {
+    if ($connection === FALSE) {
       $this->debug(sprintf('Unable to connect to the server. Error: %s (%s)', $errstr, $errno));
       return FALSE;
     }
 
-    fclose($sp);
+    fclose($connection);
 
     $this->debug('Connected to the server.');
 
