@@ -418,11 +418,10 @@ class PhpServerContextTest extends TestCase {
 
   #[DataProvider('dataProviderGetPid')]
   public function testGetPid(bool $has_pid, int $lsof_pid, int $netstat_pid, ?int $expected_pid, bool $expect_exception = FALSE): void {
-    $test_class = $this;
 
     // Skip exception expectation - we'll handle it manually
     // Create a subclass of PhpServerContext that we can customize.
-    $context = new class($test_class, $has_pid, $lsof_pid, $netstat_pid, $expect_exception) extends PhpServerContext {
+    $context = new class($has_pid, $lsof_pid, $netstat_pid, $expect_exception) extends PhpServerContext {
       /**
        * Flag indicating if the mock has a PID.
        */
@@ -446,8 +445,6 @@ class PhpServerContextTest extends TestCase {
       /**
        * Constructor.
        *
-       * @param object $test_class
-       *   The test class instance.
        * @param bool $has_pid
        *   Whether the mock has a PID.
        * @param int $lsof_pid
@@ -456,10 +453,8 @@ class PhpServerContextTest extends TestCase {
        *   PID to return from netstat command.
        * @param bool $expect_exception
        *   Flag indicating if an exception is expected.
-       *
-       * @phpstan-ignore-next-line
        */
-      public function __construct(object $test_class, bool $has_pid, int $lsof_pid, int $netstat_pid, bool $expect_exception) {
+      public function __construct(bool $has_pid, int $lsof_pid, int $netstat_pid, bool $expect_exception) {
         $this->hasPid = $has_pid;
         $this->lsofPid = $lsof_pid;
         $this->netstatPid = $netstat_pid;
@@ -557,10 +552,9 @@ class PhpServerContextTest extends TestCase {
    */
   #[DataProvider('dataProviderGetPidLsof')]
   public function testGetPidLsof(bool $lsof_exists, array $output, int $expected_pid): void {
-    $test_class = $this;
 
     // Create a subclass of PhpServerContext that we can customize.
-    $context = new class($test_class, $lsof_exists, $output, $expected_pid) extends PhpServerContext {
+    $context = new class($lsof_exists, $output) extends PhpServerContext {
       /**
        * Flag indicating if lsof exists on the system.
        */
@@ -576,18 +570,12 @@ class PhpServerContextTest extends TestCase {
       /**
        * Constructor.
        *
-       * @param object $test_class
-       *   The test class instance.
        * @param bool $lsof_exists
        *   Whether lsof exists on the system.
        * @param array<string> $output
        *   The output from the lsof command.
-       * @param int $expected_pid
-       *   The expected PID to be returned.
-       *
-       * @phpstan-ignore-next-line
        */
-      public function __construct(object $test_class, bool $lsof_exists, array $output, int $expected_pid) {
+      public function __construct(bool $lsof_exists, array $output) {
         $this->lsofExists = $lsof_exists;
         $this->mockOutput = $output;
         // Skip parent constructor.
@@ -684,10 +672,9 @@ class PhpServerContextTest extends TestCase {
    */
   #[DataProvider('dataProviderGetPidNetstat')]
   public function testGetPidNetstat(bool $netstat_exists, array $output, int $expected_pid): void {
-    $test_class = $this;
 
     // Create a subclass of PhpServerContext that we can customize.
-    $context = new class($test_class, $netstat_exists, $output, $expected_pid) extends PhpServerContext {
+    $context = new class($netstat_exists, $output) extends PhpServerContext {
       /**
        * Flag indicating if netstat exists on the system.
        */
@@ -703,18 +690,12 @@ class PhpServerContextTest extends TestCase {
       /**
        * Constructor.
        *
-       * @param object $test_class
-       *   The test class instance.
        * @param bool $netstat_exists
        *   Whether netstat exists on the system.
        * @param array<string> $output
        *   The output from the netstat command.
-       * @param int $expected_pid
-       *   The expected PID to be returned.
-       *
-       * @phpstan-ignore-next-line
        */
-      public function __construct(object $test_class, bool $netstat_exists, array $output, int $expected_pid) {
+      public function __construct(bool $netstat_exists, array $output) {
         $this->netstatExists = $netstat_exists;
         $this->mockOutput = $output;
         // Skip parent constructor.
