@@ -20,12 +20,12 @@
 
 ## Features
 
-- [`PhpServerContext`](src/DrevOps/BehatPhpServer/ApiServerContext.php) context
+- [`PhpServerContext`](src/DrevOps/BehatPhpServer/PhpServerContext.php) context
   to start and stop PHP server:
   - Automatically start and stop PHP server for each scenario.
   - Serve files from a configurable document root.
   - Configurable PHP server protocol, host and port.
-- [`ApiServerContext`](src/DrevOps/BehatPhpServer/PhpServerContext.php) context
+- [`ApiServerContext`](src/DrevOps/BehatPhpServer/ApiServerContext.php) context
   to serve queued API responses for API mocking:
   - A RESTful [API server](apiserver/index.php) used to queue up expected API
     responses.
