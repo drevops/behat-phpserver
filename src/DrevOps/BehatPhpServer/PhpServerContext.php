@@ -54,7 +54,7 @@ class PhpServerContext implements Context {
   protected int $retryDelay;
 
   /**
-   * PhpServerTrait constructor.
+   * Constructs the PhpServerContext.
    *
    * @param string|null $webroot
    *   Webroot directory.
