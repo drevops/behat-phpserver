@@ -1005,4 +1005,253 @@ class PhpServerContextTest extends TestCase {
     ];
   }
 
+  /**
+   * Path to an existing directory that can be used as a webroot.
+   *
+   * @return string
+   *   Absolute path to the Behat fixtures directory.
+   */
+  protected static function fixturesPath(): string {
+    return __DIR__ . '/../../behat/fixtures';
+  }
+
+  /**
+   * Open a listening socket on an ephemeral port.
+   *
+   * @return array{0: resource, 1: int}
+   *   The listening socket and the port it was bound to.
+   */
+  protected function openListeningSocket(): array {
+    $server = stream_socket_server('tcp://127.0.0.1:0', $errno, $errstr);
+
+    if ($server === FALSE) {
+      $this->fail(sprintf('Unable to open a listening socket: %s (%d).', $errstr, $errno));
+    }
+
+    $name = stream_socket_get_name($server, FALSE);
+
+    if ($name === FALSE) {
+      $this->fail('Unable to read the address of the listening socket.');
+    }
+
+    $position = strrpos($name, ':');
+
+    if ($position === FALSE) {
+      $this->fail(sprintf('Unable to parse a port from the socket address "%s".', $name));
+    }
+
+    return [$server, (int) substr($name, $position + 1)];
+  }
+
+  /**
+   * Test that the constructor applies the default configuration.
+   */
+  public function testConstructorAppliesDefaults(): void {
+    $context = new PhpServerContext(static::fixturesPath());
+
+    $this->assertEquals('http://127.0.0.1:8888', $context->getServerUrl());
+    $this->assertEquals(PhpServerContext::DEFAULT_CONNECTION_TIMEOUT, static::getProtectedValue($context, 'connectionTimeout'));
+    $this->assertEquals(PhpServerContext::DEFAULT_RETRY_DELAY, static::getProtectedValue($context, 'retryDelay'));
+  }
+
+  /**
+   * Test that the constructor honours explicitly provided timeouts.
+   */
+  public function testConstructorAcceptsExplicitTimeouts(): void {
+    $context = new PhpServerContext(static::fixturesPath(), '127.0.0.1', 9999, 'https', FALSE, 7, 500);
+
+    $this->assertEquals('https://127.0.0.1:9999', $context->getServerUrl());
+    $this->assertEquals(7, static::getProtectedValue($context, 'connectionTimeout'));
+    $this->assertEquals(500, static::getProtectedValue($context, 'retryDelay'));
+  }
+
+  /**
+   * Test that a webroot that does not exist is rejected.
+   */
+  public function testConstructorThrowsWhenWebrootMissing(): void {
+    $this->expectException(\RuntimeException::class);
+    $this->expectExceptionMessage('"webroot" directory /nonexistent/webroot does not exist');
+
+    new PhpServerContext('/nonexistent/webroot');
+  }
+
+  /**
+   * Test building the server URL.
+   *
+   * @param string $host
+   *   Server host.
+   * @param int $port
+   *   Server port.
+   * @param string $protocol
+   *   Server protocol.
+   * @param string $expected
+   *   Expected URL.
+   */
+  #[DataProvider('dataProviderGetServerUrl')]
+  public function testGetServerUrl(string $host, int $port, string $protocol, string $expected): void {
+    $context = new PhpServerContext(static::fixturesPath(), $host, $port, $protocol);
+
+    $this->assertEquals($expected, $context->getServerUrl());
+  }
+
+  /**
+   * Data provider for server URL tests.
+   *
+   * @return array<string, array<string, mixed>>
+   *   Test cases.
+   */
+  public static function dataProviderGetServerUrl(): array {
+    return [
+      'loopback' => [
+        'host' => '127.0.0.1',
+        'port' => 8888,
+        'protocol' => 'http',
+        'expected' => 'http://127.0.0.1:8888',
+      ],
+      'wildcard host' => [
+        'host' => '0.0.0.0',
+        'port' => 8889,
+        'protocol' => 'http',
+        'expected' => 'http://0.0.0.0:8889',
+      ],
+      'secure protocol' => [
+        'host' => 'localhost',
+        'port' => 443,
+        'protocol' => 'https',
+        'expected' => 'https://localhost:443',
+      ],
+    ];
+  }
+
+  /**
+   * Test that a listening port is detected and a closed one is not.
+   */
+  public function testIsPortInUse(): void {
+    [$server, $port] = $this->openListeningSocket();
+
+    $context = new PhpServerContext(static::fixturesPath(), '127.0.0.1', $port);
+
+    $this->assertTrue(static::callProtectedMethod($context, 'isPortInUse', [$port]));
+
+    fclose($server);
+
+    $this->assertFalse(static::callProtectedMethod($context, 'isPortInUse', [$port]));
+  }
+
+  /**
+   * Test that a wildcard host is probed over the loopback interface.
+   */
+  public function testIsPortInUseResolvesWildcardHost(): void {
+    [$server, $port] = $this->openListeningSocket();
+
+    $context = new PhpServerContext(static::fixturesPath(), '0.0.0.0', $port);
+
+    $this->assertTrue(static::callProtectedMethod($context, 'isPortInUse', [$port]));
+
+    fclose($server);
+  }
+
+  /**
+   * Test connecting to a listening server and to a closed port.
+   */
+  public function testCanConnect(): void {
+    [$server, $port] = $this->openListeningSocket();
+
+    $context = new PhpServerContext(static::fixturesPath(), '127.0.0.1', $port);
+
+    $this->assertTrue(static::callProtectedMethod($context, 'canConnect', [1]));
+
+    fclose($server);
+
+    $this->assertFalse(static::callProtectedMethod($context, 'canConnect', [1]));
+  }
+
+  /**
+   * Test that the configured timeout is used when none is passed.
+   */
+  public function testCanConnectUsesConfiguredTimeout(): void {
+    [$server, $port] = $this->openListeningSocket();
+
+    $context = new PhpServerContext(static::fixturesPath(), '127.0.0.1', $port, 'http', FALSE, 1);
+
+    $this->assertTrue(static::callProtectedMethod($context, 'canConnect'));
+
+    fclose($server);
+  }
+
+  /**
+   * Test freeing a port that may be held by a process.
+   *
+   * @param int $pid
+   *   PID reported as holding the port.
+   * @param bool $terminated
+   *   Whether terminating that process succeeds.
+   * @param bool $still_in_use
+   *   Whether the port is still in use after termination.
+   * @param bool $expected
+   *   Expected result.
+   */
+  #[DataProvider('dataProviderFreePort')]
+  public function testFreePort(int $pid, bool $terminated, bool $still_in_use, bool $expected): void {
+    $context = $this->getMockBuilder(PhpServerContext::class)
+      ->setConstructorArgs([static::fixturesPath()])
+      ->onlyMethods(['getPid', 'terminateProcess', 'isPortInUse'])
+      ->getMock();
+
+    $context->method('getPid')->willReturn($pid);
+    $context->method('terminateProcess')->willReturn($terminated);
+    $context->method('isPortInUse')->willReturn($still_in_use);
+
+    $this->assertEquals($expected, static::callProtectedMethod($context, 'freePort', [8888]));
+  }
+
+  /**
+   * Data provider for port freeing tests.
+   *
+   * @return array<string, array<string, mixed>>
+   *   Test cases.
+   */
+  public static function dataProviderFreePort(): array {
+    return [
+      'no process holds the port' => [
+        'pid' => 0,
+        'terminated' => FALSE,
+        'still_in_use' => FALSE,
+        'expected' => TRUE,
+      ],
+      'process terminated and port freed' => [
+        'pid' => 12345,
+        'terminated' => TRUE,
+        'still_in_use' => FALSE,
+        'expected' => TRUE,
+      ],
+      'process terminated but port still held' => [
+        'pid' => 12345,
+        'terminated' => TRUE,
+        'still_in_use' => TRUE,
+        'expected' => FALSE,
+      ],
+      'termination failed' => [
+        'pid' => 12345,
+        'terminated' => FALSE,
+        'still_in_use' => FALSE,
+        'expected' => FALSE,
+      ],
+    ];
+  }
+
+  /**
+   * Test that an error raised while freeing a port is contained.
+   */
+  public function testFreePortHandlesFailure(): void {
+    $context = $this->getMockBuilder(PhpServerContext::class)
+      ->setConstructorArgs([static::fixturesPath()])
+      ->onlyMethods(['getPid'])
+      ->getMock();
+
+    $context->method('getPid')->willThrowException(new \RuntimeException('Unable to inspect the port.'));
+
+    $this->assertFalse(static::callProtectedMethod($context, 'freePort', [8888]));
+  }
+
 }

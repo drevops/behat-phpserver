@@ -8,9 +8,14 @@ use Behat\Gherkin\Node\PyStringNode;
 use DrevOps\BehatPhpServer\ApiServerContext;
 use DrevOps\BehatPhpServer\Tests\Traits\ReflectionTrait;
 use GuzzleHttp\Client;
+use GuzzleHttp\Handler\MockHandler;
+use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Middleware;
+use GuzzleHttp\Psr7\Response;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use Psr\Http\Message\RequestInterface;
 
 #[CoversClass(ApiServerContext::class)]
 class ApiServerContextTest extends TestCase {
@@ -346,6 +351,443 @@ class ApiServerContextTest extends TestCase {
       'non-string scalars get converted to string' => [
         'paths' => '123',
         'expected_paths' => ['123'],
+      ],
+    ];
+  }
+
+  /**
+   * Create a context whose HTTP client returns a canned set of responses.
+   *
+   * @param array<int, \GuzzleHttp\Psr7\Response> $queue
+   *   Responses to return, in the order they are requested.
+   * @param \ArrayObject<int, array> $history
+   *   Populated with the transactions the client performed.
+   * @param string[] $fixtures_paths
+   *   Fixture paths to configure on the context.
+   *
+   * @return \PHPUnit\Framework\MockObject\MockObject&\DrevOps\BehatPhpServer\ApiServerContext
+   *   Context with a mocked client and stubbed server lifecycle methods.
+   */
+  protected function createContextWithClient(array $queue, \ArrayObject $history = new \ArrayObject(), array $fixtures_paths = []): ApiServerContext {
+    $stack = HandlerStack::create(new MockHandler($queue));
+    $stack->push(Middleware::history($history));
+
+    $context = $this->getMockBuilder(ApiServerContext::class)
+      ->disableOriginalConstructor()
+      ->onlyMethods(['isRunning', 'start'])
+      ->getMock();
+
+    // Mirror the production client, which reports failures through the status
+    // code rather than by throwing.
+    $client = new Client(['handler' => $stack, 'http_errors' => FALSE]);
+
+    static::setProtectedValue($context, 'client', $client);
+    static::setProtectedValue($context, 'debug', FALSE);
+    static::setProtectedValue($context, 'fixturesPaths', $fixtures_paths);
+
+    return $context;
+  }
+
+  /**
+   * Get the request recorded at the given position of the client history.
+   *
+   * @param \ArrayObject<int, array> $history
+   *   Transactions recorded by the client.
+   * @param int $index
+   *   Position to read.
+   *
+   * @return \Psr\Http\Message\RequestInterface
+   *   The recorded request.
+   */
+  protected function historyRequest(\ArrayObject $history, int $index): RequestInterface {
+    $transaction = $history[$index] ?? NULL;
+
+    if ($transaction === NULL) {
+      $this->fail(sprintf('No transaction was recorded at position %d.', $index));
+    }
+
+    $request = $transaction['request'] ?? NULL;
+
+    if (!$request instanceof RequestInterface) {
+      $this->fail(sprintf('Transaction %d does not carry a request.', $index));
+    }
+
+    return $request;
+  }
+
+  /**
+   * Decode the queued response carried by a recorded request.
+   *
+   * @param \Psr\Http\Message\RequestInterface $request
+   *   The recorded request.
+   *
+   * @return array<mixed, mixed>
+   *   The first queued response of the payload.
+   */
+  protected function decodeQueuedResponse(RequestInterface $request): array {
+    $decoded = json_decode((string) $request->getBody(), TRUE);
+
+    if (!is_array($decoded) || !isset($decoded[0]) || !is_array($decoded[0])) {
+      $this->fail('Request body does not carry a queued response payload.');
+    }
+
+    return $decoded[0];
+  }
+
+  /**
+   * Read a string value out of a queued response payload.
+   *
+   * @param array<mixed, mixed> $payload
+   *   The queued response payload.
+   * @param string $key
+   *   Key to read.
+   *
+   * @return string
+   *   The value.
+   */
+  protected function queuedResponseString(array $payload, string $key): string {
+    $value = $payload[$key] ?? NULL;
+
+    if (!is_string($value)) {
+      $this->fail(sprintf('Queued response key "%s" is not a string.', $key));
+    }
+
+    return $value;
+  }
+
+  /**
+   * Read the headers out of a queued response payload.
+   *
+   * @param array<mixed, mixed> $payload
+   *   The queued response payload.
+   *
+   * @return array<mixed, mixed>
+   *   The headers.
+   */
+  protected function queuedResponseHeaders(array $payload): array {
+    $headers = $payload['headers'] ?? NULL;
+
+    if (!is_array($headers)) {
+      $this->fail('Queued response does not carry headers.');
+    }
+
+    return $headers;
+  }
+
+  /**
+   * Test that an already running server only gets a status check.
+   */
+  public function testApiIsRunningWhenServerResponds(): void {
+    $history = new \ArrayObject();
+    $context = $this->createContextWithClient([new Response(200)], $history);
+    $context->expects($this->once())->method('isRunning')->willReturn(TRUE);
+    $context->expects($this->never())->method('start');
+
+    $context->apiIsRunning();
+
+    $this->assertCount(1, $history);
+    $this->assertEquals('/admin/status', (string) $this->historyRequest($history, 0)->getUri());
+  }
+
+  /**
+   * Test that a stopped server is started before the status check.
+   */
+  public function testApiIsRunningStartsStoppedServer(): void {
+    $history = new \ArrayObject();
+    $context = $this->createContextWithClient([new Response(200)], $history);
+    $context->expects($this->once())->method('isRunning')->willReturn(FALSE);
+    $context->expects($this->once())->method('start');
+
+    $context->apiIsRunning();
+
+    $this->assertCount(1, $history);
+  }
+
+  /**
+   * Test that a non-200 status response is reported as a failure.
+   */
+  public function testApiIsRunningThrowsOnUnexpectedStatus(): void {
+    $context = $this->createContextWithClient([new Response(503)]);
+    $context->expects($this->once())->method('isRunning')->willReturn(TRUE);
+
+    $this->expectException(\Exception::class);
+    $this->expectExceptionMessage('API server is not up');
+
+    $context->apiIsRunning();
+  }
+
+  /**
+   * Test that resetting clears both the responses and the requests.
+   */
+  public function testResetApi(): void {
+    $history = new \ArrayObject();
+    $context = $this->createContextWithClient([new Response(200), new Response(200)], $history);
+
+    $context->resetApi();
+
+    $this->assertCount(2, $history);
+
+    $responses_request = $this->historyRequest($history, 0);
+    $this->assertEquals('DELETE', $responses_request->getMethod());
+    $this->assertEquals('/admin/responses', (string) $responses_request->getUri());
+
+    $requests_request = $this->historyRequest($history, 1);
+    $this->assertEquals('DELETE', $requests_request->getMethod());
+    $this->assertEquals('/admin/requests', (string) $requests_request->getUri());
+  }
+
+  /**
+   * Test clearing the queued responses.
+   */
+  public function testApiHasNoResponses(): void {
+    $history = new \ArrayObject();
+    $context = $this->createContextWithClient([new Response(200)], $history);
+
+    $context->apiHasNoResponses();
+
+    $this->assertCount(1, $history);
+
+    $request = $this->historyRequest($history, 0);
+    $this->assertEquals('DELETE', $request->getMethod());
+    $this->assertEquals('/admin/responses', (string) $request->getUri());
+  }
+
+  /**
+   * Test that a failure to clear the queued responses is reported.
+   */
+  public function testApiHasNoResponsesThrowsOnFailure(): void {
+    $context = $this->createContextWithClient([new Response(500)]);
+
+    $this->expectException(\RuntimeException::class);
+    $this->expectExceptionMessage('Failed to delete the API responses.');
+
+    $context->apiHasNoResponses();
+  }
+
+  /**
+   * Test that a failure to fetch the received requests is reported.
+   */
+  public function testDebugApiRequestsThrowsOnFailure(): void {
+    $context = $this->createContextWithClient([new Response(500)]);
+
+    $this->expectException(\RuntimeException::class);
+    $this->expectExceptionMessage('Failed to fetch the API requests.');
+
+    $context->debugApiRequests();
+  }
+
+  /**
+   * Test queueing a response.
+   */
+  public function testApiWillRespondWith(): void {
+    $history = new \ArrayObject();
+    $context = $this->createContextWithClient([new Response(201)], $history);
+
+    $context->apiWillRespondWith(new PyStringNode(['{"code": 201, "body": "hello"}'], 1));
+
+    $this->assertCount(1, $history);
+
+    $request = $this->historyRequest($history, 0);
+    $this->assertEquals('PUT', $request->getMethod());
+    $this->assertEquals('/admin/responses', (string) $request->getUri());
+
+    $queued = $this->decodeQueuedResponse($request);
+    $this->assertEquals(201, $queued['code']);
+    $this->assertEquals('hello', base64_decode($this->queuedResponseString($queued, 'body')));
+  }
+
+  /**
+   * Test that a failure to queue a response is reported.
+   */
+  public function testApiWillRespondWithThrowsOnFailure(): void {
+    $context = $this->createContextWithClient([new Response(200)]);
+
+    $this->expectException(\RuntimeException::class);
+    $this->expectExceptionMessage('Failed to set the API response.');
+
+    $context->apiWillRespondWith(new PyStringNode(['{"code": 200}'], 1));
+  }
+
+  /**
+   * Test that a file response carries the content type for its extension.
+   *
+   * @param string $file_path
+   *   Fixture file to queue.
+   * @param string $expected_type
+   *   Expected Content-Type header.
+   */
+  #[DataProvider('dataProviderApiWillRespondWithFile')]
+  public function testApiWillRespondWithFile(string $file_path, string $expected_type): void {
+    $history = new \ArrayObject();
+    $context = $this->createContextWithClient([new Response(201)], $history, [
+      __DIR__ . '/../../behat/fixtures',
+      __DIR__ . '/../../behat/fixtures2',
+      __DIR__ . '/../../..',
+    ]);
+
+    $context->apiWillRespondWithFile($file_path);
+
+    $queued = $this->decodeQueuedResponse($this->historyRequest($history, 0));
+
+    $this->assertEquals(200, $queued['code']);
+    $this->assertEquals($expected_type, $this->queuedResponseHeaders($queued)['Content-Type'] ?? NULL);
+    $this->assertNotEmpty($queued['body']);
+  }
+
+  /**
+   * Data provider for file response tests.
+   *
+   * @return array<string, array<string, string>>
+   *   Test cases.
+   */
+  public static function dataProviderApiWillRespondWithFile(): array {
+    return [
+      'json' => [
+        'file_path' => 'test_data.json',
+        'expected_type' => 'application/json',
+      ],
+      'xml' => [
+        'file_path' => 'test_content.xml',
+        'expected_type' => 'application/xml',
+      ],
+      'html' => [
+        'file_path' => 'test_page.html',
+        'expected_type' => 'text/html',
+      ],
+      'txt found in the second path' => [
+        'file_path' => 'secondary_data.txt',
+        'expected_type' => 'text/plain',
+      ],
+      'unknown extension falls back to binary' => [
+        'file_path' => 'behat.yml',
+        'expected_type' => 'application/octet-stream',
+      ],
+    ];
+  }
+
+  /**
+   * Test queueing a file response with a custom status code.
+   */
+  public function testApiWillRespondWithFileCustomCode(): void {
+    $history = new \ArrayObject();
+    $context = $this->createContextWithClient([new Response(201)], $history, [__DIR__ . '/../../behat/fixtures']);
+
+    $context->apiWillRespondWithFile('test_data.json', '404');
+
+    $queued = $this->decodeQueuedResponse($this->historyRequest($history, 0));
+
+    $this->assertEquals(404, $queued['code']);
+  }
+
+  /**
+   * Test that a missing fixture file reports every path that was searched.
+   */
+  public function testApiWillRespondWithFileThrowsWhenMissing(): void {
+    $history = new \ArrayObject();
+    $context = $this->createContextWithClient([], $history, ['/nonexistent/one', '/nonexistent/two']);
+
+    $this->expectException(\RuntimeException::class);
+    $this->expectExceptionMessage('File "missing.json" does not exist in any of the configured fixture paths: /nonexistent/one, /nonexistent/two');
+
+    $context->apiWillRespondWithFile('missing.json');
+  }
+
+  /**
+   * Test asserting the number of queued responses.
+   *
+   * @param string $header_value
+   *   Value of the header returned by the server.
+   * @param string $expected_count
+   *   Count to assert against.
+   * @param bool $should_throw
+   *   Whether the assertion is expected to fail.
+   */
+  #[DataProvider('dataProviderAssertQueuedResponsesCount')]
+  public function testAssertQueuedResponsesCount(string $header_value, string $expected_count, bool $should_throw): void {
+    $context = $this->createContextWithClient([new Response(200, ['X-Queued-Responses' => $header_value])]);
+
+    if ($should_throw) {
+      $this->expectException(\RuntimeException::class);
+      $this->expectExceptionMessage(sprintf('Expected %s queued responses, got %s', $expected_count, $header_value));
+    }
+
+    $context->assertQueuedResponsesCount($expected_count);
+
+    $this->addToAssertionCount(1);
+  }
+
+  /**
+   * Data provider for queued response count tests.
+   *
+   * @return array<string, array<string, mixed>>
+   *   Test cases.
+   */
+  public static function dataProviderAssertQueuedResponsesCount(): array {
+    return [
+      'matching count' => [
+        'header_value' => '3',
+        'expected_count' => '3',
+        'should_throw' => FALSE,
+      ],
+      'empty queue' => [
+        'header_value' => '0',
+        'expected_count' => '0',
+        'should_throw' => FALSE,
+      ],
+      'mismatched count' => [
+        'header_value' => '1',
+        'expected_count' => '5',
+        'should_throw' => TRUE,
+      ],
+    ];
+  }
+
+  /**
+   * Test asserting the number of received requests.
+   *
+   * @param string $header_value
+   *   Value of the header returned by the server.
+   * @param string $expected_count
+   *   Count to assert against.
+   * @param bool $should_throw
+   *   Whether the assertion is expected to fail.
+   */
+  #[DataProvider('dataProviderAssertReceivedRequestsCount')]
+  public function testAssertReceivedRequestsCount(string $header_value, string $expected_count, bool $should_throw): void {
+    $context = $this->createContextWithClient([new Response(200, ['X-Received-Requests' => $header_value])]);
+
+    if ($should_throw) {
+      $this->expectException(\RuntimeException::class);
+      $this->expectExceptionMessage(sprintf('Expected %s received requests, got %s', $expected_count, $header_value));
+    }
+
+    $context->assertReceivedRequestsCount($expected_count);
+
+    $this->addToAssertionCount(1);
+  }
+
+  /**
+   * Data provider for received request count tests.
+   *
+   * @return array<string, array<string, mixed>>
+   *   Test cases.
+   */
+  public static function dataProviderAssertReceivedRequestsCount(): array {
+    return [
+      'matching count' => [
+        'header_value' => '2',
+        'expected_count' => '2',
+        'should_throw' => FALSE,
+      ],
+      'no requests yet' => [
+        'header_value' => '0',
+        'expected_count' => '0',
+        'should_throw' => FALSE,
+      ],
+      'mismatched count' => [
+        'header_value' => '4',
+        'expected_count' => '1',
+        'should_throw' => TRUE,
       ],
     ];
   }
