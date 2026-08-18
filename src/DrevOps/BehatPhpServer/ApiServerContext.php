@@ -132,8 +132,6 @@ class ApiServerContext extends PhpServerContext {
    * @code
    * Given the API has no responses
    * @endcode
-   *
-   * @see https://github.com/drevops/behat-phpserver/issues/33
    */
   public function apiHasNoResponses(): void {
     $response = $this->client->request('DELETE', '/admin/responses');
