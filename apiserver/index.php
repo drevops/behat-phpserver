@@ -82,7 +82,7 @@ class ApiServer {
     // Include the unique per-server run ID in the state file name so each
     // server instance has its own state file.
     $timestamp = getenv('PROCESS_TIMESTAMP') ?: getmypid();
-    $this->stateFile = sys_get_temp_dir() . '/api_server_state.' . $timestamp . '.json';
+    $this->stateFile = sys_get_temp_dir() . '/api_server_state.' . $timestamp . '.ser';
 
     if (file_exists($this->stateFile)) {
       $contents = file_get_contents($this->stateFile);
