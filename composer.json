@@ -65,7 +65,7 @@
         "discard-changes": true,
         "policy": {
             "advisories": {
-                "block": false,
+                "block": true,
                 "audit": "fail"
             },
             "abandoned": {
