@@ -1084,14 +1084,14 @@ class PhpServerContextTest extends TestCase {
    *   Server port.
    * @param string $protocol
    *   Server protocol.
-   * @param string $expected
+   * @param string $expected_url
    *   Expected URL.
    */
   #[DataProvider('dataProviderGetServerUrl')]
-  public function testGetServerUrl(string $host, int $port, string $protocol, string $expected): void {
+  public function testGetServerUrl(string $host, int $port, string $protocol, string $expected_url): void {
     $context = new PhpServerContext(static::fixturesPath(), $host, $port, $protocol);
 
-    $this->assertEquals($expected, $context->getServerUrl());
+    $this->assertEquals($expected_url, $context->getServerUrl());
   }
 
   /**
@@ -1106,19 +1106,19 @@ class PhpServerContextTest extends TestCase {
         'host' => '127.0.0.1',
         'port' => 8888,
         'protocol' => 'http',
-        'expected' => 'http://127.0.0.1:8888',
+        'expected_url' => 'http://127.0.0.1:8888',
       ],
       'wildcard host' => [
         'host' => '0.0.0.0',
         'port' => 8889,
         'protocol' => 'http',
-        'expected' => 'http://0.0.0.0:8889',
+        'expected_url' => 'http://0.0.0.0:8889',
       ],
       'secure protocol' => [
         'host' => 'localhost',
         'port' => 443,
         'protocol' => 'https',
-        'expected' => 'https://localhost:443',
+        'expected_url' => 'https://localhost:443',
       ],
     ];
   }
@@ -1188,11 +1188,11 @@ class PhpServerContextTest extends TestCase {
    *   Whether terminating that process succeeds.
    * @param bool $still_in_use
    *   Whether the port is still in use after termination.
-   * @param bool $expected
+   * @param bool $expected_result
    *   Expected result.
    */
   #[DataProvider('dataProviderFreePort')]
-  public function testFreePort(int $pid, bool $terminated, bool $still_in_use, bool $expected): void {
+  public function testFreePort(int $pid, bool $terminated, bool $still_in_use, bool $expected_result): void {
     $context = $this->getMockBuilder(PhpServerContext::class)
       ->setConstructorArgs([static::fixturesPath()])
       ->onlyMethods(['getPid', 'terminateProcess', 'isPortInUse'])
@@ -1202,7 +1202,7 @@ class PhpServerContextTest extends TestCase {
     $context->method('terminateProcess')->willReturn($terminated);
     $context->method('isPortInUse')->willReturn($still_in_use);
 
-    $this->assertEquals($expected, static::callProtectedMethod($context, 'freePort', [8888]));
+    $this->assertEquals($expected_result, static::callProtectedMethod($context, 'freePort', [8888]));
   }
 
   /**
@@ -1217,25 +1217,25 @@ class PhpServerContextTest extends TestCase {
         'pid' => 0,
         'terminated' => FALSE,
         'still_in_use' => FALSE,
-        'expected' => TRUE,
+        'expected_result' => TRUE,
       ],
       'process terminated and port freed' => [
         'pid' => 12345,
         'terminated' => TRUE,
         'still_in_use' => FALSE,
-        'expected' => TRUE,
+        'expected_result' => TRUE,
       ],
       'process terminated but port still held' => [
         'pid' => 12345,
         'terminated' => TRUE,
         'still_in_use' => TRUE,
-        'expected' => FALSE,
+        'expected_result' => FALSE,
       ],
       'termination failed' => [
         'pid' => 12345,
         'terminated' => FALSE,
         'still_in_use' => FALSE,
-        'expected' => FALSE,
+        'expected_result' => FALSE,
       ],
     ];
   }
