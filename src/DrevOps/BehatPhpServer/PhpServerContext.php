@@ -7,6 +7,7 @@ namespace DrevOps\BehatPhpServer;
 use Behat\Behat\Context\Context;
 use Behat\Behat\Hook\Scope\AfterScenarioScope;
 use Behat\Behat\Hook\Scope\BeforeScenarioScope;
+use Behat\Behat\Hook\Scope\ScenarioScope;
 
 /**
  * Behat context to enable PHPServer support in tests.
@@ -108,7 +109,7 @@ class PhpServerContext implements Context {
    * @beforeScenario
    */
   public function beforeScenarioStartServer(BeforeScenarioScope $scope): void {
-    if ($scope->getScenario()->hasTag(static::TAG)) {
+    if ($this->isTagged($scope)) {
       $this->start();
     }
   }
@@ -122,9 +123,27 @@ class PhpServerContext implements Context {
    * @afterScenario
    */
   public function afterScenarioStopServer(AfterScenarioScope $scope): void {
-    if ($scope->getScenario()->hasTag(static::TAG)) {
+    if ($this->isTagged($scope)) {
       $this->stop();
     }
+  }
+
+  /**
+   * Check whether a scenario is tagged for this server.
+   *
+   * Gherkin attaches a feature's tags to the feature node only, so a scenario
+   * in a feature tagged at the top does not report that tag as its own. Both
+   * nodes are checked so that tagging once per feature works as well as
+   * tagging each scenario.
+   *
+   * @param \Behat\Behat\Hook\Scope\ScenarioScope $scope
+   *   Scenario scope.
+   *
+   * @return bool
+   *   TRUE if the scenario or its feature carries the tag, FALSE otherwise.
+   */
+  protected function isTagged(ScenarioScope $scope): bool {
+    return $scope->getScenario()->hasTag(static::TAG) || $scope->getFeature()->hasTag(static::TAG);
   }
 
   /**

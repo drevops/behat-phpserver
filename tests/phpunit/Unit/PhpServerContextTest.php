@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace DrevOps\BehatPhpServer\Tests\Unit;
 
+use Behat\Behat\Hook\Scope\ScenarioScope;
+use Behat\Gherkin\Node\FeatureNode;
+use Behat\Gherkin\Node\ScenarioNode;
 use DrevOps\BehatPhpServer\PhpServerContext;
 use DrevOps\BehatPhpServer\Tests\Traits\ReflectionTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -1156,6 +1159,66 @@ class PhpServerContextTest extends TestCase {
     $context->method('getPid')->willThrowException(new \RuntimeException('Unable to inspect the port.'));
 
     $this->assertFalse(static::callProtectedMethod($context, 'freePort', [8888]));
+  }
+
+  /**
+   * Test that the tag is honoured on the scenario and on its feature.
+   *
+   * @param list<string> $scenario_tags
+   *   Tags carried by the scenario itself.
+   * @param list<string> $feature_tags
+   *   Tags carried by the enclosing feature.
+   * @param bool $expected_result
+   *   Whether the server should act on the scenario.
+   */
+  #[DataProvider('dataProviderIsTagged')]
+  public function testIsTagged(array $scenario_tags, array $feature_tags, bool $expected_result): void {
+    $scenario = new ScenarioNode('Test scenario', $scenario_tags, [], 'Scenario', 1);
+    $feature = new FeatureNode('Test feature', NULL, $feature_tags, NULL, [$scenario], 'Feature', 'en', NULL, 1);
+
+    $scope = $this->createMock(ScenarioScope::class);
+    $scope->method('getScenario')->willReturn($scenario);
+    $scope->method('getFeature')->willReturn($feature);
+
+    $context = new PhpServerContext(static::getFixturesPath());
+
+    $this->assertEquals($expected_result, static::callProtectedMethod($context, 'isTagged', [$scope]));
+  }
+
+  /**
+   * Data provider for isTagged tests.
+   *
+   * @return array<string, array<string, mixed>>
+   *   Test cases.
+   */
+  public static function dataProviderIsTagged(): array {
+    return [
+      'tagged on the scenario' => [
+        'scenario_tags' => ['phpserver'],
+        'feature_tags' => [],
+        'expected_result' => TRUE,
+      ],
+      'tagged on the feature' => [
+        'scenario_tags' => [],
+        'feature_tags' => ['phpserver'],
+        'expected_result' => TRUE,
+      ],
+      'tagged on both' => [
+        'scenario_tags' => ['phpserver'],
+        'feature_tags' => ['phpserver'],
+        'expected_result' => TRUE,
+      ],
+      'not tagged at all' => [
+        'scenario_tags' => [],
+        'feature_tags' => [],
+        'expected_result' => FALSE,
+      ],
+      'a different tag only' => [
+        'scenario_tags' => ['apiserver'],
+        'feature_tags' => ['apiserver'],
+        'expected_result' => FALSE,
+      ],
+    ];
   }
 
 }
