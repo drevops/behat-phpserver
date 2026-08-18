@@ -200,7 +200,7 @@ class ApiServerContext extends PhpServerContext {
     $data = $this->prepareResponse($data->getRaw());
 
     $response = $this->client->request('PUT', '/admin/responses', [
-      'json' => $data,
+      RequestOptions::JSON => $data,
     ]);
 
     if ($response->getStatusCode() !== 201) {
@@ -385,7 +385,7 @@ class ApiServerContext extends PhpServerContext {
   protected function createHttpClient(array $options = []): Client {
     $defaults = [
       'base_uri' => $this->getServerUrl(),
-      'http_errors' => FALSE,
+      RequestOptions::HTTP_ERRORS => FALSE,
       RequestOptions::CONNECT_TIMEOUT => static::DEFAULT_CONNECT_TIMEOUT,
       RequestOptions::TIMEOUT => static::DEFAULT_REQUEST_TIMEOUT,
       RequestOptions::READ_TIMEOUT => static::DEFAULT_READ_TIMEOUT,
