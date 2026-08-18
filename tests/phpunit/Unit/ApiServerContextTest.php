@@ -41,7 +41,6 @@ class ApiServerContextTest extends TestCase {
     // Use reflection to call protected createHttpClient method.
     $reflection_class = new \ReflectionClass(ApiServerContext::class);
     $create_http_client = $reflection_class->getMethod('createHttpClient');
-    $create_http_client->setAccessible(TRUE);
 
     // Call the method.
     $client = $create_http_client->invoke($context, $additional_options);
@@ -88,7 +87,6 @@ class ApiServerContextTest extends TestCase {
     // Use reflection to call protected prepareResponse method.
     $reflection_class = new \ReflectionClass(ApiServerContext::class);
     $prepare_response = $reflection_class->getMethod('prepareResponse');
-    $prepare_response->setAccessible(TRUE);
 
     // Call the method with the test input.
     $result = $prepare_response->invoke($context, $json_input);
@@ -181,7 +179,6 @@ class ApiServerContextTest extends TestCase {
     // Use reflection to call protected prepareResponse method.
     $reflection_class = new \ReflectionClass(ApiServerContext::class);
     $prepare_response = $reflection_class->getMethod('prepareResponse');
-    $prepare_response->setAccessible(TRUE);
 
     // Test with the given invalid input.
     if (class_exists($exception_class)) {
@@ -332,9 +329,7 @@ class ApiServerContextTest extends TestCase {
     return [
       'default path (null)' => [
         'paths' => NULL,
-        'expected_paths' => function ($webroot): array {
-          return [dirname($webroot) . '/tests/behat/fixtures'];
-        },
+        'expected_paths' => fn($webroot): array => [dirname($webroot) . '/tests/behat/fixtures'],
       ],
       'string path' => [
         'paths' => '/path/to/fixtures',
@@ -346,9 +341,7 @@ class ApiServerContextTest extends TestCase {
       ],
       'empty array (fallback to default)' => [
         'paths' => [],
-        'expected_paths' => function ($webroot): array {
-          return [dirname($webroot) . '/tests/behat/fixtures'];
-        },
+        'expected_paths' => fn($webroot): array => [dirname($webroot) . '/tests/behat/fixtures'],
       ],
       'non-string scalars get converted to string' => [
         'paths' => '123',

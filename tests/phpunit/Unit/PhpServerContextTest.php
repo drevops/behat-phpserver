@@ -68,7 +68,6 @@ class PhpServerContextTest extends TestCase {
     // Use reflection to call protected isRunning method.
     $reflection_class = new \ReflectionClass(PhpServerContext::class);
     $is_running_method = $reflection_class->getMethod('isRunning');
-    $is_running_method->setAccessible(TRUE);
 
     // Call the method and check results.
     $result = $is_running_method->invoke($mock, $timeout, $retry_delay);
@@ -438,22 +437,22 @@ class PhpServerContextTest extends TestCase {
       /**
        * Flag indicating if the mock has a PID.
        */
-      private bool $hasPid;
+      private readonly bool $hasPid;
 
       /**
        * PID to return from lsof command.
        */
-      private int $lsofPid;
+      private readonly int $lsofPid;
 
       /**
        * PID to return from netstat command.
        */
-      private int $netstatPid;
+      private readonly int $netstatPid;
 
       /**
        * Flag indicating if an exception is expected.
        */
-      private bool $expectException;
+      private readonly bool $expectException;
 
       /**
        * Constructor.
@@ -596,14 +595,14 @@ class PhpServerContextTest extends TestCase {
       /**
        * Flag indicating if lsof exists on the system.
        */
-      private bool $lsofExists;
+      private readonly bool $lsofExists;
 
       /**
        * Mock output from the lsof command.
        *
        * @var array<string>
        */
-      private array $mockOutput;
+      private readonly array $mockOutput;
 
       /**
        * Constructor.
@@ -641,11 +640,11 @@ class PhpServerContextTest extends TestCase {
        *   TRUE if the command succeeded, FALSE otherwise.
        */
       protected function executeCommand(string $command, array &$output = [], int &$code = 0): bool {
-        if (strpos($command, 'which lsof') !== FALSE) {
+        if (str_contains($command, 'which lsof')) {
           $code = $this->lsofExists ? 0 : 1;
           return $this->lsofExists;
         }
-        if (strpos($command, 'lsof -i -P -n') !== FALSE) {
+        if (str_contains($command, 'lsof -i -P -n')) {
           $output = $this->mockOutput;
           $code = empty($output) ? 1 : 0;
           return !empty($output);
@@ -727,14 +726,14 @@ class PhpServerContextTest extends TestCase {
       /**
        * Flag indicating if netstat exists on the system.
        */
-      private bool $netstatExists;
+      private readonly bool $netstatExists;
 
       /**
        * Mock output from the netstat command.
        *
        * @var array<string>
        */
-      private array $mockOutput;
+      private readonly array $mockOutput;
 
       /**
        * Constructor.
@@ -772,11 +771,11 @@ class PhpServerContextTest extends TestCase {
        *   TRUE if the command succeeded, FALSE otherwise.
        */
       protected function executeCommand(string $command, array &$output = [], int &$code = 0): bool {
-        if (strpos($command, 'which netstat') !== FALSE) {
+        if (str_contains($command, 'which netstat')) {
           $code = $this->netstatExists ? 0 : 1;
           return $this->netstatExists;
         }
-        if (strpos($command, 'netstat -an') !== FALSE) {
+        if (str_contains($command, 'netstat -an')) {
           $output = $this->mockOutput;
           $code = empty($output) ? 1 : 0;
           return !empty($output);

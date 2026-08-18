@@ -43,29 +43,9 @@ class PhpServerContext implements Context {
   protected string $webroot;
 
   /**
-   * Server hostname.
-   */
-  protected string $host;
-
-  /**
-   * Server port.
-   */
-  protected int $port;
-
-  /**
-   * Server protocol.
-   */
-  protected string $protocol;
-
-  /**
    * Server process id.
    */
   protected int $pid = 0;
-
-  /**
-   * Debug mode.
-   */
-  protected bool $debug;
 
   /**
    * Connection retry timeout in seconds.
@@ -97,10 +77,10 @@ class PhpServerContext implements Context {
    */
   public function __construct(
     ?string $webroot = NULL,
-    string $host = '127.0.0.1',
-    int $port = 8888,
-    string $protocol = 'http',
-    bool $debug = FALSE,
+    protected string $host = '127.0.0.1',
+    protected int $port = 8888,
+    protected string $protocol = 'http',
+    protected bool $debug = FALSE,
     ?int $connection_timeout = NULL,
     ?int $retry_delay = NULL,
   ) {
@@ -109,11 +89,6 @@ class PhpServerContext implements Context {
     if (!file_exists($this->webroot)) {
       throw new \RuntimeException(sprintf('"webroot" directory %s does not exist', $this->webroot));
     }
-
-    $this->host = $host;
-    $this->port = $port;
-    $this->protocol = $protocol;
-    $this->debug = $debug;
     $this->connectionTimeout = $connection_timeout ?? static::DEFAULT_CONNECTION_TIMEOUT;
     $this->retryDelay = $retry_delay ?? static::DEFAULT_RETRY_DELAY;
   }
@@ -267,8 +242,8 @@ class PhpServerContext implements Context {
    *   TRUE if the server is running, FALSE otherwise.
    */
   protected function isRunning(?int $timeout = NULL, ?int $retry_delay = NULL): bool {
-    $timeout = $timeout ?? $this->connectionTimeout;
-    $retry_delay = $retry_delay ?? $this->retryDelay;
+    $timeout ??= $this->connectionTimeout;
+    $retry_delay ??= $this->retryDelay;
 
     $start = microtime(TRUE);
 
@@ -308,9 +283,7 @@ class PhpServerContext implements Context {
     $this->debug(sprintf('Checking if port %d is already in use.', $port));
 
     // Temporarily suppress errors.
-    set_error_handler(static function (): bool {
-      return TRUE;
-    });
+    set_error_handler(static fn(): bool => TRUE);
 
     // Use very short timeout to avoid hanging.
     $connection = @fsockopen(
@@ -396,12 +369,10 @@ class PhpServerContext implements Context {
    *   socket, FALSE otherwise.
    */
   protected function canConnect(?int $timeout = NULL): bool {
-    $timeout = $timeout ?? $this->connectionTimeout;
+    $timeout ??= $this->connectionTimeout;
 
     set_error_handler(
-      static function (): bool {
-        return TRUE;
-      }
+      static fn(): bool => TRUE
     );
 
     // Use timeout to avoid hanging connections.
@@ -631,7 +602,7 @@ class PhpServerContext implements Context {
           if (count($pid_name_parts) > 1) {
             $found_pid = $pid_name_parts[0];
             $name = $pid_name_parts[1];
-            if (is_numeric($found_pid) && strpos($name, 'php') === 0) {
+            if (is_numeric($found_pid) && str_starts_with($name, 'php')) {
               $pid = intval($found_pid);
               $this->debug(sprintf('Found PHP process with PID %s using netstat.', $pid));
               return $pid;

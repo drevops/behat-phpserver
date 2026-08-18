@@ -308,7 +308,7 @@ class Response {
       throw new \InvalidArgumentException('Response code must be a number between 100 and 599.');
     }
 
-    $data['headers'] = $data['headers'] ?? [];
+    $data['headers'] ??= [];
     if (!is_array($data['headers'])) {
       throw new \InvalidArgumentException('Headers must be an array.');
     }
