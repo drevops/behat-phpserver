@@ -353,7 +353,7 @@ class Response {
 }
 
 // Allow skipping the script run.
-if (getenv('SCRIPT_RUN_SKIP') != 1) {
+if (getenv('SCRIPT_RUN_SKIP') !== '1') {
   $server = new ApiServer();
 
   try {
