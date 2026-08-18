@@ -51,8 +51,8 @@ class FeatureContext extends MinkContext implements Context {
   /**
    * Go to the phpserver test page.
    *
-   * @Given /^(?:|I )am on (?:|the )phpserver test page$/
-   * @When /^(?:|I )go to (?:|the )phpserver test page$/
+   * @Given (I )am on (the )phpserver test page
+   * @When (I )go to (the )phpserver test page
    */
   public function goToPhpServerTestPage(): void {
     $this->getSession()->visit($this->phpServerUrl . '/test_page.html');
