@@ -208,7 +208,7 @@ class ApiServer {
    */
   public static function sendResponse(Response $response): void {
     // Set the full status line manually to include the custom reason.
-    $protocol = is_scalar($_SERVER['SERVER_PROTOCOL']) ? (string) $_SERVER['SERVER_PROTOCOL'] : 'HTTP/1.1';
+    $protocol = isset($_SERVER['SERVER_PROTOCOL']) && is_scalar($_SERVER['SERVER_PROTOCOL']) ? (string) $_SERVER['SERVER_PROTOCOL'] : 'HTTP/1.1';
     header(sprintf('%s %s %s', $protocol, $response->code, $response->reason));
 
     foreach ($response->headers as $header_name => $header_value) {
