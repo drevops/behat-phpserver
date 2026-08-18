@@ -526,7 +526,7 @@ class PhpServerContext implements Context {
     }
 
     if (empty($output)) {
-      $this->debug('No processes found on port ' . $port);
+      $this->debug(sprintf('No processes found on port %d', $port));
       return 0;
     }
 
@@ -580,7 +580,7 @@ class PhpServerContext implements Context {
     }
 
     if (empty($output)) {
-      $this->debug('No processes found on port ' . $port);
+      $this->debug(sprintf('No processes found on port %d', $port));
       return 0;
     }
 

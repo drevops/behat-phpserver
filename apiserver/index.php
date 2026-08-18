@@ -88,12 +88,12 @@ class ApiServer {
       $contents = file_get_contents($this->stateFile);
 
       if ($contents === FALSE) {
-        throw new \RuntimeException('Failed to read data from the server state file ' . $this->stateFile);
+        throw new \RuntimeException(sprintf('Failed to read data from the server state file %s', $this->stateFile));
       }
 
       $state = unserialize($contents);
       if (!is_array($state)) {
-        throw new \RuntimeException('Failed to load data from the server state file ' . $this->stateFile);
+        throw new \RuntimeException(sprintf('Failed to load data from the server state file %s', $this->stateFile));
       }
 
       /** @var array<int|Request> $requests */
