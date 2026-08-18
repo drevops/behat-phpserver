@@ -399,7 +399,7 @@ class ApiServerContextTest extends TestCase {
    * @return \Psr\Http\Message\RequestInterface
    *   The recorded request.
    */
-  protected function historyRequest(\ArrayObject $history, int $index): RequestInterface {
+  protected function getHistoryRequest(\ArrayObject $history, int $index): RequestInterface {
     $transaction = $history[$index] ?? NULL;
 
     if ($transaction === NULL) {
@@ -445,7 +445,7 @@ class ApiServerContextTest extends TestCase {
    * @return string
    *   The value.
    */
-  protected function queuedResponseString(array $payload, string $key): string {
+  protected function getQueuedResponseString(array $payload, string $key): string {
     $value = $payload[$key] ?? NULL;
 
     if (!is_string($value)) {
@@ -464,7 +464,7 @@ class ApiServerContextTest extends TestCase {
    * @return array<mixed, mixed>
    *   The headers.
    */
-  protected function queuedResponseHeaders(array $payload): array {
+  protected function getQueuedResponseHeaders(array $payload): array {
     $headers = $payload['headers'] ?? NULL;
 
     if (!is_array($headers)) {
@@ -486,7 +486,7 @@ class ApiServerContextTest extends TestCase {
     $context->apiIsRunning();
 
     $this->assertCount(1, $history);
-    $this->assertEquals('/admin/status', (string) $this->historyRequest($history, 0)->getUri());
+    $this->assertEquals('/admin/status', (string) $this->getHistoryRequest($history, 0)->getUri());
   }
 
   /**
@@ -527,11 +527,11 @@ class ApiServerContextTest extends TestCase {
 
     $this->assertCount(2, $history);
 
-    $responses_request = $this->historyRequest($history, 0);
+    $responses_request = $this->getHistoryRequest($history, 0);
     $this->assertEquals('DELETE', $responses_request->getMethod());
     $this->assertEquals('/admin/responses', (string) $responses_request->getUri());
 
-    $requests_request = $this->historyRequest($history, 1);
+    $requests_request = $this->getHistoryRequest($history, 1);
     $this->assertEquals('DELETE', $requests_request->getMethod());
     $this->assertEquals('/admin/requests', (string) $requests_request->getUri());
   }
@@ -547,7 +547,7 @@ class ApiServerContextTest extends TestCase {
 
     $this->assertCount(1, $history);
 
-    $request = $this->historyRequest($history, 0);
+    $request = $this->getHistoryRequest($history, 0);
     $this->assertEquals('DELETE', $request->getMethod());
     $this->assertEquals('/admin/responses', (string) $request->getUri());
   }
@@ -587,13 +587,13 @@ class ApiServerContextTest extends TestCase {
 
     $this->assertCount(1, $history);
 
-    $request = $this->historyRequest($history, 0);
+    $request = $this->getHistoryRequest($history, 0);
     $this->assertEquals('PUT', $request->getMethod());
     $this->assertEquals('/admin/responses', (string) $request->getUri());
 
     $queued = $this->decodeQueuedResponse($request);
     $this->assertEquals(201, $queued['code']);
-    $this->assertEquals('hello', base64_decode($this->queuedResponseString($queued, 'body')));
+    $this->assertEquals('hello', base64_decode($this->getQueuedResponseString($queued, 'body')));
   }
 
   /**
@@ -627,10 +627,10 @@ class ApiServerContextTest extends TestCase {
 
     $context->apiWillRespondWithFile($file_path);
 
-    $queued = $this->decodeQueuedResponse($this->historyRequest($history, 0));
+    $queued = $this->decodeQueuedResponse($this->getHistoryRequest($history, 0));
 
     $this->assertEquals(200, $queued['code']);
-    $this->assertEquals($expected_type, $this->queuedResponseHeaders($queued)['Content-Type'] ?? NULL);
+    $this->assertEquals($expected_type, $this->getQueuedResponseHeaders($queued)['Content-Type'] ?? NULL);
     $this->assertNotEmpty($queued['body']);
   }
 
@@ -674,7 +674,7 @@ class ApiServerContextTest extends TestCase {
 
     $context->apiWillRespondWithFile('test_data.json', '404');
 
-    $queued = $this->decodeQueuedResponse($this->historyRequest($history, 0));
+    $queued = $this->decodeQueuedResponse($this->getHistoryRequest($history, 0));
 
     $this->assertEquals(404, $queued['code']);
   }

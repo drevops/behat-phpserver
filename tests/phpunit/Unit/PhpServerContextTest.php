@@ -1011,7 +1011,7 @@ class PhpServerContextTest extends TestCase {
    * @return string
    *   Absolute path to the Behat fixtures directory.
    */
-  protected static function fixturesPath(): string {
+  protected static function getFixturesPath(): string {
     return __DIR__ . '/../../behat/fixtures';
   }
 
@@ -1047,7 +1047,7 @@ class PhpServerContextTest extends TestCase {
    * Test that the constructor applies the default configuration.
    */
   public function testConstructorAppliesDefaults(): void {
-    $context = new PhpServerContext(static::fixturesPath());
+    $context = new PhpServerContext(static::getFixturesPath());
 
     $this->assertEquals('http://127.0.0.1:8888', $context->getServerUrl());
     $this->assertEquals(PhpServerContext::DEFAULT_CONNECTION_TIMEOUT, static::getProtectedValue($context, 'connectionTimeout'));
@@ -1058,7 +1058,7 @@ class PhpServerContextTest extends TestCase {
    * Test that the constructor honours explicitly provided timeouts.
    */
   public function testConstructorAcceptsExplicitTimeouts(): void {
-    $context = new PhpServerContext(static::fixturesPath(), '127.0.0.1', 9999, 'https', FALSE, 7, 500);
+    $context = new PhpServerContext(static::getFixturesPath(), '127.0.0.1', 9999, 'https', FALSE, 7, 500);
 
     $this->assertEquals('https://127.0.0.1:9999', $context->getServerUrl());
     $this->assertEquals(7, static::getProtectedValue($context, 'connectionTimeout'));
@@ -1089,7 +1089,7 @@ class PhpServerContextTest extends TestCase {
    */
   #[DataProvider('dataProviderGetServerUrl')]
   public function testGetServerUrl(string $host, int $port, string $protocol, string $expected_url): void {
-    $context = new PhpServerContext(static::fixturesPath(), $host, $port, $protocol);
+    $context = new PhpServerContext(static::getFixturesPath(), $host, $port, $protocol);
 
     $this->assertEquals($expected_url, $context->getServerUrl());
   }
@@ -1129,7 +1129,7 @@ class PhpServerContextTest extends TestCase {
   public function testIsPortInUse(): void {
     [$server, $port] = $this->openListeningSocket();
 
-    $context = new PhpServerContext(static::fixturesPath(), '127.0.0.1', $port);
+    $context = new PhpServerContext(static::getFixturesPath(), '127.0.0.1', $port);
 
     $this->assertTrue(static::callProtectedMethod($context, 'isPortInUse', [$port]));
 
@@ -1144,7 +1144,7 @@ class PhpServerContextTest extends TestCase {
   public function testIsPortInUseResolvesWildcardHost(): void {
     [$server, $port] = $this->openListeningSocket();
 
-    $context = new PhpServerContext(static::fixturesPath(), '0.0.0.0', $port);
+    $context = new PhpServerContext(static::getFixturesPath(), '0.0.0.0', $port);
 
     $this->assertTrue(static::callProtectedMethod($context, 'isPortInUse', [$port]));
 
@@ -1157,7 +1157,7 @@ class PhpServerContextTest extends TestCase {
   public function testCanConnect(): void {
     [$server, $port] = $this->openListeningSocket();
 
-    $context = new PhpServerContext(static::fixturesPath(), '127.0.0.1', $port);
+    $context = new PhpServerContext(static::getFixturesPath(), '127.0.0.1', $port);
 
     $this->assertTrue(static::callProtectedMethod($context, 'canConnect', [1]));
 
@@ -1172,7 +1172,7 @@ class PhpServerContextTest extends TestCase {
   public function testCanConnectUsesConfiguredTimeout(): void {
     [$server, $port] = $this->openListeningSocket();
 
-    $context = new PhpServerContext(static::fixturesPath(), '127.0.0.1', $port, 'http', FALSE, 1);
+    $context = new PhpServerContext(static::getFixturesPath(), '127.0.0.1', $port, 'http', FALSE, 1);
 
     $this->assertTrue(static::callProtectedMethod($context, 'canConnect'));
 
@@ -1194,7 +1194,7 @@ class PhpServerContextTest extends TestCase {
   #[DataProvider('dataProviderFreePort')]
   public function testFreePort(int $pid, bool $terminated, bool $still_in_use, bool $expected_result): void {
     $context = $this->getMockBuilder(PhpServerContext::class)
-      ->setConstructorArgs([static::fixturesPath()])
+      ->setConstructorArgs([static::getFixturesPath()])
       ->onlyMethods(['getPid', 'terminateProcess', 'isPortInUse'])
       ->getMock();
 
@@ -1245,7 +1245,7 @@ class PhpServerContextTest extends TestCase {
    */
   public function testFreePortHandlesFailure(): void {
     $context = $this->getMockBuilder(PhpServerContext::class)
-      ->setConstructorArgs([static::fixturesPath()])
+      ->setConstructorArgs([static::getFixturesPath()])
       ->onlyMethods(['getPid'])
       ->getMock();
 
