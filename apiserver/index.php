@@ -79,8 +79,7 @@ class ApiServer {
    * ApiServer constructor.
    */
   final public function __construct() {
-    // Include the unique per-server run ID in the state file name so each
-    // server instance has its own state file.
+    // The per-run ID in the file name keeps each server run's state separate.
     $timestamp = getenv('PROCESS_TIMESTAMP') ?: getmypid();
     $this->stateFile = sys_get_temp_dir() . '/api_server_state.' . $timestamp . '.ser';
 
@@ -106,8 +105,8 @@ class ApiServer {
    *   The persisted state.
    */
   protected function loadState(): array {
-    // Reading and deserialising both warn on failure, and a warning is printed
-    // into the response body when display_errors is on, so the warning is
+    // Reading and deserialising both warn on failure, and a warning prints
+    // into the response body when display_errors is on. The warning is
     // collected here and reported through the exception instead.
     $warning = '';
     set_error_handler(static function (int $severity, string $message) use (&$warning): bool {
@@ -123,9 +122,9 @@ class ApiServer {
         throw new \RuntimeException(rtrim(sprintf('Failed to read data from the server state file %s. %s', $this->stateFile, $warning)), 500);
       }
 
-      // Restrict deserialisation to the 2 value objects the state can hold, so
-      // a tampered state file cannot instantiate anything else or reach its
-      // magic methods.
+      // The state holds only these 2 value objects. Restricting deserialisation
+      // to them stops a tampered file instantiating anything else or reaching
+      // its magic methods.
       $state = unserialize($contents, ['allowed_classes' => [Request::class, Response::class]]);
 
       if (!is_array($state)) {
@@ -196,6 +195,7 @@ class ApiServer {
     }
     elseif ($request->uri === '/admin/responses' && $request->method === 'PUT') {
       $responses_data = json_decode($request->body, TRUE);
+
       if ($responses_data === NULL || !is_array($responses_data)) {
         throw new \InvalidArgumentException('Invalid responses JSON payload provided: Expected an array of response objects.', 400);
       }
@@ -252,7 +252,7 @@ class ApiServer {
    *   The response object.
    */
   public static function sendResponse(Response $response): void {
-    // Set the full status line manually to include the custom reason.
+    // The full status line is set manually so the custom reason is included.
     $protocol = isset($_SERVER['SERVER_PROTOCOL']) && is_scalar($_SERVER['SERVER_PROTOCOL']) ? (string) $_SERVER['SERVER_PROTOCOL'] : 'HTTP/1.1';
     header(sprintf('%s %s %s', $protocol, $response->code, $response->reason));
 
@@ -381,11 +381,11 @@ class Response {
     }
 
     $data['headers'] ??= [];
+
     if (!is_array($data['headers'])) {
       throw new \InvalidArgumentException('Headers must be an array.');
     }
 
-    // Require string keys and scalar values, cast to string below.
     $headers = [];
     foreach ($data['headers'] as $header_name => $header_value) {
       if (!is_string($header_name) || !is_scalar($header_value)) {
@@ -425,7 +425,6 @@ class Response {
 
 }
 
-// Allow skipping the script run.
 if (getenv('SCRIPT_RUN_SKIP') !== '1') {
   ApiServer::run();
 }
