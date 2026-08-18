@@ -16,8 +16,8 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: write
-      pull-requests: write
+      contents: write # Create and update the draft release.
+      pull-requests: read # Read merged pull requests to compose the notes.
 
     steps:
       - name: Set version

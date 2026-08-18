@@ -76,11 +76,7 @@ class ApiServerUnitTest extends TestCase {
    * Test that sending a response prints its body.
    */
   public function testSendResponsePrintsBody(): void {
-    $_SERVER['SERVER_PROTOCOL'] = 'HTTP/1.1';
-
-    ob_start();
-    ApiServer::sendResponse(new Response(200, 'OK', ['X-Custom' => 'value'], 'hello'));
-    $output = ob_get_clean();
+    $output = $this->captureResponse(new Response(200, 'OK', ['X-Custom' => 'value'], 'hello'));
 
     $this->assertEquals('hello', $output);
   }
@@ -89,13 +85,41 @@ class ApiServerUnitTest extends TestCase {
    * Test that a response without a body prints nothing.
    */
   public function testSendResponseWithEmptyBody(): void {
-    $_SERVER['SERVER_PROTOCOL'] = 'HTTP/1.1';
-
-    ob_start();
-    ApiServer::sendResponse(new Response(204, 'No Content'));
-    $output = ob_get_clean();
+    $output = $this->captureResponse(new Response(204, 'No Content'));
 
     $this->assertEquals('', $output);
+  }
+
+  /**
+   * Send a response and capture what it printed.
+   *
+   * Sending reads the protocol out of $_SERVER, so the original value is put
+   * back afterwards to keep the tests independent of each other's order.
+   *
+   * @param \DrevOps\BehatPhpServer\ApiServer\Response $response
+   *   The response to send.
+   *
+   * @return string
+   *   The printed output.
+   */
+  protected function captureResponse(Response $response): string {
+    $original_protocol = $_SERVER['SERVER_PROTOCOL'] ?? NULL;
+    $_SERVER['SERVER_PROTOCOL'] = 'HTTP/1.1';
+
+    try {
+      ob_start();
+      ApiServer::sendResponse($response);
+
+      return (string) ob_get_clean();
+    }
+    finally {
+      if ($original_protocol === NULL) {
+        unset($_SERVER['SERVER_PROTOCOL']);
+      }
+      else {
+        $_SERVER['SERVER_PROTOCOL'] = $original_protocol;
+      }
+    }
   }
 
 }
