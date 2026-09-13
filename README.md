@@ -36,6 +36,8 @@ Requires PHP 8.3 or newer.
 
     composer require --dev drevops/behat-phpserver
 
+Coming from 2.x? See [`UPGRADE.md`](UPGRADE.md) - the step phrases are unchanged, but some method names moved.
+
 ## 🚀 Usage
 
 ### `PhpServerContext`

@@ -1,0 +1,54 @@
+# Upgrade guide
+
+## 2.x to 3.0
+
+**Your `.feature` files don't need to change.** None of the Gherkin step phrases moved, and neither did any of the `behat.yml` option keys. Everything below is about PHP-level names, so it only affects you if you call the context methods from your own code or subclass a context.
+
+### PHP 8.3 or newer is required
+
+The minimum supported PHP version is now 8.3.
+
+### Step methods on `ApiServerContext` were renamed
+
+The class spelled the same idea 4 different ways: an `api` prefix on 5 methods, an `Api` suffix on 1, an `Api` infix on 1, and an `assert` prefix on 2. They all now follow one rule - the method name is the step phrase in camelCase, with the `API` token folded into a leading `api` prefix.
+
+| Old method                      | New method                       | Step phrase (unchanged)                                  |
+|---------------------------------|----------------------------------|----------------------------------------------------------|
+| `resetApi()`                    | `apiIsReset()`                   | `the API server is reset`                                 |
+| `debugApiRequests()`            | `apiDebugRequests()`             | `I debug API requests`                                    |
+| `assertQueuedResponsesCount()`  | `apiShouldHaveQueuedResponses()` | `the API server should have :count queued response(s)`    |
+| `assertReceivedRequestsCount()` | `apiShouldHaveReceivedRequests()`| `the API server should have :count received request(s)`   |
+
+The other 5 step methods - `apiIsRunning()`, `apiHasNoResponses()`, `apiWillRespondWith()`, `apiWillRespondWithJson()` and `apiWillRespondWithFile()` - already followed the rule and kept their names.
+
+There are no aliases for the old names. If you called or overrode one of the 4, rename it.
+
+### `ApiServerContext::__construct()` now types `$paths`
+
+The `$paths` parameter was the only untyped parameter in the library. It's now `array|string|null`, matching the `string[]|string|null` its docblock always claimed.
+
+The parameter name is unchanged, so the `paths:` key in `behat.yml` keeps working. What changes is that a value PHP used to coerce is now a `TypeError`. In practice that means an unquoted number:
+
+```yaml
+# Fails on 3.0 - YAML reads this as an integer.
+paths: 8888
+
+# Fine.
+paths: '8888'
+```
+
+Elements *inside* a `paths` list are still cast to string, so a list with an unquoted number in it keeps working.
+
+### `PhpServerContext::debug()` is now `printDebug()`
+
+`PhpServerContext` had a `$debug` constructor option and a `debug()` method sitting next to each other, and `$this->debug` versus `$this->debug()` is one character apart. The method is now `printDebug()`.
+
+The `debug` option in `behat.yml` is unchanged - only the method moved. Rename any call or override in your own contexts:
+
+```php
+// Before.
+$this->debug('Server started.');
+
+// After.
+$this->printDebug('Server started.');
+```
