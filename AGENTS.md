@@ -47,7 +47,7 @@ Prefer these over calling the underlying binaries directly.
 
 1. **PHP_CodeSniffer** - Drupal coding standards plus the DrevOps standard and a strict types requirement. Config: `phpcs.xml`. The `Drupal.Files.LineLength.TooLong` sniff is excluded.
 2. **PHPStan** - level 9 across `src`, `apiserver` and `tests`. Config: `phpstan.neon`.
-3. **Rector** - targets PHP 8.2, matching the `>=8.2` requirement in `composer.json`. Config: `rector.php`. Raise the Rector PHP set only when the composer constraint moves with it.
+3. **Rector** - targets PHP 8.3, matching the `>=8.3` requirement in `composer.json`. Config: `rector.php`. Raise the Rector PHP set only when the composer constraint moves with it.
 4. **gherkinlint** - lints the feature files. Config: `gherkinlint.json`.
 
 ### Coding conventions
@@ -69,7 +69,7 @@ Tests use PHPUnit 11 attributes:
 
 ## CI
 
-`.github/workflows/test-php.yml` runs the matrix PHP 8.2, 8.3, 8.4 and 8.5, against `normal` and `lowest` dependencies, on both `ubuntu-latest` and `macos-latest`. Both operating systems are tested on purpose - see Known issues.
+`.github/workflows/test-php.yml` runs the matrix PHP 8.3, 8.4 and 8.5, against `normal` and `lowest` dependencies, on both `ubuntu-latest` and `macos-latest`. Both operating systems are tested on purpose - see Known issues.
 
 Linting, the coverage threshold check and the Codecov uploads run once, on Ubuntu with PHP 8.4 and normal dependencies.
 

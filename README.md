@@ -32,7 +32,7 @@
 
 ## 📦 Installation
 
-Requires PHP 8.2 or newer.
+Requires PHP 8.3 or newer.
 
     composer require --dev drevops/behat-phpserver
 
