@@ -262,7 +262,7 @@ class ApiServerContextTest extends TestCase {
   /**
    * Test fixture paths in constructor.
    *
-   * @param array<mixed>|string|null $paths
+   * @param array<string>|string|null $paths
    *   Fixture paths to test.
    * @param array<string>|callable $expected_paths
    *   Expected fixture paths or a callback that returns expected paths.
@@ -322,9 +322,9 @@ class ApiServerContextTest extends TestCase {
         'paths' => '',
         'expected_paths' => fn($webroot): array => [dirname($webroot) . '/tests/behat/fixtures'],
       ],
-      'non-string array elements get converted to string' => [
-        'paths' => ['/path/to/fixtures1', 123],
-        'expected_paths' => ['/path/to/fixtures1', '123'],
+      'numeric string path' => [
+        'paths' => '123',
+        'expected_paths' => ['123'],
       ],
     ];
   }
