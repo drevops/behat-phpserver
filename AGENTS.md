@@ -57,6 +57,7 @@ Prefer these over calling the underlying binaries directly.
 - Method names and class properties use `camelCase`.
 - Single quotes for strings, double quotes only when the string contains a single quote.
 - All files end with a newline.
+- Step methods on `ApiServerContext` are named `api` plus the step phrase in camelCase, with the `API` / `API server` token folded into the prefix - `the API server is reset` becomes `apiIsReset()`. The annotation is the published contract and the method name is derived from it, so renaming a method never means rewriting its step phrase.
 
 ## Testing patterns
 

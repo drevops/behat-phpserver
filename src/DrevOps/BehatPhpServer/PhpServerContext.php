@@ -169,21 +169,21 @@ class PhpServerContext implements Context {
       $this->webroot
     );
 
-    $this->debug(sprintf('Starting PHP server with command: %s', $command));
+    $this->printDebug(sprintf('Starting PHP server with command: %s', $command));
 
     $output = [];
     $code = 0;
     $success = $this->executeCommand($command, $output, $code);
 
     if (!$success || empty($output[0]) || !is_numeric($output[0])) {
-      $this->debug(sprintf('Command execution failed with code %d or empty/invalid output: %s', $code, implode(', ', $output)));
+      $this->printDebug(sprintf('Command execution failed with code %d or empty/invalid output: %s', $code, implode(', ', $output)));
 
       throw new \RuntimeException(sprintf('Unable to start PHP server: Command failed with code %d.', $code));
     }
 
     $this->pid = (int) $output[0];
 
-    $this->debug(sprintf('PHP server started with PID %s.', $this->pid));
+    $this->printDebug(sprintf('PHP server started with PID %s.', $this->pid));
 
     if (!$this->isRunning()) {
       $this->stop();
@@ -193,7 +193,7 @@ class PhpServerContext implements Context {
       ));
     }
 
-    $this->debug('PHP server is now running and accepting connections.');
+    $this->printDebug('PHP server is now running and accepting connections.');
 
     return $this->pid;
   }
@@ -206,36 +206,36 @@ class PhpServerContext implements Context {
    */
   public function stop(): bool {
     if ($this->pid !== 0 && $this->processExists($this->pid)) {
-      $this->debug(sprintf('Terminating known process with PID %d.', $this->pid));
+      $this->printDebug(sprintf('Terminating known process with PID %d.', $this->pid));
       if ($this->terminateProcess($this->pid)) {
-        $this->debug('Successfully terminated process.');
+        $this->printDebug('Successfully terminated process.');
         $this->pid = 0;
       }
     }
 
     try {
       if ($this->isPortInUse($this->port)) {
-        $this->debug(sprintf('Port %d is still in use. Attempting to free it.', $this->port));
+        $this->printDebug(sprintf('Port %d is still in use. Attempting to free it.', $this->port));
         $port_freed = $this->freePort($this->port);
 
         if (!$port_freed) {
-          $this->debug(sprintf('Failed to free port %d. Free port function returned failure.', $this->port));
+          $this->printDebug(sprintf('Failed to free port %d. Free port function returned failure.', $this->port));
           return FALSE;
         }
 
         if ($this->isPortInUse($this->port)) {
-          $this->debug(sprintf('Failed to free port %d. Port is still in use after freeing attempt.', $this->port));
+          $this->printDebug(sprintf('Failed to free port %d. Port is still in use after freeing attempt.', $this->port));
           return FALSE;
         }
 
-        $this->debug(sprintf('Successfully freed port %d.', $this->port));
+        $this->printDebug(sprintf('Successfully freed port %d.', $this->port));
       }
       else {
-        $this->debug(sprintf('Port %d is already free.', $this->port));
+        $this->printDebug(sprintf('Port %d is already free.', $this->port));
       }
     }
     catch (\Exception $exception) {
-      $this->debug(sprintf('Error while trying to stop server: %s', $exception->getMessage()));
+      $this->printDebug(sprintf('Error while trying to stop server: %s', $exception->getMessage()));
       return FALSE;
     }
 
@@ -267,10 +267,10 @@ class PhpServerContext implements Context {
 
     $counter = 1;
     while ((microtime(TRUE) - $start) <= $timeout) {
-      $this->debug(sprintf('Checking if server is running. Attempt %s.', $counter));
+      $this->printDebug(sprintf('Checking if server is running. Attempt %s.', $counter));
 
       if ($this->canConnect()) {
-        $this->debug('Server is running and accepting connections.');
+        $this->printDebug('Server is running and accepting connections.');
         return TRUE;
       }
 
@@ -278,7 +278,7 @@ class PhpServerContext implements Context {
       $counter++;
     }
 
-    $this->debug('Server is not responding to connection attempts.');
+    $this->printDebug('Server is not responding to connection attempts.');
 
     return FALSE;
   }
@@ -293,7 +293,7 @@ class PhpServerContext implements Context {
    *   TRUE if the port is in use, FALSE otherwise.
    */
   protected function isPortInUse(int $port): bool {
-    $this->debug(sprintf('Checking if port %d is already in use.', $port));
+    $this->printDebug(sprintf('Checking if port %d is already in use.', $port));
 
     set_error_handler(static fn(): bool => TRUE);
 
@@ -310,7 +310,7 @@ class PhpServerContext implements Context {
 
     if ($connection !== FALSE) {
       fclose($connection);
-      $this->debug(sprintf('Port %d is already in use (connection succeeded).', $port));
+      $this->printDebug(sprintf('Port %d is already in use (connection succeeded).', $port));
       return TRUE;
     }
 
@@ -320,12 +320,12 @@ class PhpServerContext implements Context {
     $connection_refused = in_array($errno, [61, 111, 10061], TRUE);
 
     if ($connection_refused) {
-      $this->debug(sprintf('Port %d is available (connection refused).', $port));
+      $this->printDebug(sprintf('Port %d is available (connection refused).', $port));
       return FALSE;
     }
 
     // For any other errors, assume the port is in use to be safe.
-    $this->debug(sprintf('Port %d status check resulted in error %d: %s. Assuming it is in use.', $port, $errno, $errstr));
+    $this->printDebug(sprintf('Port %d status check resulted in error %d: %s. Assuming it is in use.', $port, $errno, $errstr));
 
     return TRUE;
   }
@@ -341,18 +341,18 @@ class PhpServerContext implements Context {
    *   FALSE if there was an error or the process could not be terminated.
    */
   protected function freePort(int $port): bool {
-    $this->debug(sprintf('Attempting to free port %d.', $port));
+    $this->printDebug(sprintf('Attempting to free port %d.', $port));
 
     try {
       $pid = $this->getPid($port);
       if ($pid > 0) {
-        $this->debug(sprintf('Found process with PID %d using port %d.', $pid, $port));
+        $this->printDebug(sprintf('Found process with PID %d using port %d.', $pid, $port));
         $result = $this->terminateProcess($pid);
 
         $is_free = !$this->isPortInUse($port);
 
         if (!$is_free) {
-          $this->debug(sprintf('Port %d is still in use after terminating process %d.', $port, $pid));
+          $this->printDebug(sprintf('Port %d is still in use after terminating process %d.', $port, $pid));
           return FALSE;
         }
 
@@ -362,7 +362,7 @@ class PhpServerContext implements Context {
       return TRUE;
     }
     catch (\Exception $exception) {
-      $this->debug(sprintf('Error while trying to free port %d: %s', $port, $exception->getMessage()));
+      $this->printDebug(sprintf('Error while trying to free port %d: %s', $port, $exception->getMessage()));
       return FALSE;
     }
   }
@@ -387,13 +387,13 @@ class PhpServerContext implements Context {
     restore_error_handler();
 
     if ($connection === FALSE) {
-      $this->debug(sprintf('Unable to connect to the server. Error: %s (%s)', $errstr, $errno));
+      $this->printDebug(sprintf('Unable to connect to the server. Error: %s (%s)', $errstr, $errno));
       return FALSE;
     }
 
     fclose($connection);
 
-    $this->debug('Connected to the server.');
+    $this->printDebug('Connected to the server.');
 
     return TRUE;
   }
@@ -410,10 +410,10 @@ class PhpServerContext implements Context {
   protected function terminateProcess(int $pid): bool {
     $termination_status = 'unknown';
 
-    $this->debug(sprintf('Terminating PHP server process with PID %s.', $pid));
+    $this->printDebug(sprintf('Terminating PHP server process with PID %s.', $pid));
 
     if (!$this->processExists($pid)) {
-      $this->debug(sprintf('Process with PID %d does not exist, no need to terminate.', $pid));
+      $this->printDebug(sprintf('Process with PID %d does not exist, no need to terminate.', $pid));
       return TRUE;
     }
 
@@ -421,7 +421,7 @@ class PhpServerContext implements Context {
     $success = $this->executeCommand('kill ' . $pid . ' 2>/dev/null', $output);
 
     if (!$success) {
-      $this->debug('Graceful termination failed, trying forceful termination (SIGKILL).');
+      $this->printDebug('Graceful termination failed, trying forceful termination (SIGKILL).');
       $success = $this->executeCommand('kill -9 ' . $pid . ' 2>/dev/null', $output);
       $termination_status = $success ? 'forceful' : 'failed';
     }
@@ -433,14 +433,14 @@ class PhpServerContext implements Context {
     usleep($this->retryDelay);
 
     if ($this->processExists($pid)) {
-      $this->debug(sprintf(
+      $this->printDebug(sprintf(
         'Process termination verification failed (%s termination status), process may still be running.',
         $termination_status
       ));
       return FALSE;
     }
 
-    $this->debug(sprintf('Process terminated successfully with %s termination.', $termination_status));
+    $this->printDebug(sprintf('Process terminated successfully with %s termination.', $termination_status));
 
     return $success;
   }
@@ -464,7 +464,7 @@ class PhpServerContext implements Context {
     $is_running = count($output) > 1;
 
     if (!$is_running) {
-      $this->debug(sprintf('Process with PID %d is not running.', $pid));
+      $this->printDebug(sprintf('Process with PID %d is not running.', $pid));
     }
 
     return $is_running;
@@ -483,10 +483,10 @@ class PhpServerContext implements Context {
    *   PID as number.
    */
   protected function getPid(int $port): int {
-    $this->debug(sprintf('Finding PID of the PHP server process on port %s.', $port));
+    $this->printDebug(sprintf('Finding PID of the PHP server process on port %s.', $port));
 
     if ($this->pid > 0 && $this->processExists($this->pid)) {
-      $this->debug(sprintf('Found existing process with PID %s is still running.', $this->pid));
+      $this->printDebug(sprintf('Found existing process with PID %s is still running.', $this->pid));
       return $this->pid;
     }
 
@@ -497,7 +497,7 @@ class PhpServerContext implements Context {
     }
 
     if ($pid === 0) {
-      $this->debug('Could not identify PHP process using lsof or netstat.');
+      $this->printDebug('Could not identify PHP process using lsof or netstat.');
       throw new \RuntimeException(sprintf('Unable to determine PHP server process for port %d. Manually identify the process and terminate it.', $port));
     }
 
@@ -527,29 +527,29 @@ class PhpServerContext implements Context {
       // The process may be in another state, so retry without the LISTEN
       // filter.
       $command = str_replace(" | grep 'LISTEN'", '', $command);
-      $this->debug(sprintf('No LISTEN processes found, retrying with command: %s', $command));
+      $this->printDebug(sprintf('No LISTEN processes found, retrying with command: %s', $command));
       $this->executeCommand($command, $output);
     }
 
     if (empty($output)) {
-      $this->debug(sprintf('No processes found on port %d', $port));
+      $this->printDebug(sprintf('No processes found on port %d', $port));
       return 0;
     }
 
     foreach ($output as $i => $line) {
-      $this->debug(sprintf('Found process %d: %s', $i + 1, $line));
+      $this->printDebug(sprintf('Found process %d: %s', $i + 1, $line));
     }
 
     foreach ($output as $line) {
       $line = trim((string) preg_replace('/\s+/', ' ', $line));
 
-      $this->debug(sprintf('Processing line: %s', $line));
+      $this->printDebug(sprintf('Processing line: %s', $line));
       $parts = explode(' ', $line);
 
       // Accept any executable that starts with "php" (php, php-fpm, php8.3).
       if (count($parts) > 1 && str_starts_with($parts[0], 'php') && is_numeric($parts[1])) {
         $pid = (int) $parts[1];
-        $this->debug(sprintf('Found PHP process with PID %s using lsof.', $pid));
+        $this->printDebug(sprintf('Found PHP process with PID %s using lsof.', $pid));
         return $pid;
       }
     }
@@ -581,22 +581,22 @@ class PhpServerContext implements Context {
       // The process may be in another state, so retry without the LISTEN
       // filter.
       $command = str_replace(" | grep 'LISTEN'", '', $command);
-      $this->debug(sprintf('No LISTEN processes found, retrying with command: %s', $command));
+      $this->printDebug(sprintf('No LISTEN processes found, retrying with command: %s', $command));
       $this->executeCommand($command, $output);
     }
 
     if (empty($output)) {
-      $this->debug(sprintf('No processes found on port %d', $port));
+      $this->printDebug(sprintf('No processes found on port %d', $port));
       return 0;
     }
 
     foreach ($output as $i => $line) {
-      $this->debug(sprintf('Found process %d: %s', $i + 1, $line));
+      $this->printDebug(sprintf('Found process %d: %s', $i + 1, $line));
     }
 
     foreach ($output as $line) {
       $line = trim((string) preg_replace('/\s+/', ' ', $line));
-      $this->debug(sprintf('Processing line: %s', $line));
+      $this->printDebug(sprintf('Processing line: %s', $line));
       $parts = explode(' ', $line);
 
       foreach ($parts as $part) {
@@ -618,7 +618,7 @@ class PhpServerContext implements Context {
         }
 
         $pid = (int) $found_pid;
-        $this->debug(sprintf('Found PHP process with PID %s using netstat.', $pid));
+        $this->printDebug(sprintf('Found PHP process with PID %s using netstat.', $pid));
 
         return $pid;
       }
@@ -653,7 +653,7 @@ class PhpServerContext implements Context {
    * @param string $message
    *   Message to print.
    */
-  protected function debug(string $message): void {
+  protected function printDebug(string $message): void {
     // @codeCoverageIgnoreStart
     if ($this->debug) {
       $backtrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2);
