@@ -38,7 +38,7 @@ class PhpServerContextTest extends TestCase {
   public function testIsRunning(int $pid, bool $process_exists, bool $can_connect, int $timeout, int $retry_delay, bool $expected_result): void {
     $context = $this->getMockBuilder(PhpServerContext::class)
       ->disableOriginalConstructor()
-      ->onlyMethods(['processExists', 'canConnect', 'debug'])
+      ->onlyMethods(['processExists', 'canConnect', 'printDebug'])
       ->getMock();
 
     $this->setProtectedValue($context, 'pid', $pid);
@@ -142,7 +142,7 @@ class PhpServerContextTest extends TestCase {
 
     $context = $this->getMockBuilder(PhpServerContext::class)
       ->disableOriginalConstructor()
-      ->onlyMethods(['stop', 'executeCommand', 'debug', 'isRunning'])
+      ->onlyMethods(['stop', 'executeCommand', 'printDebug', 'isRunning'])
       ->getMock();
 
     $this->setProtectedValue($context, 'host', '127.0.0.1');
@@ -280,7 +280,7 @@ class PhpServerContextTest extends TestCase {
   ): void {
     $context = $this->getMockBuilder(PhpServerContext::class)
       ->disableOriginalConstructor()
-      ->onlyMethods(['processExists', 'terminateProcess', 'isPortInUse', 'freePort', 'debug'])
+      ->onlyMethods(['processExists', 'terminateProcess', 'isPortInUse', 'freePort', 'printDebug'])
       ->getMock();
 
     $this->setProtectedValue($context, 'pid', $pid);
@@ -380,7 +380,7 @@ class PhpServerContextTest extends TestCase {
   public function testStopWithException(): void {
     $context = $this->getMockBuilder(PhpServerContext::class)
       ->disableOriginalConstructor()
-      ->onlyMethods(['processExists', 'terminateProcess', 'isPortInUse', 'debug'])
+      ->onlyMethods(['processExists', 'terminateProcess', 'isPortInUse', 'printDebug'])
       ->getMock();
 
     $this->setProtectedValue($context, 'pid', 12345);
@@ -466,7 +466,7 @@ class PhpServerContextTest extends TestCase {
         return $this->getPid($port);
       }
 
-      protected function debug(string $message): void {
+      protected function printDebug(string $message): void {
         // Skip debug output.
       }
 
@@ -590,7 +590,7 @@ class PhpServerContextTest extends TestCase {
         return FALSE;
       }
 
-      protected function debug(string $message): void {
+      protected function printDebug(string $message): void {
         // Skip debug output.
       }
 
@@ -709,7 +709,7 @@ class PhpServerContextTest extends TestCase {
         return FALSE;
       }
 
-      protected function debug(string $message): void {
+      protected function printDebug(string $message): void {
         // Skip debug output.
       }
 
@@ -774,7 +774,7 @@ class PhpServerContextTest extends TestCase {
   public function testProcessExists(int $pid, array $output, bool $expected_result): void {
     $context = $this->getMockBuilder(PhpServerContext::class)
       ->disableOriginalConstructor()
-      ->onlyMethods(['executeCommand', 'debug'])
+      ->onlyMethods(['executeCommand', 'printDebug'])
       ->getMock();
 
     $context->expects($this->any())
@@ -842,7 +842,7 @@ class PhpServerContextTest extends TestCase {
   public function testTerminateProcess(int $pid, bool $process_exists, int|array $kill_return_code, bool $process_exists_after, bool $expected_result): void {
     $context = $this->getMockBuilder(PhpServerContext::class)
       ->disableOriginalConstructor()
-      ->onlyMethods(['executeCommand', 'debug', 'processExists'])
+      ->onlyMethods(['executeCommand', 'printDebug', 'processExists'])
       ->getMock();
 
     $context->expects($this->atLeastOnce())

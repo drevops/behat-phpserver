@@ -80,7 +80,7 @@ class ApiServerContext extends PhpServerContext {
     bool $debug = FALSE,
     ?int $connection_timeout = NULL,
     ?int $retry_delay = NULL,
-    $paths = NULL,
+    array|string|null $paths = NULL,
   ) {
     parent::__construct($webroot, $host, $port, $protocol, $debug, $connection_timeout, $retry_delay);
 
@@ -93,7 +93,7 @@ class ApiServerContext extends PhpServerContext {
       $this->fixturesPaths = array_map(strval(...), $paths);
     }
     else {
-      $this->fixturesPaths[] = (string) $paths;
+      $this->fixturesPaths[] = $paths;
     }
   }
 
@@ -104,7 +104,7 @@ class ApiServerContext extends PhpServerContext {
    */
   public function apiIsRunning(): void {
     if (!$this->isRunning()) {
-      $this->debug('API server process is not running. Attempting to start.');
+      $this->printDebug('API server process is not running. Attempting to start.');
       $this->start();
     }
 
@@ -120,11 +120,11 @@ class ApiServerContext extends PhpServerContext {
    *
    * @Given (the )API server is reset
    */
-  public function resetApi(): void {
+  public function apiIsReset(): void {
     $this->client->request('DELETE', '/admin/responses');
     $this->client->request('DELETE', '/admin/requests');
 
-    $this->debug('API server responses and requests have been reset.');
+    $this->printDebug('API server responses and requests have been reset.');
   }
 
   /**
@@ -143,7 +143,7 @@ class ApiServerContext extends PhpServerContext {
       throw new \RuntimeException('Failed to delete the API responses.');
     }
 
-    $this->debug('API server responses have been cleared.');
+    $this->printDebug('API server responses have been cleared.');
   }
 
   /**
@@ -155,7 +155,7 @@ class ApiServerContext extends PhpServerContext {
    * When I debug API requests
    * @endcode
    */
-  public function debugApiRequests(): void {
+  public function apiDebugRequests(): void {
     $response = $this->client->request('GET', '/admin/requests');
 
     if ($response->getStatusCode() !== 200) {
@@ -201,7 +201,7 @@ class ApiServerContext extends PhpServerContext {
       throw new \RuntimeException('Failed to set the API response.');
     }
 
-    $this->debug('Successfully queued API response.');
+    $this->printDebug('Successfully queued API response.');
   }
 
   /**
@@ -393,7 +393,7 @@ class ApiServerContext extends PhpServerContext {
    * @Then (the )API server should have :count queued response(s)
    * @Then (the )API server should have :count response(s) queued
    */
-  public function assertQueuedResponsesCount(string $count): void {
+  public function apiShouldHaveQueuedResponses(string $count): void {
     $response = $this->client->request('GET', '/admin/status');
     $queued_responses = $response->getHeaderLine('X-Queued-Responses');
 
@@ -405,7 +405,7 @@ class ApiServerContext extends PhpServerContext {
       ));
     }
 
-    $this->debug(sprintf('Verified API server has %s queued responses', $count));
+    $this->printDebug(sprintf('Verified API server has %s queued responses', $count));
   }
 
   /**
@@ -417,7 +417,7 @@ class ApiServerContext extends PhpServerContext {
    * @Then (the )API server should have received :count request(s)
    * @Then (the )API server should have :count received request(s)
    */
-  public function assertReceivedRequestsCount(string $count): void {
+  public function apiShouldHaveReceivedRequests(string $count): void {
     $response = $this->client->request('GET', '/admin/status');
     $received_requests = $response->getHeaderLine('X-Received-Requests');
 
@@ -429,7 +429,7 @@ class ApiServerContext extends PhpServerContext {
       ));
     }
 
-    $this->debug(sprintf('Verified API server has received %s requests', $count));
+    $this->printDebug(sprintf('Verified API server has received %s requests', $count));
   }
 
 }

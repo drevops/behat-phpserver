@@ -77,7 +77,7 @@ class ApiServerContextTest extends TestCase {
   public function testPrepareResponse(string $json_input, array $expected_values): void {
     $context = $this->getMockBuilder(ApiServerContext::class)
       ->disableOriginalConstructor()
-      ->onlyMethods(['debug'])
+      ->onlyMethods(['printDebug'])
       ->getMock();
 
     $result = static::callProtectedMethod($context, 'prepareResponse', [$json_input]);
@@ -159,7 +159,7 @@ class ApiServerContextTest extends TestCase {
   public function testPrepareResponseInvalid(string $json_input, string $exception_class, string $exception_message): void {
     $context = $this->getMockBuilder(ApiServerContext::class)
       ->disableOriginalConstructor()
-      ->onlyMethods(['debug'])
+      ->onlyMethods(['printDebug'])
       ->getMock();
 
     if (class_exists($exception_class)) {
@@ -262,7 +262,7 @@ class ApiServerContextTest extends TestCase {
   /**
    * Test fixture paths in constructor.
    *
-   * @param array<string>|string|null $paths
+   * @param array<mixed>|string|null $paths
    *   Fixture paths to test.
    * @param array<string>|callable $expected_paths
    *   Expected fixture paths or a callback that returns expected paths.
@@ -318,9 +318,13 @@ class ApiServerContextTest extends TestCase {
         'paths' => [],
         'expected_paths' => fn($webroot): array => [dirname($webroot) . '/tests/behat/fixtures'],
       ],
-      'non-string scalars get converted to string' => [
-        'paths' => '123',
-        'expected_paths' => ['123'],
+      'empty string (fallback to default)' => [
+        'paths' => '',
+        'expected_paths' => fn($webroot): array => [dirname($webroot) . '/tests/behat/fixtures'],
+      ],
+      'non-string array elements get converted to string' => [
+        'paths' => ['/path/to/fixtures1', 123],
+        'expected_paths' => ['/path/to/fixtures1', '123'],
       ],
     ];
   }
@@ -493,7 +497,7 @@ class ApiServerContextTest extends TestCase {
     $history = new \ArrayObject();
     $context = $this->createContextWithClient([new Response(200), new Response(200)], $history);
 
-    $context->resetApi();
+    $context->apiIsReset();
 
     $this->assertCount(2, $history);
 
@@ -543,7 +547,7 @@ class ApiServerContextTest extends TestCase {
     $this->expectException(\RuntimeException::class);
     $this->expectExceptionMessage('Failed to fetch the API requests.');
 
-    $context->debugApiRequests();
+    $context->apiDebugRequests();
   }
 
   /**
@@ -681,7 +685,7 @@ class ApiServerContextTest extends TestCase {
       $this->expectExceptionMessage(sprintf('Expected %s queued responses, got %s', $expected_count, $header_value));
     }
 
-    $context->assertQueuedResponsesCount($expected_count);
+    $context->apiShouldHaveQueuedResponses($expected_count);
 
     $this->addToAssertionCount(1);
   }
@@ -731,7 +735,7 @@ class ApiServerContextTest extends TestCase {
       $this->expectExceptionMessage(sprintf('Expected %s received requests, got %s', $expected_count, $header_value));
     }
 
-    $context->assertReceivedRequestsCount($expected_count);
+    $context->apiShouldHaveReceivedRequests($expected_count);
 
     $this->addToAssertionCount(1);
   }
