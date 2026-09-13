@@ -19,7 +19,7 @@
         "source": "https://github.com/drevops/behat-phpserver"
     },
     "require": {
-        "php": ">=8.2",
+        "php": ">=8.3",
         "behat/behat": "^3.32.0",
         "guzzlehttp/guzzle": "^7.15.3"
     },
