@@ -80,10 +80,10 @@ class ApiServerContextTest extends TestCase {
    */
   #[DataProvider('dataProviderPrepareResponse')]
   public function testPrepareResponse(string $json_input, array $expected_values): void {
-    $context = $this->getMockBuilder(ApiServerContext::class)
+    $context = $this->getStubBuilder(ApiServerContext::class)
       ->disableOriginalConstructor()
       ->onlyMethods(['printDebug'])
-      ->getMock();
+      ->getStub();
 
     $result = static::callProtectedMethod($context, 'prepareResponse', [$json_input]);
 
@@ -162,10 +162,10 @@ class ApiServerContextTest extends TestCase {
    */
   #[DataProvider('dataProviderPrepareResponseInvalid')]
   public function testPrepareResponseInvalid(string $json_input, string $exception_class, string $exception_message): void {
-    $context = $this->getMockBuilder(ApiServerContext::class)
+    $context = $this->getStubBuilder(ApiServerContext::class)
       ->disableOriginalConstructor()
       ->onlyMethods(['printDebug'])
-      ->getMock();
+      ->getStub();
 
     if (class_exists($exception_class)) {
       $this->expectException($exception_class);
@@ -344,17 +344,57 @@ class ApiServerContextTest extends TestCase {
    * @param string[] $fixtures_paths
    *   Fixture paths to configure on the context.
    *
-   * @return \PHPUnit\Framework\MockObject\MockObject&\DrevOps\BehatPhpServer\ApiServerContext
-   *   Context with a mocked client and stubbed server lifecycle methods.
+   * @return \PHPUnit\Framework\MockObject\Stub&\DrevOps\BehatPhpServer\ApiServerContext
+   *   Context with a canned client and stubbed server lifecycle methods.
    */
   protected function createContextWithClient(array $queue, \ArrayObject $history = new \ArrayObject(), array $fixtures_paths = []): ApiServerContext {
-    $stack = HandlerStack::create(new MockHandler($queue));
-    $stack->push(Middleware::history($history));
+    $context = $this->getStubBuilder(ApiServerContext::class)
+      ->disableOriginalConstructor()
+      ->onlyMethods(['isRunning', 'start'])
+      ->getStub();
 
+    $this->replaceClient($context, $queue, $history, $fixtures_paths);
+
+    return $context;
+  }
+
+  /**
+   * Create a context mock whose HTTP client returns a canned set of responses.
+   *
+   * @param array<int, \GuzzleHttp\Psr7\Response> $queue
+   *   Responses to return, in the order they are requested.
+   * @param \ArrayObject<int, array> $history
+   *   Populated with the transactions the client performed.
+   *
+   * @return \PHPUnit\Framework\MockObject\MockObject&\DrevOps\BehatPhpServer\ApiServerContext
+   *   Context with a canned client and mocked server lifecycle methods.
+   */
+  protected function createMockContextWithClient(array $queue, \ArrayObject $history = new \ArrayObject()): ApiServerContext {
     $context = $this->getMockBuilder(ApiServerContext::class)
       ->disableOriginalConstructor()
       ->onlyMethods(['isRunning', 'start'])
       ->getMock();
+
+    $this->replaceClient($context, $queue, $history);
+
+    return $context;
+  }
+
+  /**
+   * Replace the HTTP client of a context with one that returns canned responses.
+   *
+   * @param \DrevOps\BehatPhpServer\ApiServerContext $context
+   *   Context to configure.
+   * @param array<int, \GuzzleHttp\Psr7\Response> $queue
+   *   Responses to return, in the order they are requested.
+   * @param \ArrayObject<int, array> $history
+   *   Populated with the transactions the client performed.
+   * @param string[] $fixtures_paths
+   *   Fixture paths to configure on the context.
+   */
+  protected function replaceClient(ApiServerContext $context, array $queue, \ArrayObject $history, array $fixtures_paths = []): void {
+    $stack = HandlerStack::create(new MockHandler($queue));
+    $stack->push(Middleware::history($history));
 
     // Mirror the production client, which reports failures through the status
     // code rather than by throwing.
@@ -363,8 +403,6 @@ class ApiServerContextTest extends TestCase {
     static::setProtectedValue($context, 'client', $client);
     static::setProtectedValue($context, 'debug', FALSE);
     static::setProtectedValue($context, 'fixturesPaths', $fixtures_paths);
-
-    return $context;
   }
 
   /**
@@ -458,7 +496,7 @@ class ApiServerContextTest extends TestCase {
    */
   public function testApiIsRunningWhenServerResponds(): void {
     $history = new \ArrayObject();
-    $context = $this->createContextWithClient([new Response(200)], $history);
+    $context = $this->createMockContextWithClient([new Response(200)], $history);
     $context->expects($this->once())->method('isRunning')->willReturn(TRUE);
     $context->expects($this->never())->method('start');
 
@@ -473,7 +511,7 @@ class ApiServerContextTest extends TestCase {
    */
   public function testApiIsRunningStartsStoppedServer(): void {
     $history = new \ArrayObject();
-    $context = $this->createContextWithClient([new Response(200)], $history);
+    $context = $this->createMockContextWithClient([new Response(200)], $history);
     $context->expects($this->once())->method('isRunning')->willReturn(FALSE);
     $context->expects($this->once())->method('start');
 
@@ -486,7 +524,7 @@ class ApiServerContextTest extends TestCase {
    * Test that a non-200 status response is reported as a failure.
    */
   public function testApiIsRunningThrowsOnUnexpectedStatus(): void {
-    $context = $this->createContextWithClient([new Response(503)]);
+    $context = $this->createMockContextWithClient([new Response(503)]);
     $context->expects($this->once())->method('isRunning')->willReturn(TRUE);
 
     $this->expectException(\Exception::class);

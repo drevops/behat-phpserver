@@ -144,10 +144,10 @@ class PhpServerContextTest extends TestCase {
       }
     }
 
-    $context = $this->getMockBuilder(PhpServerContext::class)
+    $context = $this->getStubBuilder(PhpServerContext::class)
       ->disableOriginalConstructor()
       ->onlyMethods(['stop', 'executeCommand', 'printDebug', 'isRunning'])
-      ->getMock();
+      ->getStub();
 
     $this->setProtectedValue($context, 'host', '127.0.0.1');
     $this->setProtectedValue($context, 'port', 8888);
@@ -282,10 +282,10 @@ class PhpServerContextTest extends TestCase {
     bool $expected_result,
     int $expected_pid,
   ): void {
-    $context = $this->getMockBuilder(PhpServerContext::class)
+    $context = $this->getStubBuilder(PhpServerContext::class)
       ->disableOriginalConstructor()
       ->onlyMethods(['processExists', 'terminateProcess', 'isPortInUse', 'freePort', 'printDebug'])
-      ->getMock();
+      ->getStub();
 
     $this->setProtectedValue($context, 'pid', $pid);
     $this->setProtectedValue($context, 'port', 8888);
@@ -382,10 +382,10 @@ class PhpServerContextTest extends TestCase {
    * Test the stop method when an exception is thrown during port check.
    */
   public function testStopWithException(): void {
-    $context = $this->getMockBuilder(PhpServerContext::class)
+    $context = $this->getStubBuilder(PhpServerContext::class)
       ->disableOriginalConstructor()
       ->onlyMethods(['processExists', 'terminateProcess', 'isPortInUse', 'printDebug'])
-      ->getMock();
+      ->getStub();
 
     $this->setProtectedValue($context, 'pid', 12345);
     $this->setProtectedValue($context, 'port', 8888);
@@ -776,13 +776,12 @@ class PhpServerContextTest extends TestCase {
    */
   #[DataProvider('dataProviderProcessExists')]
   public function testProcessExists(int $pid, array $output, bool $expected_result): void {
-    $context = $this->getMockBuilder(PhpServerContext::class)
+    $context = $this->getStubBuilder(PhpServerContext::class)
       ->disableOriginalConstructor()
       ->onlyMethods(['executeCommand', 'printDebug'])
-      ->getMock();
+      ->getStub();
 
-    $context->expects($this->any())
-      ->method('executeCommand')
+    $context->method('executeCommand')
       ->willReturnCallback(function (string $command, array &$output_param) use ($output): bool {
         $output_param = $output;
         return TRUE;
@@ -863,8 +862,7 @@ class PhpServerContextTest extends TestCase {
         );
     }
     else {
-      $context->expects($this->any())
-        ->method('executeCommand')
+      $context->method('executeCommand')
         ->willReturnCallback(function (string $command, array &$output) use ($kill_return_code): bool {
           $output = [];
           return !$kill_return_code;
@@ -1104,10 +1102,10 @@ class PhpServerContextTest extends TestCase {
    */
   #[DataProvider('dataProviderFreePort')]
   public function testFreePort(int $pid, bool $terminated, bool $still_in_use, bool $expected_result): void {
-    $context = $this->getMockBuilder(PhpServerContext::class)
+    $context = $this->getStubBuilder(PhpServerContext::class)
       ->setConstructorArgs([static::getFixturesPath()])
       ->onlyMethods(['getPid', 'terminateProcess', 'isPortInUse'])
-      ->getMock();
+      ->getStub();
 
     $context->method('getPid')->willReturn($pid);
     $context->method('terminateProcess')->willReturn($terminated);
@@ -1155,10 +1153,10 @@ class PhpServerContextTest extends TestCase {
    * Test that an error raised while freeing a port is contained.
    */
   public function testFreePortHandlesFailure(): void {
-    $context = $this->getMockBuilder(PhpServerContext::class)
+    $context = $this->getStubBuilder(PhpServerContext::class)
       ->setConstructorArgs([static::getFixturesPath()])
       ->onlyMethods(['getPid'])
-      ->getMock();
+      ->getStub();
 
     $context->method('getPid')->willThrowException(new \RuntimeException('Unable to inspect the port.'));
 
@@ -1180,7 +1178,7 @@ class PhpServerContextTest extends TestCase {
     $scenario = new ScenarioNode('Test scenario', $scenario_tags, [], 'Scenario', 1);
     $feature = new FeatureNode('Test feature', NULL, $feature_tags, NULL, [$scenario], 'Feature', 'en', NULL, 1);
 
-    $scope = $this->createMock(ScenarioScope::class);
+    $scope = $this->createStub(ScenarioScope::class);
     $scope->method('getScenario')->willReturn($scenario);
     $scope->method('getFeature')->willReturn($feature);
 
