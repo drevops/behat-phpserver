@@ -58,7 +58,7 @@ jobs:
       - name: Install dependencies
         run: |
           if [[ "${{ matrix.deps }}" == "lowest" ]]; then
-            composer update --prefer-lowest --prefer-stable --with="behat/behat:^${{ matrix.behat }}" ${{ matrix.behat == '4' && '--with=symfony/dependency-injection:^6.4' || '' }} ${{ matrix.php-versions == '8.5' && '--ignore-platform-reqs' || '' }}
+            composer update --prefer-lowest --prefer-stable --with="behat/behat:^${{ matrix.behat }}" ${{ matrix.php-versions == '8.5' && '--ignore-platform-reqs' || '' }}
           else
             composer update --with="behat/behat:^${{ matrix.behat }}" ${{ matrix.php-versions == '8.5' && '--ignore-platform-reqs' || '' }}
           fi
