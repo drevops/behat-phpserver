@@ -121,8 +121,17 @@ class ApiServerContext extends PhpServerContext {
    * @Given (the )API server is reset
    */
   public function apiIsReset(): void {
-    $this->client->request('DELETE', '/admin/responses');
-    $this->client->request('DELETE', '/admin/requests');
+    $responses = $this->client->request('DELETE', '/admin/responses');
+
+    if ($responses->getStatusCode() !== 200) {
+      throw new \RuntimeException('Failed to delete the API responses.');
+    }
+
+    $requests = $this->client->request('DELETE', '/admin/requests');
+
+    if ($requests->getStatusCode() !== 200) {
+      throw new \RuntimeException('Failed to delete the API requests.');
+    }
 
     $this->printDebug('API server responses and requests have been reset.');
   }

@@ -493,7 +493,7 @@ class ApiServerContextTest extends TestCase {
   /**
    * Test that resetting clears both the responses and the requests.
    */
-  public function testResetApi(): void {
+  public function testApiIsReset(): void {
     $history = new \ArrayObject();
     $context = $this->createContextWithClient([new Response(200), new Response(200)], $history);
 
@@ -508,6 +508,59 @@ class ApiServerContextTest extends TestCase {
     $requests_request = $this->getHistoryRequest($history, 1);
     $this->assertEquals('DELETE', $requests_request->getMethod());
     $this->assertEquals('/admin/requests', (string) $requests_request->getUri());
+  }
+
+  /**
+   * Test that a failure of either delete is reported.
+   *
+   * @param array<int, \GuzzleHttp\Psr7\Response> $queue
+   *   Responses the client returns, in the order they are requested.
+   * @param string $expected_message
+   *   The expected exception message.
+   * @param int $expected_requests
+   *   The number of requests expected to reach the server.
+   */
+  #[DataProvider('dataProviderApiIsResetThrowsOnFailure')]
+  public function testApiIsResetThrowsOnFailure(array $queue, string $expected_message, int $expected_requests): void {
+    $history = new \ArrayObject();
+    $context = $this->createContextWithClient($queue, $history);
+    $exception = NULL;
+
+    // The transaction count is asserted after the throw, so the exception is
+    // captured instead of declared with expectException(). Nothing inside the
+    // try block may call fail(): AssertionFailedError descends from
+    // RuntimeException, so the catch below would absorb it.
+    try {
+      $context->apiIsReset();
+    }
+    catch (\RuntimeException $runtime_exception) {
+      $exception = $runtime_exception;
+    }
+
+    $this->assertInstanceOf(\RuntimeException::class, $exception);
+    $this->assertEquals($expected_message, $exception->getMessage());
+    $this->assertCount($expected_requests, $history);
+  }
+
+  /**
+   * Data provider for reset failure tests.
+   *
+   * @return array<string, array<string, mixed>>
+   *   Test cases.
+   */
+  public static function dataProviderApiIsResetThrowsOnFailure(): array {
+    return [
+      'responses delete fails' => [
+        'queue' => [new Response(500)],
+        'expected_message' => 'Failed to delete the API responses.',
+        'expected_requests' => 1,
+      ],
+      'requests delete fails' => [
+        'queue' => [new Response(200), new Response(500)],
+        'expected_message' => 'Failed to delete the API requests.',
+        'expected_requests' => 2,
+      ],
+    ];
   }
 
   /**
