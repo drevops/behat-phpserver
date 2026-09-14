@@ -66,7 +66,7 @@ Coverage comes from two sources, so their outputs are kept apart: PHPUnit writes
 
 `behat.yml` runs the suite the way Behat 4 parses it, in the `gherkin-32` compatibility mode, where tag names keep their leading `@`. It also turns on strict mode, so a step with no matching definition fails the run instead of being reported as undefined and passing.
 
-The Gherkin parser caches parsed features in the system temp directory, keyed by file path and Gherkin version but not by parsing mode. After a change to `gherkin.compatibility`, an unchanged feature file keeps the previous mode's parse, and the run can pass for the wrong reason. Give each mode its own cache directory, for example `BEHAT_PARAMS='{"gherkin":{"cache":".artifacts/tmp/gherkin-cache-legacy"}}' composer test-bdd` while `behat.yml` sets the `legacy` mode. `BEHAT_PARAMS` can set the cache but not the mode, because a setting in `behat.yml` overrides it.
+The Gherkin parser caches parsed features by file path and Gherkin version, not by parsing mode, so a feature parsed in one mode can be served to a run in another, and that run passes for the wrong reason. That's why `behat.yml` points `gherkin.cache` at a directory named after the mode, `.artifacts/tmp/gherkin-cache/gherkin-32`. If you change `gherkin.compatibility`, change the cache directory with it. `BEHAT_PARAMS` can't override either setting, because values in `behat.yml` take precedence over it.
 
 Tests use PHPUnit 11 attributes:
 
