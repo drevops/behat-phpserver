@@ -1,8 +1,11 @@
 default:
   autoload: ['%paths.base%/tests/behat/bootstrap']
   gherkin:
+    compatibility: gherkin-32
     filters:
       tags: '~@skipped'
+  testers:
+    strict: true
   suites:
     default:
       paths: ['%paths.base%/tests/behat/features']
