@@ -136,6 +136,9 @@ class PhpServerContext implements Context {
    * nodes are checked so that tagging once per feature works as well as
    * tagging each scenario.
    *
+   * The legacy Gherkin parser strips the leading '@' from a tag and the
+   * 'gherkin-32' parser keeps it, so tags are compared without it.
+   *
    * @param \Behat\Behat\Hook\Scope\ScenarioScope $scope
    *   Scenario scope.
    *
@@ -143,7 +146,10 @@ class PhpServerContext implements Context {
    *   TRUE if the scenario or its feature carries the tag, FALSE otherwise.
    */
   protected function isTagged(ScenarioScope $scope): bool {
-    return $scope->getScenario()->hasTag(static::TAG) || $scope->getFeature()->hasTag(static::TAG);
+    $tags = array_merge($scope->getFeature()->getTags(), $scope->getScenario()->getTags());
+    $tags = array_map(static fn(string $tag): string => ltrim($tag, '@'), $tags);
+
+    return in_array(static::TAG, $tags, TRUE);
   }
 
   /**

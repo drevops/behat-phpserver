@@ -1218,6 +1218,31 @@ class PhpServerContextTest extends TestCase {
         'feature_tags' => ['apiserver'],
         'expected_result' => FALSE,
       ],
+      'prefixed tag on the scenario' => [
+        'scenario_tags' => ['@phpserver'],
+        'feature_tags' => [],
+        'expected_result' => TRUE,
+      ],
+      'prefixed tag on the feature' => [
+        'scenario_tags' => [],
+        'feature_tags' => ['@phpserver'],
+        'expected_result' => TRUE,
+      ],
+      'prefixed tag among other tags' => [
+        'scenario_tags' => ['@smoke', '@phpserver'],
+        'feature_tags' => ['@api'],
+        'expected_result' => TRUE,
+      ],
+      'a different prefixed tag only' => [
+        'scenario_tags' => ['@apiserver'],
+        'feature_tags' => ['@apiserver'],
+        'expected_result' => FALSE,
+      ],
+      'a longer tag containing the name' => [
+        'scenario_tags' => ['@phpserver-legacy', 'no-phpserver'],
+        'feature_tags' => ['@my-phpserver'],
+        'expected_result' => FALSE,
+      ],
     ];
   }
 
