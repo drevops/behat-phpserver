@@ -32,11 +32,21 @@
 
 ## 📦 Installation
 
-Requires PHP 8.3 or newer.
+Requires PHP 8.3 or newer and Behat 3.32 or newer. Behat 4 works too.
 
     composer require --dev drevops/behat-phpserver
 
 Coming from 2.x? See [`UPGRADE.md`](UPGRADE.md) - the step phrases are unchanged, but some method names moved.
+
+### Behat 4
+
+Behat 4 is still an alpha, so Composer won't install it until your own `composer.json` allows that stability:
+
+    composer require --dev behat/behat:^4.0@alpha
+
+Every other Behat extension in your project needs a release that supports Behat 4 too, or Composer can't resolve the update.
+
+Behat 4 doesn't read YAML configuration. It loads `behat.php` or `behat.dist.php` instead, so the `behat.yml` examples below apply to Behat 3 only - see [PHP configuration](#php-configuration) for the equivalent. While you're still on Behat 3, `vendor/bin/behat --convert-config` writes a `behat.php` next to your `behat.yml` and deletes the YAML file.
 
 ## 🚀 Usage
 
@@ -67,6 +77,8 @@ Scenario: Visit a page served by the PHP server
 
 Tagging the `Feature:` line instead starts the server for every scenario in that feature.
 
+The tag matches in both of Behat's Gherkin parsing modes: `legacy`, which strips the `@` from tag names, and `gherkin-32`, which keeps it and is the Behat 4 default.
+
 Reach the running server through `getServerUrl()` - see [Accessing the server URL from your own context](#accessing-the-server-url-from-your-own-context).
 
 ### `ApiServerContext`
@@ -88,6 +100,48 @@ default:
               - '%paths.base%/tests/behat/fixtures'
               - '%paths.base%/tests/behat/fixtures2'
 ```
+
+### PHP configuration
+
+Behat 4 reads its configuration from `behat.php`, and Behat 3.32 or newer reads the same file. Here are both examples above as PHP:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use Behat\Config\Config;
+use Behat\Config\Profile;
+use Behat\Config\Suite;
+use DrevOps\BehatPhpServer\ApiServerContext;
+use DrevOps\BehatPhpServer\PhpServerContext;
+
+$suite = (new Suite('default'))
+  ->addContext(PhpServerContext::class, [
+    'webroot' => '%paths.base%/tests/behat/fixtures',
+    'protocol' => 'http',
+    'host' => '0.0.0.0',
+    'port' => 8888,
+    'debug' => FALSE,
+  ])
+  ->addContext(ApiServerContext::class, [
+    'webroot' => '%paths.base%/apiserver',
+    'protocol' => 'http',
+    'host' => '0.0.0.0',
+    'port' => 8889,
+    'debug' => FALSE,
+    'paths' => [
+      '%paths.base%/tests/behat/fixtures',
+      '%paths.base%/tests/behat/fixtures2',
+    ],
+  ]);
+
+$profile = (new Profile('default'))->withSuite($suite);
+
+return (new Config())->withProfile($profile);
+```
+
+The option names are the same in both formats, so the table below covers either one.
 
 ### Context options
 
@@ -217,6 +271,7 @@ declare(strict_types=1);
 use Behat\Behat\Context\Context;
 use Behat\Behat\Context\Environment\InitializedContextEnvironment;
 use Behat\Behat\Hook\Scope\BeforeScenarioScope;
+use Behat\Hook\BeforeScenario;
 use DrevOps\BehatPhpServer\ApiServerContext;
 use DrevOps\BehatPhpServer\PhpServerContext;
 
@@ -234,9 +289,8 @@ class FeatureContext implements Context {
 
   /**
    * Initialize the context.
-   *
-   * @beforeScenario
    */
+  #[BeforeScenario]
   public function beforeScenarioInit(BeforeScenarioScope $scope): void {
     $environment = $scope->getEnvironment();
 

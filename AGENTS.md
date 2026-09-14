@@ -25,7 +25,7 @@ Both contexts start a server before each scenario and stop it afterwards.
 - `src/DrevOps/BehatPhpServer/ApiServerContext.php` - the mock API server context and its step definitions.
 - `apiserver/index.php` - the mock API server itself, served by the PHP built-in server. It is part of the distributed package, not a test fixture, and is covered by both PHPCS and PHPStan.
 - `tests/phpunit/Unit/` - unit tests.
-- `tests/phpunit/Traits/` - shared test utilities such as `ReflectionTrait`.
+- `tests/phpunit/Traits/` - shared test utilities such as `ReflectionTrait` and `BehatDefinitionTrait`.
 - `tests/behat/features/` - the Behat feature files that exercise both contexts end to end.
 - `tests/behat/fixtures/` and `tests/behat/fixtures2/` - fixture files used by the file-response steps. Two directories exist deliberately, to prove that multiple configured fixture paths are searched in order.
 
@@ -57,11 +57,16 @@ Prefer these over calling the underlying binaries directly.
 - Method names and class properties use `camelCase`.
 - Single quotes for strings, double quotes only when the string contains a single quote.
 - All files end with a newline.
-- Step methods on `ApiServerContext` are named `api` plus the step phrase in camelCase, with the `API` / `API server` token folded into the prefix - `the API server is reset` becomes `apiIsReset()`. The annotation is the published contract and the method name is derived from it, so renaming a method never means rewriting its step phrase.
+- Step methods on `ApiServerContext` are named `api` plus the step phrase in camelCase, with the `API` / `API server` token folded into the prefix - `the API server is reset` becomes `apiIsReset()`. The step attribute is the published contract and the method name is derived from it, so renaming a method never means rewriting its step phrase.
+- Hooks and step definitions are declared with PHP attributes, such as `#[BeforeScenario]` and `#[Given('(the )API server is running')]`, never with docblock annotations. Behat 4 doesn't read annotations at all, so on Behat 4 an annotated hook never runs and an annotated step is reported as undefined. `testDeclaresNoBehatAnnotations()` in both context tests fails on any Behat annotation, and `testStepAttributes()` pins every published step phrase.
 
 ## Testing patterns
 
 Coverage comes from two sources, so their outputs are kept apart: PHPUnit writes to `.logs/phpunit/` and Behat writes to `.logs/behat/`. Both are uploaded to Codecov. Keep those paths in sync between `phpunit.xml`, `behat.yml` and `.github/workflows/test-php.yml`.
+
+`behat.yml` runs the suite the way Behat 4 parses it, in the `gherkin-32` compatibility mode, where tag names keep their leading `@`. It also turns on strict mode, so a step with no matching definition fails the run instead of being reported as undefined and passing.
+
+The Gherkin parser caches parsed features in the system temp directory, keyed by file path and Gherkin version but not by parsing mode. After you switch modes locally, an unchanged feature file keeps its old parse, and the run can pass for the wrong reason. Point the cache at a fresh directory to rule that out: `BEHAT_PARAMS='{"gherkin":{"cache":".artifacts/tmp/gherkin-cache"}}' composer test-bdd`.
 
 Tests use PHPUnit 11 attributes:
 
@@ -73,6 +78,8 @@ Tests use PHPUnit 11 attributes:
 `.github/workflows/test-php.yml` runs the matrix PHP 8.3, 8.4 and 8.5, against `normal` and `lowest` dependencies, on both `ubuntu-latest` and `macos-latest`. Both operating systems are tested on purpose - see Known issues.
 
 Linting, the coverage threshold check and the Codecov uploads run once, on Ubuntu with PHP 8.4 and normal dependencies.
+
+`composer.json` allows `behat/behat` `^3.32.0 || ^4.0@alpha`, but every leg installs Behat 3. `prefer-stable` picks the stable 3.x release over the Behat 4 alpha, and 2 dev dependencies can't install on Behat 4 yet: `friends-of-behat/mink-extension` 2.x requires Behat 3, and the first `dvdoug/behat-code-coverage` release that allows Behat 4 needs `phpunit/php-code-coverage` 12.3 or newer, which means PHPUnit 12. Behat 4 compatibility is guarded from the Behat 3 legs instead, by the `gherkin-32` suite mode and the attribute tests.
 
 The `lowest` half of the matrix resolves every dependency to the floor its constraint allows, so it is sensitive to `config.policy.advisories.block` in `composer.json`. Leave that set to `true`. Setting it to `false` lets Composer select releases with known security advisories, and the floors it then reaches (Guzzle 7.9, `guzzlehttp/promises` 1.5, `symfony/http-client` 6.0) emit PHP 8.4 deprecations that Behat converts into step failures, so the whole BDD suite fails on PHP 8.4 and 8.5.
 
