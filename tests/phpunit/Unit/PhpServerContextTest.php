@@ -7,7 +7,10 @@ namespace DrevOps\BehatPhpServer\Tests\Unit;
 use Behat\Behat\Hook\Scope\ScenarioScope;
 use Behat\Gherkin\Node\FeatureNode;
 use Behat\Gherkin\Node\ScenarioNode;
+use Behat\Hook\AfterScenario;
+use Behat\Hook\BeforeScenario;
 use DrevOps\BehatPhpServer\PhpServerContext;
+use DrevOps\BehatPhpServer\Tests\Traits\BehatDefinitionTrait;
 use DrevOps\BehatPhpServer\Tests\Traits\ReflectionTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -16,6 +19,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(PhpServerContext::class)]
 class PhpServerContextTest extends TestCase {
 
+  use BehatDefinitionTrait;
   use ReflectionTrait;
 
   /**
@@ -1244,6 +1248,47 @@ class PhpServerContextTest extends TestCase {
         'expected_result' => FALSE,
       ],
     ];
+  }
+
+  /**
+   * Test that each hook is declared with its attribute.
+   *
+   * @param string $method
+   *   Hook method name.
+   * @param array<int, array{0: string, 1: array<int|string, mixed>}> $expected_attributes
+   *   Expected attribute class names paired with their arguments.
+   */
+  #[DataProvider('dataProviderHookAttributes')]
+  public function testHookAttributes(string $method, array $expected_attributes): void {
+    $this->assertSame($expected_attributes, static::getMethodAttributes(PhpServerContext::class, $method));
+  }
+
+  /**
+   * Data provider for hook attribute tests.
+   *
+   * @return array<string, array<string, mixed>>
+   *   Test cases.
+   */
+  public static function dataProviderHookAttributes(): array {
+    return [
+      'start the server before each scenario' => [
+        'method' => 'beforeScenarioStartServer',
+        'expected_attributes' => [[BeforeScenario::class, []]],
+      ],
+      'stop the server after each scenario' => [
+        'method' => 'afterScenarioStopServer',
+        'expected_attributes' => [[AfterScenario::class, []]],
+      ],
+    ];
+  }
+
+  /**
+   * Test that the context declares no Behat annotations.
+   *
+   * Behat 4 ignores step, hook and transformation annotations.
+   */
+  public function testDeclaresNoBehatAnnotations(): void {
+    $this->assertSame([], static::getBehatAnnotations(PhpServerContext::class));
   }
 
 }

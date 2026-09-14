@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace DrevOps\BehatPhpServer;
 
 use Behat\Gherkin\Node\PyStringNode;
+use Behat\Step\Given;
+use Behat\Step\Then;
+use Behat\Step\When;
 use GuzzleHttp\Client;
 use GuzzleHttp\RequestOptions;
 
@@ -99,9 +102,8 @@ class ApiServerContext extends PhpServerContext {
 
   /**
    * Check if the API server is running.
-   *
-   * @Given (the )API server is running
    */
+  #[Given('(the )API server is running')]
   public function apiIsRunning(): void {
     if (!$this->isRunning()) {
       $this->printDebug('API server process is not running. Attempting to start.');
@@ -117,9 +119,8 @@ class ApiServerContext extends PhpServerContext {
 
   /**
    * Reset the API server by clearing all responses and requests.
-   *
-   * @Given (the )API server is reset
    */
+  #[Given('(the )API server is reset')]
   public function apiIsReset(): void {
     $responses = $this->client->request('DELETE', '/admin/responses');
 
@@ -139,12 +140,11 @@ class ApiServerContext extends PhpServerContext {
   /**
    * Clear expected responses queue in the API server.
    *
-   * @Given (the )API has no responses
-   *
    * @code
    * Given the API has no responses
    * @endcode
    */
+  #[Given('(the )API has no responses')]
   public function apiHasNoResponses(): void {
     $response = $this->client->request('DELETE', '/admin/responses');
 
@@ -158,12 +158,11 @@ class ApiServerContext extends PhpServerContext {
   /**
    * Fetch debug information about API requests made.
    *
-   * @When I debug API requests
-   *
    * @code
    * When I debug API requests
    * @endcode
    */
+  #[When('I debug API requests')]
   public function apiDebugRequests(): void {
     $response = $this->client->request('GET', '/admin/requests');
 
@@ -179,8 +178,6 @@ class ApiServerContext extends PhpServerContext {
 
   /**
    * Put expected response data to the API server.
-   *
-   * @Given (the )API will respond with:
    *
    * @code
    * Given API will respond with:
@@ -199,6 +196,7 @@ class ApiServerContext extends PhpServerContext {
    * """
    * @endcode
    */
+  #[Given('(the )API will respond with:')]
   public function apiWillRespondWith(PyStringNode $data): void {
     $data = $this->prepareResponse($data->getRaw());
 
@@ -217,9 +215,6 @@ class ApiServerContext extends PhpServerContext {
    * Put expected JSON response data to the API server.
    *
    * Shorthand for the API response with JSON body.
-   *
-   * @Given (the )API will respond with JSON:
-   * @Given (the )API will respond with JSON and :code code:
    *
    * @code
    * Given API will respond with JSON:
@@ -241,6 +236,8 @@ class ApiServerContext extends PhpServerContext {
    * """
    * @endcode
    */
+  #[Given('(the )API will respond with JSON:')]
+  #[Given('(the )API will respond with JSON and :code code:')]
   public function apiWillRespondWithJson(PyStringNode $json, ?string $code = NULL): void {
     $data = json_encode([
       'body' => json_decode($json->getRaw()),
@@ -261,9 +258,6 @@ class ApiServerContext extends PhpServerContext {
    * @throws \RuntimeException
    *   If the file cannot be read.
    *
-   * @Given (the )API will respond with file :file_path
-   * @Given (the )API will respond with file :file_path and :code code
-   *
    * @code
    * Given API will respond with file "test_data.json"
    * @endcode
@@ -272,6 +266,8 @@ class ApiServerContext extends PhpServerContext {
    * Given API will respond with file "test_content.xml" and 201 code
    * @endcode
    */
+  #[Given('(the )API will respond with file :file_path')]
+  #[Given('(the )API will respond with file :file_path and :code code')]
   public function apiWillRespondWithFile(string $file_path, ?string $code = NULL): void {
     $absolute_path = '';
 
@@ -398,10 +394,9 @@ class ApiServerContext extends PhpServerContext {
    *
    * @param string $count
    *   The expected number of queued responses.
-   *
-   * @Then (the )API server should have :count queued response(s)
-   * @Then (the )API server should have :count response(s) queued
    */
+  #[Then('(the )API server should have :count queued response(s)')]
+  #[Then('(the )API server should have :count response(s) queued')]
   public function apiShouldHaveQueuedResponses(string $count): void {
     $response = $this->client->request('GET', '/admin/status');
     $queued_responses = $response->getHeaderLine('X-Queued-Responses');
@@ -422,10 +417,9 @@ class ApiServerContext extends PhpServerContext {
    *
    * @param string $count
    *   The expected number of received requests.
-   *
-   * @Then (the )API server should have received :count request(s)
-   * @Then (the )API server should have :count received request(s)
    */
+  #[Then('(the )API server should have received :count request(s)')]
+  #[Then('(the )API server should have :count received request(s)')]
   public function apiShouldHaveReceivedRequests(string $count): void {
     $response = $this->client->request('GET', '/admin/status');
     $received_requests = $response->getHeaderLine('X-Received-Requests');

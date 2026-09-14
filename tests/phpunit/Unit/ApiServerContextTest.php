@@ -5,7 +5,11 @@ declare(strict_types=1);
 namespace DrevOps\BehatPhpServer\Tests\Unit;
 
 use Behat\Gherkin\Node\PyStringNode;
+use Behat\Step\Given;
+use Behat\Step\Then;
+use Behat\Step\When;
 use DrevOps\BehatPhpServer\ApiServerContext;
+use DrevOps\BehatPhpServer\Tests\Traits\BehatDefinitionTrait;
 use DrevOps\BehatPhpServer\Tests\Traits\ReflectionTrait;
 use GuzzleHttp\Client;
 use GuzzleHttp\Handler\MockHandler;
@@ -20,6 +24,7 @@ use Psr\Http\Message\RequestInterface;
 #[CoversClass(ApiServerContext::class)]
 class ApiServerContextTest extends TestCase {
 
+  use BehatDefinitionTrait;
   use ReflectionTrait;
 
   /**
@@ -817,6 +822,88 @@ class ApiServerContextTest extends TestCase {
         'expect_exception' => TRUE,
       ],
     ];
+  }
+
+  /**
+   * Test that each step method is declared with its step attributes.
+   *
+   * @param string $method
+   *   Step method name.
+   * @param array<int, array{0: string, 1: array<int|string, mixed>}> $expected_attributes
+   *   Expected attribute class names paired with their arguments, in
+   *   declaration order.
+   */
+  #[DataProvider('dataProviderStepAttributes')]
+  public function testStepAttributes(string $method, array $expected_attributes): void {
+    $this->assertSame($expected_attributes, static::getMethodAttributes(ApiServerContext::class, $method));
+  }
+
+  /**
+   * Data provider for step attribute tests.
+   *
+   * @return array<string, array<string, mixed>>
+   *   Test cases.
+   */
+  public static function dataProviderStepAttributes(): array {
+    return [
+      'server is running' => [
+        'method' => 'apiIsRunning',
+        'expected_attributes' => [[Given::class, ['(the )API server is running']]],
+      ],
+      'server is reset' => [
+        'method' => 'apiIsReset',
+        'expected_attributes' => [[Given::class, ['(the )API server is reset']]],
+      ],
+      'no responses' => [
+        'method' => 'apiHasNoResponses',
+        'expected_attributes' => [[Given::class, ['(the )API has no responses']]],
+      ],
+      'debug requests' => [
+        'method' => 'apiDebugRequests',
+        'expected_attributes' => [[When::class, ['I debug API requests']]],
+      ],
+      'respond with' => [
+        'method' => 'apiWillRespondWith',
+        'expected_attributes' => [[Given::class, ['(the )API will respond with:']]],
+      ],
+      'respond with JSON' => [
+        'method' => 'apiWillRespondWithJson',
+        'expected_attributes' => [
+          [Given::class, ['(the )API will respond with JSON:']],
+          [Given::class, ['(the )API will respond with JSON and :code code:']],
+        ],
+      ],
+      'respond with file' => [
+        'method' => 'apiWillRespondWithFile',
+        'expected_attributes' => [
+          [Given::class, ['(the )API will respond with file :file_path']],
+          [Given::class, ['(the )API will respond with file :file_path and :code code']],
+        ],
+      ],
+      'queued responses' => [
+        'method' => 'apiShouldHaveQueuedResponses',
+        'expected_attributes' => [
+          [Then::class, ['(the )API server should have :count queued response(s)']],
+          [Then::class, ['(the )API server should have :count response(s) queued']],
+        ],
+      ],
+      'received requests' => [
+        'method' => 'apiShouldHaveReceivedRequests',
+        'expected_attributes' => [
+          [Then::class, ['(the )API server should have received :count request(s)']],
+          [Then::class, ['(the )API server should have :count received request(s)']],
+        ],
+      ],
+    ];
+  }
+
+  /**
+   * Test that the context declares no Behat annotations.
+   *
+   * Behat 4 ignores step, hook and transformation annotations.
+   */
+  public function testDeclaresNoBehatAnnotations(): void {
+    $this->assertSame([], static::getBehatAnnotations(ApiServerContext::class));
   }
 
 }

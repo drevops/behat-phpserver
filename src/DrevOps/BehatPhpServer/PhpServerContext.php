@@ -8,6 +8,8 @@ use Behat\Behat\Context\Context;
 use Behat\Behat\Hook\Scope\AfterScenarioScope;
 use Behat\Behat\Hook\Scope\BeforeScenarioScope;
 use Behat\Behat\Hook\Scope\ScenarioScope;
+use Behat\Hook\AfterScenario;
+use Behat\Hook\BeforeScenario;
 
 /**
  * Behat context to enable PHPServer support in tests.
@@ -105,9 +107,8 @@ class PhpServerContext implements Context {
    *
    * @param \Behat\Behat\Hook\Scope\BeforeScenarioScope $scope
    *   Scenario scope.
-   *
-   * @beforeScenario
    */
+  #[BeforeScenario]
   public function beforeScenarioStartServer(BeforeScenarioScope $scope): void {
     if ($this->isTagged($scope)) {
       $this->start();
@@ -119,9 +120,8 @@ class PhpServerContext implements Context {
    *
    * @param \Behat\Behat\Hook\Scope\AfterScenarioScope $scope
    *   Scenario scope.
-   *
-   * @afterScenario
    */
+  #[AfterScenario]
   public function afterScenarioStopServer(AfterScenarioScope $scope): void {
     if ($this->isTagged($scope)) {
       $this->stop();
