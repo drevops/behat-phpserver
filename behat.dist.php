@@ -4,8 +4,8 @@
  * @file
  * The contexts this package provides, with every option set.
  *
- * The test suite runs from behat.yml and behat.php, which Behat reads instead
- * of this file.
+ * The test suite runs from behat.yml on Behat 3 and from behat.php on
+ * Behat 4.
  */
 
 declare(strict_types=1);
