@@ -298,6 +298,342 @@ class ApiServerTest extends TestCase {
   }
 
   /**
+   * Test that an admin endpoint refuses a method it does not accept.
+   *
+   * @param string $method
+   *   The refused HTTP method.
+   * @param string $uri
+   *   The admin endpoint.
+   * @param string $expected_allow
+   *   Expected value of the Allow header.
+   */
+  #[DataProvider('dataProviderMethodNotAllowed')]
+  public function testHandleRequestRefusesMethod(string $method, string $uri, string $expected_allow): void {
+    $server = $this->createServer(new Request($method, $uri));
+    static::setProtectedValue($server, 'responses', [new Response(200, 'OK', [], 'queued')]);
+
+    $output = $this->captureRun(static function () use ($server): void {
+      $server->handleRequest();
+    });
+
+    $this->assertSame(sprintf('Method %s is not allowed on %s. Allowed methods: %s.', $method, $uri, $expected_allow), $this->errorFromResponse($output));
+
+    // A refused request is neither recorded nor served from the queue.
+    $this->assertCount(0, $this->serverState($server, 'requests'));
+    $this->assertCount(1, $this->serverState($server, 'responses'));
+  }
+
+  /**
+   * Test that the refusal reports the methods the endpoint accepts.
+   *
+   * @param string $method
+   *   The refused HTTP method.
+   * @param string $uri
+   *   The admin endpoint.
+   * @param string $expected_allow
+   *   Expected value of the Allow header.
+   */
+  #[DataProvider('dataProviderMethodNotAllowed')]
+  public function testMethodNotAllowedResponse(string $method, string $uri, string $expected_allow): void {
+    $response = static::callProtectedMethod(ApiServer::class, 'methodNotAllowedResponse', [new Request($method, $uri), explode(', ', $expected_allow)]);
+
+    $this->assertInstanceOf(Response::class, $response);
+    $this->assertSame(405, $response->code);
+    $this->assertSame('Method Not Allowed', $response->reason);
+    $this->assertSame($expected_allow, $response->headers['Allow']);
+    $this->assertSame('application/json', $response->headers['Content-Type']);
+    $this->assertSame(['error' => sprintf('Method %s is not allowed on %s. Allowed methods: %s.', $method, $uri, $expected_allow)], json_decode($response->body, TRUE));
+  }
+
+  /**
+   * Data provider for refused method tests.
+   *
+   * @return array<string, array<string, string>>
+   *   Test cases.
+   */
+  public static function dataProviderMethodNotAllowed(): array {
+    return [
+      'status with DELETE' => [
+        'method' => 'DELETE',
+        'uri' => '/admin/status',
+        'expected_allow' => 'GET',
+      ],
+      'status with PUT' => [
+        'method' => 'PUT',
+        'uri' => '/admin/status',
+        'expected_allow' => 'GET',
+      ],
+      'status with POST' => [
+        'method' => 'POST',
+        'uri' => '/admin/status',
+        'expected_allow' => 'GET',
+      ],
+      'requests with PUT' => [
+        'method' => 'PUT',
+        'uri' => '/admin/requests',
+        'expected_allow' => 'GET, DELETE',
+      ],
+      'responses with POST' => [
+        'method' => 'POST',
+        'uri' => '/admin/responses',
+        'expected_allow' => 'GET, PUT, DELETE',
+      ],
+    ];
+  }
+
+  /**
+   * Test that the status endpoint reports the counts and touches nothing.
+   */
+  public function testHandleRequestServesStatus(): void {
+    $server = $this->createServer(new Request('GET', '/admin/status'));
+    static::setProtectedValue($server, 'requests', [new Request('GET', '/some/url')]);
+    static::setProtectedValue($server, 'responses', [new Response(200, 'OK', [], 'queued')]);
+
+    $output = $this->captureRun(static function () use ($server): void {
+      $server->handleRequest();
+    });
+
+    $this->assertSame('', $output);
+    $this->assertCount(1, $this->serverState($server, 'requests'));
+    $this->assertCount(1, $this->serverState($server, 'responses'));
+  }
+
+  /**
+   * Test that the recorded requests are served as JSON.
+   */
+  public function testHandleRequestServesRecordedRequests(): void {
+    $server = $this->createServer(new Request('GET', '/admin/requests'));
+    static::setProtectedValue($server, 'requests', [new Request('POST', '/some/url', ['X-Custom' => 'value'], 'payload')]);
+
+    $output = $this->captureRun(static function () use ($server): void {
+      $server->handleRequest();
+    });
+
+    $expected = [
+      [
+        'method' => 'POST',
+        'uri' => '/some/url',
+        'headers' => ['X-Custom' => 'value'],
+        'body' => 'payload',
+      ],
+    ];
+
+    $this->assertEquals($expected, json_decode($output, TRUE));
+  }
+
+  /**
+   * Test that deleting the recorded requests leaves the queue alone.
+   */
+  public function testHandleRequestDeletesRecordedRequests(): void {
+    $server = $this->createServer(new Request('DELETE', '/admin/requests'));
+    static::setProtectedValue($server, 'requests', [new Request('GET', '/some/url')]);
+    static::setProtectedValue($server, 'responses', [new Response(200, 'OK', [], 'queued')]);
+
+    $output = $this->captureRun(static function () use ($server): void {
+      $server->handleRequest();
+    });
+
+    $this->assertSame('', $output);
+    $this->assertCount(0, $this->serverState($server, 'requests'));
+    $this->assertCount(1, $this->serverState($server, 'responses'));
+  }
+
+  /**
+   * Test that the queued responses are served as JSON.
+   */
+  public function testHandleRequestServesQueuedResponses(): void {
+    $server = $this->createServer(new Request('GET', '/admin/responses'));
+    static::setProtectedValue($server, 'responses', [new Response(204, 'No Content')]);
+
+    $output = $this->captureRun(static function () use ($server): void {
+      $server->handleRequest();
+    });
+
+    $expected = [
+      [
+        'body' => '',
+        'code' => 204,
+        'reason' => 'No Content',
+        'headers' => [],
+      ],
+    ];
+
+    $this->assertEquals($expected, json_decode($output, TRUE));
+  }
+
+  /**
+   * Test that deleting the queue leaves the recorded requests alone.
+   */
+  public function testHandleRequestDeletesQueuedResponses(): void {
+    $server = $this->createServer(new Request('DELETE', '/admin/responses'));
+    static::setProtectedValue($server, 'requests', [new Request('GET', '/some/url')]);
+    static::setProtectedValue($server, 'responses', [new Response(200, 'OK', [], 'queued')]);
+
+    $output = $this->captureRun(static function () use ($server): void {
+      $server->handleRequest();
+    });
+
+    $this->assertSame('', $output);
+    $this->assertCount(1, $this->serverState($server, 'requests'));
+    $this->assertCount(0, $this->serverState($server, 'responses'));
+  }
+
+  /**
+   * Test that posted responses are appended to the queue.
+   */
+  public function testHandleRequestQueuesResponses(): void {
+    $body = json_encode([
+      ['code' => 200, 'reason' => 'OK', 'headers' => ['X-Custom' => 'value'], 'body' => base64_encode('first')],
+      ['code' => 404, 'reason' => 'Not found'],
+    ]);
+
+    $server = $this->createServer(new Request('PUT', '/admin/responses', [], (string) $body));
+    static::setProtectedValue($server, 'responses', [new Response(500, 'Server error')]);
+
+    $output = $this->captureRun(static function () use ($server): void {
+      $server->handleRequest();
+    });
+
+    $this->assertSame('', $output);
+
+    $responses = $this->serverState($server, 'responses');
+
+    $this->assertCount(3, $responses);
+    $this->assertInstanceOf(Response::class, $responses[1]);
+    $this->assertSame(200, $responses[1]->code);
+    $this->assertSame('value', $responses[1]->headers['X-Custom']);
+    $this->assertSame('first', $responses[1]->body);
+    $this->assertInstanceOf(Response::class, $responses[2]);
+    $this->assertSame(404, $responses[2]->code);
+    $this->assertSame('Not found', $responses[2]->reason);
+  }
+
+  /**
+   * Test that a payload that is not a list of responses is rejected.
+   *
+   * @param string $body
+   *   The posted body.
+   * @param string $expected_message
+   *   Expected exception message.
+   */
+  #[DataProvider('dataProviderInvalidResponsesPayload')]
+  public function testHandleRequestRejectsInvalidResponsesPayload(string $body, string $expected_message): void {
+    $server = $this->createServer(new Request('PUT', '/admin/responses', [], $body));
+
+    $this->expectException(\InvalidArgumentException::class);
+    $this->expectExceptionCode(400);
+    $this->expectExceptionMessage($expected_message);
+
+    $server->handleRequest();
+  }
+
+  /**
+   * Data provider for invalid response payload tests.
+   *
+   * @return array<string, array<string, string>>
+   *   Test cases.
+   */
+  public static function dataProviderInvalidResponsesPayload(): array {
+    return [
+      'body is not JSON' => [
+        'body' => 'not json',
+        'expected_message' => 'Invalid responses JSON payload provided: Expected an array of response objects.',
+      ],
+      'body is a JSON scalar' => [
+        'body' => '"a string"',
+        'expected_message' => 'Invalid responses JSON payload provided: Expected an array of response objects.',
+      ],
+      'element is not an object' => [
+        'body' => '["not an object"]',
+        'expected_message' => 'Invalid response #1 payload: Response must be an object.',
+      ],
+      'element has an invalid code' => [
+        'body' => '[{"code": 200}, {"code": 42}]',
+        'expected_message' => 'Invalid response #2 payload: Response code must be a number between 100 and 599.',
+      ],
+    ];
+  }
+
+  /**
+   * Test that any other request is recorded and served from the queue.
+   */
+  public function testHandleRequestServesNextQueuedResponse(): void {
+    $server = $this->createServer(new Request('POST', '/some/url'));
+    static::setProtectedValue($server, 'responses', [new Response(201, 'Created', [], 'first'), new Response(200, 'OK', [], 'second')]);
+
+    $output = $this->captureRun(static function () use ($server): void {
+      $server->handleRequest();
+    });
+
+    $this->assertSame('first', $output);
+    $this->assertCount(1, $this->serverState($server, 'requests'));
+    $this->assertCount(1, $this->serverState($server, 'responses'));
+  }
+
+  /**
+   * Test that a request arriving with an empty queue is reported.
+   */
+  public function testHandleRequestWithoutQueuedResponses(): void {
+    $server = $this->createServer(new Request('GET', '/some/url'));
+
+    $this->expectException(\Exception::class);
+    $this->expectExceptionCode(500);
+    $this->expectExceptionMessage('No responses in queue');
+
+    $server->handleRequest();
+  }
+
+  /**
+   * Create a server that serves the given request.
+   *
+   * @param \DrevOps\BehatPhpServer\ApiServer\Request $request
+   *   The request to serve.
+   *
+   * @return \DrevOps\BehatPhpServer\ApiServer\ApiServer
+   *   The server under test.
+   */
+  protected function createServer(Request $request): ApiServer {
+    $server = new class() extends ApiServer {
+
+      /**
+       * The request to serve.
+       */
+      public ?Request $incomingRequest = NULL;
+
+      /**
+       * {@inheritdoc}
+       */
+      protected function createRequest(): Request {
+        return $this->incomingRequest ?? new Request();
+      }
+
+    };
+
+    $server->incomingRequest = $request;
+
+    return $server;
+  }
+
+  /**
+   * Read a state array from a server.
+   *
+   * @param \DrevOps\BehatPhpServer\ApiServer\ApiServer $server
+   *   The server to read from.
+   * @param string $property
+   *   The property to read.
+   *
+   * @return array<mixed, mixed>
+   *   The property value.
+   */
+  protected function serverState(ApiServer $server, string $property): array {
+    $value = static::getProtectedValue($server, $property);
+
+    $this->assertIsArray($value);
+
+    return $value;
+  }
+
+  /**
    * Run a server entry point and capture what it printed.
    *
    * @param callable $runner
