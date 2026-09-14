@@ -11,16 +11,10 @@ use Behat\Config\GherkinOptions;
 use Behat\Config\Profile;
 use Behat\Config\Suite;
 use Behat\Config\TesterOptions;
-use Behat\Gherkin\GherkinCompatibilityMode;
 use Behat\MinkExtension\ServiceContainer\MinkExtension;
 use DrevOps\BehatPhpServer\ApiServerContext;
 use DrevOps\BehatPhpServer\PhpServerContext;
 use DVDoug\Behat\CodeCoverage\Extension as CodeCoverageExtension;
-
-$gherkin = (new GherkinOptions())
-  ->withCacheDir('%paths.base%/.artifacts/tmp/gherkin-cache/gherkin-32')
-  ->withCompatibilityMode(GherkinCompatibilityMode::GHERKIN_32)
-  ->withFilter(new TagFilter('~@skipped'));
 
 $suite = (new Suite('default'))
   ->withPaths('%paths.base%/tests/behat/features')
@@ -42,7 +36,7 @@ $suite = (new Suite('default'))
   ->addContext('FeatureContext');
 
 $profile = (new Profile('default', ['autoload' => ['%paths.base%/tests/behat/bootstrap']]))
-  ->withGherkinOptions($gherkin)
+  ->withGherkinOptions((new GherkinOptions())->withFilter(new TagFilter('~@skipped')))
   ->withTesterOptions((new TesterOptions())->withStrictResultInterpretation())
   ->withSuite($suite)
   ->withExtension(new Extension(MinkExtension::class, ['sessions' => ['default' => ['browserkit_http' => NULL]]]))

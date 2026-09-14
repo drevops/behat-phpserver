@@ -1,8 +1,6 @@
 default:
   autoload: ['%paths.base%/tests/behat/bootstrap']
   gherkin:
-    cache: '%paths.base%/.artifacts/tmp/gherkin-cache/gherkin-32'
-    compatibility: gherkin-32
     filters:
       tags: '~@skipped'
   testers:

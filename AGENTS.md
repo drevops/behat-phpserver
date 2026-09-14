@@ -66,9 +66,9 @@ Prefer these over calling the underlying binaries directly.
 
 Coverage comes from two sources, so their outputs are kept apart: PHPUnit writes to `.logs/phpunit/` and Behat writes to `.logs/behat/`. Both are uploaded to Codecov. Keep those paths in sync between `phpunit.xml`, `behat.yml`, `behat.php` and `.github/workflows/test-php.yml`.
 
-`behat.yml` and `behat.php` run the suite in the `gherkin-32` compatibility mode, where tag names keep their leading `@`, which is how Behat 4 parses by default. Both also turn on strict mode, so a step with no matching definition fails the run instead of being reported as undefined and passing.
+`behat.yml` and `behat.php` turn on strict mode, so a step with no matching definition fails the run instead of being reported as undefined and passing. Neither file sets a Gherkin compatibility mode, so each Behat major parses in its default: Behat 3 in `legacy`, which strips the `@` from tag names, and Behat 4 in `gherkin-32`, which keeps it. That way CI covers tag matching in both modes.
 
-The Gherkin parser caches parsed features by file path and Gherkin version, not by parsing mode, so a feature parsed in one mode can be served to a run in another, and that run passes for the wrong reason. That's why both suite files point the Gherkin cache at a directory named after the mode, `.artifacts/tmp/gherkin-cache/gherkin-32`. If you change the compatibility mode, change the cache directory with it. `BEHAT_PARAMS` can't override either setting, because values in the configuration file take precedence over it.
+The Gherkin parser caches parsed features in the system temp directory, keyed by file path and Gherkin version but not by parsing mode. After switching Behat majors locally, a run can reuse the other mode's parse of an unchanged feature file. Give each major its own cache directory to rule that out, for example `BEHAT_PARAMS='{"gherkin":{"cache":".artifacts/tmp/gherkin-cache/behat4"}}' composer test-bdd`.
 
 Tests use PHPUnit 12 attributes:
 
