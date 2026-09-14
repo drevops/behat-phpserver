@@ -28,6 +28,8 @@ Both contexts start a server before each scenario and stop it afterwards.
 - `tests/phpunit/Traits/` - shared test utilities such as `ReflectionTrait` and `BehatDefinitionTrait`.
 - `tests/behat/features/` - the Behat feature files that exercise both contexts end to end.
 - `tests/behat/fixtures/` and `tests/behat/fixtures2/` - fixture files used by the file-response steps. Two directories exist deliberately, to prove that multiple configured fixture paths are searched in order.
+- `behat.yml` and `behat.php` - the test suite configuration. Behat 3 reads `behat.yml` before any PHP file, and Behat 4 reads PHP configuration only, so each Behat major runs the suite from its own file. A change to the suite goes in both.
+- `behat.dist.yml` and `behat.dist.php` - both contexts with every option set, as a reference for anyone configuring the package. Behat never loads them in this repository, because `behat.yml` and `behat.php` take precedence. `BehatDistConfigTest` fails when the 2 files differ or when either one misses a constructor option.
 
 `apiserver/index.php` guards its own bootstrap with `SCRIPT_RUN_SKIP`. `phpunit.xml` sets that environment variable so the file can be loaded for unit testing without starting a server. Do not remove it.
 
@@ -62,11 +64,11 @@ Prefer these over calling the underlying binaries directly.
 
 ## Testing patterns
 
-Coverage comes from two sources, so their outputs are kept apart: PHPUnit writes to `.logs/phpunit/` and Behat writes to `.logs/behat/`. Both are uploaded to Codecov. Keep those paths in sync between `phpunit.xml`, `behat.yml` and `.github/workflows/test-php.yml`.
+Coverage comes from two sources, so their outputs are kept apart: PHPUnit writes to `.logs/phpunit/` and Behat writes to `.logs/behat/`. Both are uploaded to Codecov. Keep those paths in sync between `phpunit.xml`, `behat.yml`, `behat.php` and `.github/workflows/test-php.yml`.
 
-`behat.yml` runs the suite the way Behat 4 parses it, in the `gherkin-32` compatibility mode, where tag names keep their leading `@`. It also turns on strict mode, so a step with no matching definition fails the run instead of being reported as undefined and passing.
+`behat.yml` and `behat.php` run the suite in the `gherkin-32` compatibility mode, where tag names keep their leading `@`, which is how Behat 4 parses by default. Both also turn on strict mode, so a step with no matching definition fails the run instead of being reported as undefined and passing.
 
-The Gherkin parser caches parsed features by file path and Gherkin version, not by parsing mode, so a feature parsed in one mode can be served to a run in another, and that run passes for the wrong reason. That's why `behat.yml` points `gherkin.cache` at a directory named after the mode, `.artifacts/tmp/gherkin-cache/gherkin-32`. If you change `gherkin.compatibility`, change the cache directory with it. `BEHAT_PARAMS` can't override either setting, because values in `behat.yml` take precedence over it.
+The Gherkin parser caches parsed features by file path and Gherkin version, not by parsing mode, so a feature parsed in one mode can be served to a run in another, and that run passes for the wrong reason. That's why both suite files point the Gherkin cache at a directory named after the mode, `.artifacts/tmp/gherkin-cache/gherkin-32`. If you change the compatibility mode, change the cache directory with it. `BEHAT_PARAMS` can't override either setting, because values in the configuration file take precedence over it.
 
 Tests use PHPUnit 12 attributes:
 
@@ -77,11 +79,13 @@ Build a test double with `createStub()` or `getStubBuilder()` unless the test ca
 
 ## CI
 
-`.github/workflows/test-php.yml` runs the matrix PHP 8.3, 8.4 and 8.5, against `normal` and `lowest` dependencies, on both `ubuntu-latest` and `macos-latest`. Both operating systems are tested on purpose - see Known issues.
+`.github/workflows/test-php.yml` runs the matrix PHP 8.3, 8.4 and 8.5, against Behat 3 and Behat 4, with `normal` and `lowest` dependencies, on both `ubuntu-latest` and `macos-latest`. Both operating systems are tested on purpose - see Known issues.
 
-Linting, the coverage threshold check and the Codecov uploads run once, on Ubuntu with PHP 8.4 and normal dependencies.
+Each job picks its Behat major with `composer update --with="behat/behat:^3"` or `^4`. Composer combines that temporary constraint with the `^3.32.0 || ^4.0@alpha` range in `composer.json` rather than replacing it, so the `lowest` jobs still start from the `composer.json` floors. The dev constraints allow both majors for the same reason: `friends-of-behat/mink-extension` is `^2.7.5 || ^3.0@alpha`, and `dvdoug/behat-code-coverage` is `^5.3.7`, since 5.5.0 is its first release that allows Behat 4. `prefer-stable` keeps a plain `composer install` on Behat 3.
 
-`composer.json` allows `behat/behat` `^3.32.0 || ^4.0@alpha`, but every leg installs Behat 3. `prefer-stable` picks the stable 3.x release over the Behat 4 alpha, and 2 dev dependencies can't install on Behat 4 yet: `friends-of-behat/mink-extension` 2.x requires Behat 3, and `dvdoug/behat-code-coverage` is constrained to `~5.3.7`, whose releases require Behat 3 as well. Its first release that allows Behat 4 is 5.5.0, which needs `phpunit/php-code-coverage` 12.3 or newer, and PHPUnit 12.5 already installs that. Behat 4 compatibility is guarded from the Behat 3 legs instead, by the `gherkin-32` suite mode and the attribute tests.
+Behat 3 jobs keep names without a Behat version, such as `PHP 8.4, Deps normal on ubuntu-latest`, because the `main` ruleset requires those names as status checks. Behat 4 jobs add `Behat 4` to the name, and none of them is a required check.
+
+Linting runs on Ubuntu with PHP 8.4 and normal dependencies, once per Behat major, so PHPStan checks the code against both. The coverage threshold check and the Codecov uploads run once, on the Behat 3 job of that combination.
 
 The `lowest` half of the matrix resolves every dependency to the floor its constraint allows, so it is sensitive to `config.policy.advisories.block` in `composer.json`. Leave that set to `true`. Setting it to `false` lets Composer select releases with known security advisories, and the floors it then reaches (Guzzle 7.9, `guzzlehttp/promises` 1.5, `symfony/http-client` 6.0) emit PHP 8.4 deprecations that Behat converts into step failures, so the whole BDD suite fails on PHP 8.4 and 8.5.
 

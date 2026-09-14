@@ -32,10 +32,10 @@
 
 ## 📦 Installation
 
-| Behat        | PHP     | Configuration file                           |
-|--------------|---------|----------------------------------------------|
-| `^3.32.0`    | `>=8.3` | `behat.yml`, `behat.php` or `behat.dist.php` |
-| `^4.0@alpha` | `>=8.3` | `behat.php` or `behat.dist.php`              |
+| Behat        | PHP     | Configuration file                                             |
+|--------------|---------|----------------------------------------------------------------|
+| `^3.32.0`    | `>=8.3` | `behat.yml`, `behat.dist.yml`, `behat.php` or `behat.dist.php` |
+| `^4.0@alpha` | `>=8.3` | `behat.php` or `behat.dist.php`                                |
 
     composer require --dev drevops/behat-phpserver
 
@@ -152,6 +152,8 @@ The option names are the same in both formats, so the table below covers either 
 `ApiServerContext` defaults `webroot` to the bundled `apiserver` directory. `PhpServerContext` has no usable default, so always set it.
 
 Both contexts default to port `8888`. When both are registered, give each one its own port, as shown above.
+
+[`behat.dist.yml`](behat.dist.yml) and [`behat.dist.php`](behat.dist.php) set every option for both contexts.
 
 ## 📖 Step definitions
 
