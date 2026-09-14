@@ -32,21 +32,14 @@
 
 ## 📦 Installation
 
-Requires PHP 8.3 or newer and Behat 3.32 or newer. Behat 4 works too.
+| Behat        | PHP     | Configuration file                           |
+|--------------|---------|----------------------------------------------|
+| `^3.32.0`    | `>=8.3` | `behat.yml`, `behat.php` or `behat.dist.php` |
+| `^4.0@alpha` | `>=8.3` | `behat.php` or `behat.dist.php`              |
 
     composer require --dev drevops/behat-phpserver
 
 Coming from 2.x? See [`UPGRADE.md`](UPGRADE.md) - the step phrases are unchanged, but some method names moved.
-
-### Behat 4
-
-Behat 4 is still an alpha, so Composer won't install it until your own `composer.json` allows that stability:
-
-    composer require --dev behat/behat:^4.0@alpha
-
-Every other Behat extension in your project needs a release that supports Behat 4 too, or Composer can't resolve the update.
-
-Behat 4 doesn't read YAML configuration. It loads `behat.php` or `behat.dist.php` instead, so the `behat.yml` examples below apply to Behat 3 only - see [PHP configuration](#php-configuration) for the equivalent. While you're still on Behat 3, `vendor/bin/behat --convert-config` writes a `behat.php` next to your `behat.yml` and deletes the YAML file.
 
 ## 🚀 Usage
 
@@ -103,7 +96,7 @@ default:
 
 ### PHP configuration
 
-Behat 4 reads its configuration from `behat.php`, and Behat 3.32 or newer reads the same file. Here are both examples above as PHP:
+Behat 4 reads its configuration from `behat.php`, or from `behat.dist.php` when there's no `behat.php`. Here are both examples above as PHP:
 
 ```php
 <?php
