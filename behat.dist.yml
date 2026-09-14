@@ -1,0 +1,25 @@
+# The contexts this package provides, with every option set.
+# The test suite runs from behat.yml, which Behat reads instead of this file.
+default:
+  suites:
+    default:
+      contexts:
+        - DrevOps\BehatPhpServer\PhpServerContext:
+            webroot: '%paths.base%/tests/behat/fixtures'
+            host: 127.0.0.1
+            port: 8888
+            protocol: http
+            debug: false
+            connection_timeout: 2
+            retry_delay: 100000
+        - DrevOps\BehatPhpServer\ApiServerContext:
+            webroot: '%paths.base%/apiserver'
+            host: 127.0.0.1
+            port: 8889
+            protocol: http
+            debug: false
+            connection_timeout: 2
+            retry_delay: 100000
+            paths:
+              - '%paths.base%/tests/behat/fixtures'
+              - '%paths.base%/tests/behat/fixtures2'
