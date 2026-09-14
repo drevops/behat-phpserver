@@ -307,7 +307,7 @@ class ApiServerTest extends TestCase {
    * @param string $expected_allow
    *   Expected value of the Allow header.
    */
-  #[DataProvider('dataProviderMethodNotAllowed')]
+  #[DataProvider('dataProviderHandleRequestRefusesMethod')]
   public function testHandleRequestRefusesMethod(string $method, string $uri, string $expected_allow): void {
     $server = $this->createServer(new Request($method, $uri));
     static::setProtectedValue($server, 'responses', [new Response(200, 'OK', [], 'queued')]);
@@ -324,34 +324,12 @@ class ApiServerTest extends TestCase {
   }
 
   /**
-   * Test that the refusal reports the methods the endpoint accepts.
-   *
-   * @param string $method
-   *   The refused HTTP method.
-   * @param string $uri
-   *   The admin endpoint.
-   * @param string $expected_allow
-   *   Expected value of the Allow header.
-   */
-  #[DataProvider('dataProviderMethodNotAllowed')]
-  public function testMethodNotAllowedResponse(string $method, string $uri, string $expected_allow): void {
-    $response = static::callProtectedMethod(ApiServer::class, 'methodNotAllowedResponse', [new Request($method, $uri), explode(', ', $expected_allow)]);
-
-    $this->assertInstanceOf(Response::class, $response);
-    $this->assertSame(405, $response->code);
-    $this->assertSame('Method Not Allowed', $response->reason);
-    $this->assertSame($expected_allow, $response->headers['Allow']);
-    $this->assertSame('application/json', $response->headers['Content-Type']);
-    $this->assertSame(['error' => sprintf('Method %s is not allowed on %s. Allowed methods: %s.', $method, $uri, $expected_allow)], json_decode($response->body, TRUE));
-  }
-
-  /**
    * Data provider for refused method tests.
    *
    * @return array<string, array<string, string>>
    *   Test cases.
    */
-  public static function dataProviderMethodNotAllowed(): array {
+  public static function dataProviderHandleRequestRefusesMethod(): array {
     return [
       'status with DELETE' => [
         'method' => 'DELETE',
@@ -374,6 +352,57 @@ class ApiServerTest extends TestCase {
         'expected_allow' => 'GET, DELETE',
       ],
       'responses with POST' => [
+        'method' => 'POST',
+        'uri' => '/admin/responses',
+        'expected_allow' => 'GET, PUT, DELETE',
+      ],
+    ];
+  }
+
+  /**
+   * Test that the refusal reports the methods the endpoint accepts.
+   *
+   * @param string $method
+   *   The refused HTTP method.
+   * @param string $uri
+   *   The admin endpoint.
+   * @param string $expected_allow
+   *   Expected value of the Allow header.
+   */
+  #[DataProvider('dataProviderMethodNotAllowedResponse')]
+  public function testMethodNotAllowedResponse(string $method, string $uri, string $expected_allow): void {
+    $response = static::callProtectedMethod(ApiServer::class, 'methodNotAllowedResponse', [new Request($method, $uri), explode(', ', $expected_allow)]);
+
+    $this->assertInstanceOf(Response::class, $response);
+    $this->assertSame(405, $response->code);
+    $this->assertSame('Method Not Allowed', $response->reason);
+    $this->assertSame($expected_allow, $response->headers['Allow']);
+    $this->assertSame('application/json', $response->headers['Content-Type']);
+    $this->assertSame(['error' => sprintf('Method %s is not allowed on %s. Allowed methods: %s.', $method, $uri, $expected_allow)], json_decode($response->body, TRUE));
+  }
+
+  /**
+   * Data provider for refusal response tests.
+   *
+   * One case per endpoint, because the Allow header varies by endpoint and
+   * not by the method that was refused.
+   *
+   * @return array<string, array<string, string>>
+   *   Test cases.
+   */
+  public static function dataProviderMethodNotAllowedResponse(): array {
+    return [
+      'status endpoint' => [
+        'method' => 'DELETE',
+        'uri' => '/admin/status',
+        'expected_allow' => 'GET',
+      ],
+      'requests endpoint' => [
+        'method' => 'PUT',
+        'uri' => '/admin/requests',
+        'expected_allow' => 'GET, DELETE',
+      ],
+      'responses endpoint' => [
         'method' => 'POST',
         'uri' => '/admin/responses',
         'expected_allow' => 'GET, PUT, DELETE',
@@ -516,7 +545,7 @@ class ApiServerTest extends TestCase {
    * @param string $expected_message
    *   Expected exception message.
    */
-  #[DataProvider('dataProviderInvalidResponsesPayload')]
+  #[DataProvider('dataProviderHandleRequestRejectsInvalidResponsesPayload')]
   public function testHandleRequestRejectsInvalidResponsesPayload(string $body, string $expected_message): void {
     $server = $this->createServer(new Request('PUT', '/admin/responses', [], $body));
 
@@ -533,7 +562,7 @@ class ApiServerTest extends TestCase {
    * @return array<string, array<string, string>>
    *   Test cases.
    */
-  public static function dataProviderInvalidResponsesPayload(): array {
+  public static function dataProviderHandleRequestRejectsInvalidResponsesPayload(): array {
     return [
       'body is not JSON' => [
         'body' => 'not json',
