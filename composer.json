@@ -20,7 +20,7 @@
     },
     "require": {
         "php": ">=8.3",
-        "behat/behat": "^3.32.0",
+        "behat/behat": "^3.32.0 || ^4.0@alpha",
         "guzzlehttp/guzzle": "^7.15.3"
     },
     "require-dev": {
