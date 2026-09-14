@@ -267,6 +267,8 @@ The step definitions cover the common cases. The mock server also exposes the en
 | `DELETE` | `/admin/responses` | `200 OK`. Clears the queued responses.                           |
 | `PUT`    | `/admin/responses` | `201 Created`. Appends the posted responses to the queue.        |
 
+Any other method on one of these endpoints is refused with `405 Method Not Allowed` and an `Allow` header listing the methods it accepts. A refused request is not recorded and the response queue is left untouched.
+
 These endpoints and the replayed responses carry an `X-Received-Requests` and an `X-Queued-Responses` header with the current counts. Error responses do not.
 
 Any other request is recorded and answered with the next queued response. When the queue is empty, the server answers `500` with `No responses in queue`.

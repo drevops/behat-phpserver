@@ -44,6 +44,9 @@
  *   > Content-Type: application/json
  *   > [{'code': 200, 'reason': 'OK', 'headers': {}, 'body': '' }, {'code': 404, 'reason': 'Not found', 'headers': {}, 'body': '' }]
  *
+ * Any other method on one of these endpoints is refused with `405 Method Not
+ * Allowed` and an `Allow` header listing the methods it accepts.
+ *
  * This file is intended to be lightweight and portable.
  *
  * @phpcs:disable Drupal.Classes.ClassFileName.NoMatch
@@ -55,6 +58,15 @@ declare(strict_types=1);
 namespace DrevOps\BehatPhpServer\ApiServer;
 
 class ApiServer {
+
+  /**
+   * The methods each admin endpoint accepts.
+   */
+  const ADMIN_METHODS = [
+    '/admin/status' => ['GET'],
+    '/admin/requests' => ['GET', 'DELETE'],
+    '/admin/responses' => ['GET', 'PUT', 'DELETE'],
+  ];
 
   /**
    * The received requests.
@@ -166,17 +178,37 @@ class ApiServer {
   }
 
   /**
-   * Handle the request.
+   * Build the request from the incoming HTTP request.
+   *
+   * @return \DrevOps\BehatPhpServer\ApiServer\Request
+   *   The request object.
    */
-  public function handleRequest(): void {
-    $request = new Request(
+  protected function createRequest(): Request {
+    return new Request(
       isset($_SERVER['REQUEST_METHOD']) && is_string($_SERVER['REQUEST_METHOD']) ? $_SERVER['REQUEST_METHOD'] : 'GET',
       isset($_SERVER['REQUEST_URI']) && is_scalar($_SERVER['REQUEST_URI']) ? (string) strtok((string) $_SERVER['REQUEST_URI'], '?') : '/',
       getallheaders(),
       file_get_contents('php://input') ?: ''
     );
+  }
 
-    if ($request->uri === '/admin/status') {
+  /**
+   * Handle the request.
+   */
+  public function handleRequest(): void {
+    $request = $this->createRequest();
+
+    $allowed_methods = static::ADMIN_METHODS[$request->uri] ?? NULL;
+
+    if ($allowed_methods !== NULL && !in_array($request->method, $allowed_methods, TRUE)) {
+      // Error responses carry no counts headers, so this bypasses
+      // handleResponse().
+      static::sendResponse(static::methodNotAllowedResponse($request, $allowed_methods));
+
+      return;
+    }
+
+    if ($request->uri === '/admin/status' && $request->method === 'GET') {
       $this->handleResponse(new Response(200, 'OK'));
     }
     elseif ($request->uri === '/admin/requests' && $request->method === 'GET') {
@@ -287,6 +319,24 @@ class ApiServer {
     $reason = trim(preg_replace('/[[:cntrl:]\s]+/', ' ', $message) ?? '');
 
     return new Response($code, $reason === '' ? 'Unknown error' : $reason, [], ['error' => $message]);
+  }
+
+  /**
+   * Build the response that refuses a method on a known admin endpoint.
+   *
+   * @param \DrevOps\BehatPhpServer\ApiServer\Request $request
+   *   The refused request.
+   * @param array<int, string> $allowed_methods
+   *   The methods the endpoint accepts.
+   *
+   * @return \DrevOps\BehatPhpServer\ApiServer\Response
+   *   The response object.
+   */
+  protected static function methodNotAllowedResponse(Request $request, array $allowed_methods): Response {
+    $allowed = implode(', ', $allowed_methods);
+    $message = sprintf('Method %s is not allowed on %s. Allowed methods: %s.', $request->method, $request->uri, $allowed);
+
+    return new Response(405, 'Method Not Allowed', ['Allow' => $allowed], ['error' => $message]);
   }
 
 }

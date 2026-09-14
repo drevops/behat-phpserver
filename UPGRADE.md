@@ -2,11 +2,27 @@
 
 ## 2.x to 3.0
 
-**Your `.feature` files don't need to change.** None of the Gherkin step phrases moved, and neither did any of the `behat.yml` option keys. Everything below is about PHP-level names, so it only affects you if you call the context methods from your own code or subclass a context.
+**Your `.feature` files don't need to change.** None of the Gherkin step phrases moved, and neither did any of the `behat.yml` option keys. Most of what follows is about PHP-level names, so it only affects you if you call the context methods from your own code or subclass a context. The exception is the admin endpoint change below, which affects code that calls those endpoints directly.
 
 ### PHP 8.3 or newer is required
 
 The minimum supported PHP version is now 8.3.
+
+### Admin endpoints check the HTTP method
+
+`/admin/status` matched on the URI alone, so it answered `200 OK` to every verb. It now accepts `GET` only.
+
+An unexpected method on any admin endpoint is refused with `405 Method Not Allowed` and an `Allow` header:
+
+| Endpoint           | Allowed methods        |
+|--------------------|------------------------|
+| `/admin/status`    | `GET`                  |
+| `/admin/requests`  | `GET`, `DELETE`        |
+| `/admin/responses` | `GET`, `PUT`, `DELETE` |
+
+An unexpected method on `/admin/requests` or `/admin/responses` used to fall through to the queue, where it was recorded as a received request and consumed a queued response. A refused request now leaves both untouched.
+
+The step definitions have always used the supported methods, so this only affects code that calls the endpoints directly.
 
 ### Step methods on `ApiServerContext` were renamed
 

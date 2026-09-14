@@ -261,6 +261,36 @@ Feature: API Server
     Then the API server should have 1 received request
     And the API server should have 0 queued responses
 
+  Scenario: Admin endpoint refuses a method it does not accept
+    Given API server is running
+    And API server is reset
+    And the API will respond with JSON:
+      """
+      {"test": "queued"}
+      """
+    When I send a DELETE request to "/admin/status" in the API server
+    Then the response status code should be 405
+    And the response header "Allow" should be "GET"
+    And the response should contain "Method DELETE is not allowed on"
+    And the response should contain "Allowed methods: GET."
+    And the response should not contain header "X-Received-Requests"
+    And the response should not contain header "X-Queued-Responses"
+    And the API server should have 0 received requests
+    And the API server should have 1 queued response
+
+  Scenario: Admin endpoint refusal leaves the response queue intact
+    Given API server is running
+    And API server is reset
+    And the API will respond with JSON:
+      """
+      {"test": "queued"}
+      """
+    When I send a PUT request to "/admin/requests" in the API server
+    Then the response status code should be 405
+    And the response header "Allow" should be "GET, DELETE"
+    And the API server should have 0 received requests
+    And the API server should have 1 queued response
+
   Scenario: Debug API requests shows request information
     Given API server is running
     And API server is reset
