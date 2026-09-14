@@ -1,8 +1,6 @@
 default:
   autoload: ['%paths.base%/tests/behat/bootstrap']
   gherkin:
-    # One cache directory per parsing mode, so a parse from another mode is
-    # never reused.
     cache: '%paths.base%/.artifacts/tmp/gherkin-cache/gherkin-32'
     compatibility: gherkin-32
     filters:

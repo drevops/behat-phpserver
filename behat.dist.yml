@@ -1,5 +1,3 @@
-# The contexts this package provides, with every option set.
-# The test suite runs from behat.yml on Behat 3 and from behat.php on Behat 4.
 default:
   suites:
     default:

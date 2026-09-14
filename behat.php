@@ -1,12 +1,5 @@
 <?php
 
-/**
- * @file
- * Test suite configuration for Behat 4, which reads PHP configuration only.
- *
- * Behat 3 reads behat.yml instead, so a change to the suite goes in both files.
- */
-
 declare(strict_types=1);
 
 use Behat\Config\Config;
@@ -24,8 +17,6 @@ use DrevOps\BehatPhpServer\ApiServerContext;
 use DrevOps\BehatPhpServer\PhpServerContext;
 use DVDoug\Behat\CodeCoverage\Extension as CodeCoverageExtension;
 
-// One cache directory per parsing mode, so a parse from another mode is never
-// reused.
 $gherkin = (new GherkinOptions())
   ->withCacheDir('%paths.base%/.artifacts/tmp/gherkin-cache/gherkin-32')
   ->withCompatibilityMode(GherkinCompatibilityMode::GHERKIN_32)
