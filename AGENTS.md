@@ -68,10 +68,12 @@ Coverage comes from two sources, so their outputs are kept apart: PHPUnit writes
 
 The Gherkin parser caches parsed features by file path and Gherkin version, not by parsing mode, so a feature parsed in one mode can be served to a run in another, and that run passes for the wrong reason. That's why `behat.yml` points `gherkin.cache` at a directory named after the mode, `.artifacts/tmp/gherkin-cache/gherkin-32`. If you change `gherkin.compatibility`, change the cache directory with it. `BEHAT_PARAMS` can't override either setting, because values in `behat.yml` take precedence over it.
 
-Tests use PHPUnit 11 attributes:
+Tests use PHPUnit 12 attributes:
 
 - `#[CoversClass(ClassName::class)]` for coverage metadata.
 - `#[DataProvider('providerMethodName')]` for data providers. Provider methods are named with a `dataProvider` prefix and placed after the test method they serve.
+
+Build a test double with `createStub()` or `getStubBuilder()` unless the test calls `expects()` on it. PHPUnit 12.5 reports a notice for every mock object that has no expectation, so a mock is only worth creating when the test asserts how it's called. `ApiServerContextTest` follows the same split: `createContextWithClient()` returns a stub, and `createMockContextWithClient()` returns a mock for the tests that assert on `isRunning()` and `start()`.
 
 ## CI
 
@@ -79,7 +81,7 @@ Tests use PHPUnit 11 attributes:
 
 Linting, the coverage threshold check and the Codecov uploads run once, on Ubuntu with PHP 8.4 and normal dependencies.
 
-`composer.json` allows `behat/behat` `^3.32.0 || ^4.0@alpha`, but every leg installs Behat 3. `prefer-stable` picks the stable 3.x release over the Behat 4 alpha, and 2 dev dependencies can't install on Behat 4 yet: `friends-of-behat/mink-extension` 2.x requires Behat 3, and the first `dvdoug/behat-code-coverage` release that allows Behat 4 needs `phpunit/php-code-coverage` 12.3 or newer, which means PHPUnit 12. Behat 4 compatibility is guarded from the Behat 3 legs instead, by the `gherkin-32` suite mode and the attribute tests.
+`composer.json` allows `behat/behat` `^3.32.0 || ^4.0@alpha`, but every leg installs Behat 3. `prefer-stable` picks the stable 3.x release over the Behat 4 alpha, and 2 dev dependencies can't install on Behat 4 yet: `friends-of-behat/mink-extension` 2.x requires Behat 3, and `dvdoug/behat-code-coverage` is constrained to `~5.3.7`, whose releases require Behat 3 as well. Its first release that allows Behat 4 is 5.5.0, which needs `phpunit/php-code-coverage` 12.3 or newer, and PHPUnit 12.5 already installs that. Behat 4 compatibility is guarded from the Behat 3 legs instead, by the `gherkin-32` suite mode and the attribute tests.
 
 The `lowest` half of the matrix resolves every dependency to the floor its constraint allows, so it is sensitive to `config.policy.advisories.block` in `composer.json`. Leave that set to `true`. Setting it to `false` lets Composer select releases with known security advisories, and the floors it then reaches (Guzzle 7.9, `guzzlehttp/promises` 1.5, `symfony/http-client` 6.0) emit PHP 8.4 deprecations that Behat converts into step failures, so the whole BDD suite fails on PHP 8.4 and 8.5.
 
