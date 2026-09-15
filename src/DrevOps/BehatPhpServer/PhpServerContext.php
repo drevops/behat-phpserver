@@ -320,31 +320,32 @@ class PhpServerContext implements Context {
    *   The port to free.
    *
    * @return bool
-   *   TRUE if the port is free after the process holding it is terminated,
-   *   FALSE otherwise.
+   *   TRUE if the port is free once the process holding it, if any, is
+   *   terminated, FALSE if the port is still in use.
    */
   protected function freePort(int $port): bool {
     $this->printDebug(sprintf('Attempting to free port %d.', $port));
 
     try {
       $pid = $this->getPid($port);
-
-      $this->printDebug(sprintf('Found process with PID %d using port %d.', $pid, $port));
-      $this->terminateProcess($pid);
-
-      if ($this->isPortInUse($port)) {
-        $this->printDebug(sprintf('Port %d is still in use after terminating process %d.', $port, $pid));
-
-        return FALSE;
-      }
-
-      return TRUE;
     }
-    catch (\Exception $exception) {
-      $this->printDebug(sprintf('Error while trying to free port %d: %s', $port, $exception->getMessage()));
+    catch (\RuntimeException $exception) {
+      // The process holding the port can exit before the lookup runs.
+      $this->printDebug(sprintf('No process to terminate on port %d: %s', $port, $exception->getMessage()));
+
+      return !$this->isPortInUse($port);
+    }
+
+    $this->printDebug(sprintf('Found process with PID %d using port %d.', $pid, $port));
+    $this->terminateProcess($pid);
+
+    if ($this->isPortInUse($port)) {
+      $this->printDebug(sprintf('Port %d is still in use after terminating process %d.', $port, $pid));
 
       return FALSE;
     }
+
+    return TRUE;
   }
 
   /**
@@ -552,7 +553,7 @@ class PhpServerContext implements Context {
   }
 
   /**
-   * List the processes on a port with a port listing tool.
+   * List the processes listening on a port with a port listing tool.
    *
    * @param string $tool
    *   The listing tool that the command runs.
@@ -562,42 +563,31 @@ class PhpServerContext implements Context {
    *   Port number.
    *
    * @return array<int, array<int, string>>
-   *   The whitespace-separated fields of each output line, or an empty array
-   *   when the tool is not installed or lists no process.
+   *   The whitespace-separated fields of each line that shows a socket
+   *   listening on the port, or an empty array when the tool is not installed
+   *   or lists no such socket.
    */
   protected function listPortProcesses(string $tool, string $command, int $port): array {
     if (!$this->executeCommand('which ' . $tool . ' 2>/dev/null')) {
       return [];
     }
 
-    // The grep filter matches the port as a substring, so ':80' also matches
-    // ':8080'.
-    $port_pattern = '/:' . $port . '(?!\d)/';
-
     $output = [];
     $this->executeCommand($command, $output);
-    $lines = preg_grep($port_pattern, $output) ?: [];
+
+    // A grep for ':80' also matches ':8080' and client connections, so only a
+    // socket listening on the exact port is kept.
+    $lines = array_values(preg_grep('/:' . $port . '\s.*\bLISTEN\b/', $output) ?: []);
 
     if ($lines === []) {
-      // The process may be in another state, so retry without the LISTEN
-      // filter.
-      $command = str_replace(" | grep 'LISTEN'", '', $command);
-      $this->printDebug(sprintf('No LISTEN processes found, retrying with command: %s', $command));
-
-      $output = [];
-      $this->executeCommand($command, $output);
-      $lines = preg_grep($port_pattern, $output) ?: [];
-    }
-
-    if ($lines === []) {
-      $this->printDebug(sprintf('No processes found on port %d', $port));
+      $this->printDebug(sprintf('No processes found listening on port %d', $port));
 
       return [];
     }
 
     $processes = [];
 
-    foreach (array_values($lines) as $i => $line) {
+    foreach ($lines as $i => $line) {
       $this->printDebug(sprintf('Found process %d: %s', $i + 1, $line));
       $processes[] = explode(' ', trim((string) preg_replace('/\s+/', ' ', $line)));
     }

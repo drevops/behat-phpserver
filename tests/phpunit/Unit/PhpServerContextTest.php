@@ -677,7 +677,7 @@ class PhpServerContextTest extends TestCase {
       'lsof shows PHP process in ESTABLISHED state' => [
         'lsof_exists' => TRUE,
         'output' => ['php    12345 user  TCP 127.0.0.1:8888 (ESTABLISHED)'],
-        'expected_pid' => 12345,
+        'expected_pid' => 0,
       ],
       'lsof output with multiple spaces' => [
         'lsof_exists' => TRUE,
@@ -799,7 +799,7 @@ class PhpServerContextTest extends TestCase {
       'netstat shows PHP process in ESTABLISHED state' => [
         'netstat_exists' => TRUE,
         'output' => ['tcp        0      0 127.0.0.1:8888          0.0.0.0:*               ESTABLISHED      109        98765      12345/php'],
-        'expected_pid' => 12345,
+        'expected_pid' => 0,
       ],
       'netstat output with different format' => [
         'netstat_exists' => TRUE,
@@ -815,7 +815,7 @@ class PhpServerContextTest extends TestCase {
   }
 
   /**
-   * Test that only the processes on the exact port are listed.
+   * Test that only the processes listening on the exact port are listed.
    *
    * @param array<string> $output
    *   The output of the listing command.
@@ -824,12 +824,13 @@ class PhpServerContextTest extends TestCase {
    */
   #[DataProvider('dataProviderListPortProcesses')]
   public function testListPortProcesses(array $output, array $expected_processes): void {
-    $context = $this->getStubBuilder(PhpServerContext::class)
+    $context = $this->getMockBuilder(PhpServerContext::class)
       ->disableOriginalConstructor()
       ->onlyMethods(['executeCommand', 'printDebug'])
-      ->getStub();
+      ->getMock();
 
-    $context->method('executeCommand')
+    $context->expects($this->exactly(2))
+      ->method('executeCommand')
       ->willReturnCallback(function (string $command, array &$output_param = []) use ($output): bool {
         if (!str_starts_with($command, 'which ')) {
           $output_param = $output;
@@ -870,9 +871,13 @@ class PhpServerContextTest extends TestCase {
         ],
         'expected_processes' => [['php', '12345', 'user', '5u', 'IPv4', '0t0', 'TCP', '*:80', '(LISTEN)']],
       ],
-      'connected from the port' => [
+      'connection accepted on the port' => [
         'output' => ['php 12345 user 5u IPv4 0t0 TCP 127.0.0.1:80->127.0.0.1:52345 (ESTABLISHED)'],
-        'expected_processes' => [['php', '12345', 'user', '5u', 'IPv4', '0t0', 'TCP', '127.0.0.1:80->127.0.0.1:52345', '(ESTABLISHED)']],
+        'expected_processes' => [],
+      ],
+      'client connected to the port' => [
+        'output' => ['php 12345 user 5u IPv4 0t0 TCP 127.0.0.1:52345->127.0.0.1:80 (ESTABLISHED)'],
+        'expected_processes' => [],
       ],
       'netstat listening on the port' => [
         'output' => ['tcp        0      0 0.0.0.0:80          0.0.0.0:*               LISTEN      12345/php'],
@@ -880,6 +885,10 @@ class PhpServerContextTest extends TestCase {
       ],
       'netstat listening on a longer port' => [
         'output' => ['tcp        0      0 0.0.0.0:8000          0.0.0.0:*               LISTEN      12345/php'],
+        'expected_processes' => [],
+      ],
+      'netstat client connected to the port' => [
+        'output' => ['tcp        0      0 127.0.0.1:52345          127.0.0.1:80            ESTABLISHED 12345/php'],
         'expected_processes' => [],
       ],
     ];
@@ -1295,17 +1304,44 @@ class PhpServerContextTest extends TestCase {
   }
 
   /**
-   * Test that an error raised while freeing a port is contained.
+   * Test freeing a port when no process can be identified on it.
+   *
+   * @param bool $still_in_use
+   *   Whether the port is still in use.
+   * @param bool $expected_result
+   *   Expected result.
    */
-  public function testFreePortHandlesFailure(): void {
-    $context = $this->getStubBuilder(PhpServerContext::class)
+  #[DataProvider('dataProviderFreePortWithoutProcess')]
+  public function testFreePortWithoutProcess(bool $still_in_use, bool $expected_result): void {
+    $context = $this->getMockBuilder(PhpServerContext::class)
       ->setConstructorArgs([static::getFixturesPath()])
-      ->onlyMethods(['getPid'])
-      ->getStub();
+      ->onlyMethods(['getPid', 'terminateProcess', 'isPortInUse'])
+      ->getMock();
 
-    $context->method('getPid')->willThrowException(new \RuntimeException('Unable to inspect the port.'));
+    $context->method('getPid')->willThrowException(new \RuntimeException('Unable to determine PHP server process for port 8888.'));
+    $context->expects($this->never())->method('terminateProcess');
+    $context->method('isPortInUse')->willReturn($still_in_use);
 
-    $this->assertFalse(static::callProtectedMethod($context, 'freePort', [8888]));
+    $this->assertSame($expected_result, static::callProtectedMethod($context, 'freePort', [8888]));
+  }
+
+  /**
+   * Data provider for testFreePortWithoutProcess().
+   *
+   * @return array<string, array<string, bool>>
+   *   Test cases.
+   */
+  public static function dataProviderFreePortWithoutProcess(): array {
+    return [
+      'process exited before the lookup' => [
+        'still_in_use' => FALSE,
+        'expected_result' => TRUE,
+      ],
+      'port held by a process the lookup cannot identify' => [
+        'still_in_use' => TRUE,
+        'expected_result' => FALSE,
+      ],
+    ];
   }
 
   /**

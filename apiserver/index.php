@@ -228,7 +228,9 @@ class ApiServer {
       $this->handleResponse(new Response(200, 'OK'));
     }
     elseif ($request->uri === '/admin/responses' && $request->method === 'PUT') {
-      $responses_data = json_decode($request->body, TRUE);
+      // An associative decode converts JSON objects to arrays, so objects are
+      // decoded as stdClass to tell them apart.
+      $responses_data = json_decode($request->body);
 
       if (!is_array($responses_data) || !array_is_list($responses_data)) {
         throw new \InvalidArgumentException('Invalid responses JSON payload provided: Expected an array of response objects.', 400);
@@ -237,12 +239,18 @@ class ApiServer {
       $responses = [];
 
       foreach ($responses_data as $k => $response_data) {
-        if (!is_array($response_data)) {
+        if (!$response_data instanceof \stdClass) {
           throw new \InvalidArgumentException(sprintf('Invalid response #%d payload: Response must be an object.', $k + 1), 400);
         }
 
+        $response_fields = get_object_vars($response_data);
+
+        if (($response_fields['headers'] ?? NULL) instanceof \stdClass) {
+          $response_fields['headers'] = get_object_vars($response_fields['headers']);
+        }
+
         try {
-          $responses[] = Response::fromArray($response_data);
+          $responses[] = Response::fromArray($response_fields);
         }
         catch (\InvalidArgumentException $exception) {
           throw new \InvalidArgumentException(sprintf('Invalid response #%d payload: %s', $k + 1, $exception->getMessage()), 400, $exception);
