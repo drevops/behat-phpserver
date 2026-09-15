@@ -22,6 +22,11 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\RequestInterface;
 
+/**
+ * Tests the API server context.
+ *
+ * @phpstan-type HistoryTransaction array{request: \Psr\Http\Message\RequestInterface, response: \Psr\Http\Message\ResponseInterface|null, error: mixed, options: array<array-key, mixed>}
+ */
 #[CoversClass(ApiServerContext::class)]
 class ApiServerContextTest extends TestCase {
 
@@ -63,7 +68,7 @@ class ApiServerContextTest extends TestCase {
     $this->assertSame(500, $response->getStatusCode());
     $this->assertSame($expected_uri, (string) $this->getHistoryRequest($history, 0)->getUri());
 
-    $sent_options = $this->getHistoryOptions($history, 0);
+    $sent_options = $this->getHistoryTransaction($history, 0)['options'];
 
     foreach ($expected_options as $name => $expected) {
       $this->assertArrayHasKey($name, $sent_options);
@@ -385,7 +390,7 @@ class ApiServerContextTest extends TestCase {
    *
    * @param array<int, \GuzzleHttp\Psr7\Response> $queue
    *   Responses to return, in the order they are requested.
-   * @param \ArrayObject<int, array> $history
+   * @param \ArrayObject<int, HistoryTransaction> $history
    *   Populated with the transactions the client performed.
    * @param string[] $fixtures_paths
    *   Fixture paths to configure on the context.
@@ -409,7 +414,7 @@ class ApiServerContextTest extends TestCase {
    *
    * @param array<int, \GuzzleHttp\Psr7\Response> $queue
    *   Responses to return, in the order they are requested.
-   * @param \ArrayObject<int, array> $history
+   * @param \ArrayObject<int, HistoryTransaction> $history
    *   Populated with the transactions the client performed.
    *
    * @return \PHPUnit\Framework\MockObject\MockObject&\DrevOps\BehatPhpServer\ApiServerContext
@@ -433,7 +438,7 @@ class ApiServerContextTest extends TestCase {
    *   Context to configure.
    * @param array<int, \GuzzleHttp\Psr7\Response> $queue
    *   Responses to return, in the order they are requested.
-   * @param \ArrayObject<int, array> $history
+   * @param \ArrayObject<int, HistoryTransaction> $history
    *   Populated with the transactions the client performed.
    * @param string[] $fixtures_paths
    *   Fixture paths to configure on the context.
@@ -453,10 +458,10 @@ class ApiServerContextTest extends TestCase {
    *
    * @param array<int, \GuzzleHttp\Psr7\Response> $queue
    *   Responses to return, in the order they are requested.
-   * @param \ArrayObject<int, array> $history
+   * @param \ArrayObject<int, HistoryTransaction> $history
    *   Populated with the transactions the client performed.
    *
-   * @return \GuzzleHttp\HandlerStack
+   * @return \GuzzleHttp\HandlerStack<callable(\Psr\Http\Message\RequestInterface, array<array-key, mixed>): \GuzzleHttp\Promise\PromiseInterface<\Psr\Http\Message\ResponseInterface, mixed>>
    *   The handler stack.
    */
   protected function createHandlerStack(array $queue, \ArrayObject $history): HandlerStack {
@@ -469,12 +474,12 @@ class ApiServerContextTest extends TestCase {
   /**
    * Get the transaction recorded at the given position of the client history.
    *
-   * @param \ArrayObject<int, array> $history
+   * @param \ArrayObject<int, HistoryTransaction> $history
    *   Transactions recorded by the client.
    * @param int $index
    *   Position to read.
    *
-   * @return array<mixed, mixed>
+   * @return HistoryTransaction
    *   The recorded transaction.
    */
   protected function getHistoryTransaction(\ArrayObject $history, int $index): array {
@@ -490,7 +495,7 @@ class ApiServerContextTest extends TestCase {
   /**
    * Get the request recorded at the given position of the client history.
    *
-   * @param \ArrayObject<int, array> $history
+   * @param \ArrayObject<int, HistoryTransaction> $history
    *   Transactions recorded by the client.
    * @param int $index
    *   Position to read.
@@ -499,34 +504,7 @@ class ApiServerContextTest extends TestCase {
    *   The recorded request.
    */
   protected function getHistoryRequest(\ArrayObject $history, int $index): RequestInterface {
-    $request = $this->getHistoryTransaction($history, $index)['request'] ?? NULL;
-
-    if (!$request instanceof RequestInterface) {
-      $this->fail(sprintf('Transaction %d does not carry a request.', $index));
-    }
-
-    return $request;
-  }
-
-  /**
-   * Get the request options recorded at the given position of the history.
-   *
-   * @param \ArrayObject<int, array> $history
-   *   Transactions recorded by the client.
-   * @param int $index
-   *   Position to read.
-   *
-   * @return array<mixed, mixed>
-   *   The options the request was sent with.
-   */
-  protected function getHistoryOptions(\ArrayObject $history, int $index): array {
-    $options = $this->getHistoryTransaction($history, $index)['options'] ?? NULL;
-
-    if (!is_array($options)) {
-      $this->fail(sprintf('Transaction %d does not carry request options.', $index));
-    }
-
-    return $options;
+    return $this->getHistoryTransaction($history, $index)['request'];
   }
 
   /**
