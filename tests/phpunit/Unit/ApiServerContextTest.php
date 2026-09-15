@@ -908,15 +908,39 @@ class ApiServerContextTest extends TestCase {
 
   /**
    * Test that a missing fixture file reports every path that was searched.
+   *
+   * @param string[] $fixtures_paths
+   *   Fixture paths to configure on the context.
+   * @param string $file_path
+   *   Fixture file to queue.
    */
-  public function testApiWillRespondWithFileThrowsWhenMissing(): void {
-    $history = new \ArrayObject();
-    $context = $this->createContextWithClient([], $history, ['/nonexistent/one', '/nonexistent/two']);
+  #[DataProvider('dataProviderApiWillRespondWithFileThrowsWhenMissing')]
+  public function testApiWillRespondWithFileThrowsWhenMissing(array $fixtures_paths, string $file_path): void {
+    $context = $this->createContextWithClient([], new \ArrayObject(), $fixtures_paths);
 
     $this->expectException(\RuntimeException::class);
-    $this->expectExceptionMessage('File "missing.json" does not exist in any of the configured fixture paths: /nonexistent/one, /nonexistent/two');
+    $this->expectExceptionMessage(sprintf('File "%s" does not exist in any of the configured fixture paths: %s', $file_path, implode(', ', $fixtures_paths)));
 
-    $context->apiWillRespondWithFile('missing.json');
+    $context->apiWillRespondWithFile($file_path);
+  }
+
+  /**
+   * Data provider for testApiWillRespondWithFileThrowsWhenMissing().
+   *
+   * @return array<string, array<string, mixed>>
+   *   Test cases.
+   */
+  public static function dataProviderApiWillRespondWithFileThrowsWhenMissing(): array {
+    return [
+      'missing file' => [
+        'fixtures_paths' => ['/nonexistent/one', '/nonexistent/two'],
+        'file_path' => 'missing.json',
+      ],
+      'directory with the file name' => [
+        'fixtures_paths' => [__DIR__ . '/../../behat'],
+        'file_path' => 'fixtures',
+      ],
+    ];
   }
 
   /**
