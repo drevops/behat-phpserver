@@ -132,10 +132,8 @@ class PhpServerContext implements Context {
   /**
    * Check whether a scenario is tagged for this server.
    *
-   * Gherkin attaches a feature's tags to the feature node only, so a scenario
-   * in a feature tagged at the top does not report that tag as its own. Both
-   * nodes are checked so that tagging once per feature works as well as
-   * tagging each scenario.
+   * Both the scenario and its feature are checked, so a tag on the feature
+   * applies to every scenario in it.
    *
    * @param \Behat\Behat\Hook\Scope\ScenarioScope $scope
    *   Scenario scope.

@@ -154,7 +154,6 @@ class PhpServerContextTest extends TestCase {
     $this->setProtectedValue($context, 'port', 8888);
     $this->setProtectedValue($context, 'webroot', __DIR__);
     $this->setProtectedValue($context, 'connectionTimeout', 2);
-    // Always start with 0; the actual pid should be set by start().
     $this->setProtectedValue($context, 'pid', 0);
 
     $context->method('stop')

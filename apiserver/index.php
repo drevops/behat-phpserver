@@ -101,8 +101,8 @@ class ApiServer {
 
     $state = $this->loadState();
 
-    // The state file is untrusted input, so keep only the entries that
-    // survived deserialisation as the objects they claim to be.
+    // The state file is untrusted input, so keep only the entries whose
+    // class matches their collection.
     $requests = $state['requests'] ?? [];
     $responses = $state['responses'] ?? [];
 
@@ -134,9 +134,9 @@ class ApiServer {
         throw new \RuntimeException(rtrim(sprintf('Failed to read data from the server state file %s. %s', $this->stateFile, $warning)), 500);
       }
 
-      // The state holds only these 2 value objects. Restricting deserialisation
-      // to them stops a tampered file instantiating anything else or reaching
-      // its magic methods.
+      // The state holds only Request and Response objects. With
+      // allowed_classes limited to them, unserialize() instantiates no other
+      // class from a tampered file and runs no other class's magic methods.
       $state = unserialize($contents, ['allowed_classes' => [Request::class, Response::class]]);
 
       if (!is_array($state)) {
@@ -384,8 +384,8 @@ class Response {
       }
     }
     else {
-      // A recorded request body and an exception message both carry bytes that
-      // may not be valid UTF-8, which encodes to FALSE and an empty body.
+      // $body may hold bytes that are not valid UTF-8. json_encode() returns
+      // FALSE for invalid UTF-8, and FALSE casts to an empty body.
       $this->body = (string) json_encode($body, JSON_INVALID_UTF8_SUBSTITUTE);
       $this->headers['Content-Type'] = 'application/json';
     }
