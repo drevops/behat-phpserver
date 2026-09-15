@@ -25,9 +25,11 @@ Both contexts start a server before each scenario and stop it afterwards.
 - `src/DrevOps/BehatPhpServer/ApiServerContext.php` - the mock API server context and its step definitions.
 - `apiserver/index.php` - the mock API server itself, served by the PHP built-in server. It is part of the distributed package, not a test fixture, and is covered by both PHPCS and PHPStan.
 - `tests/phpunit/Unit/` - unit tests.
-- `tests/phpunit/Traits/` - shared test utilities such as `ReflectionTrait`.
+- `tests/phpunit/Traits/` - shared test utilities such as `ReflectionTrait` and `BehatDefinitionTrait`.
 - `tests/behat/features/` - the Behat feature files that exercise both contexts end to end.
 - `tests/behat/fixtures/` and `tests/behat/fixtures2/` - fixture files used by the file-response steps. Two directories exist deliberately, to prove that multiple configured fixture paths are searched in order.
+- `behat.yml` and `behat.php` - the test suite configuration. Behat 3 reads `behat.yml` before any PHP file, and Behat 4 reads PHP configuration only, so each Behat major runs the suite from its own file. A change to the suite goes in both.
+- `behat.dist.yml` and `behat.dist.php` - both contexts with every option set, as a reference for anyone configuring the package. Behat never loads them in this repository, because `behat.yml` and `behat.php` take precedence. `BehatDistConfigTest` fails when the 2 files differ or when either one misses a constructor option.
 
 `apiserver/index.php` guards its own bootstrap with `SCRIPT_RUN_SKIP`. `phpunit.xml` sets that environment variable so the file can be loaded for unit testing without starting a server. Do not remove it.
 
@@ -57,22 +59,33 @@ Prefer these over calling the underlying binaries directly.
 - Method names and class properties use `camelCase`.
 - Single quotes for strings, double quotes only when the string contains a single quote.
 - All files end with a newline.
-- Step methods on `ApiServerContext` are named `api` plus the step phrase in camelCase, with the `API` / `API server` token folded into the prefix - `the API server is reset` becomes `apiIsReset()`. The annotation is the published contract and the method name is derived from it, so renaming a method never means rewriting its step phrase.
+- Step methods on `ApiServerContext` are named `api` plus the step phrase in camelCase, with the `API` / `API server` token folded into the prefix - `the API server is reset` becomes `apiIsReset()`. The step attribute is the published contract and the method name is derived from it, so renaming a method never means rewriting its step phrase.
+- Hooks and step definitions are declared with PHP attributes, such as `#[BeforeScenario]` and `#[Given('(the )API server is running')]`, never with docblock annotations. `testDeclaresNoBehatAnnotations()` in both context tests fails on any Behat annotation, and `testStepAttributes()` pins every published step phrase.
 
 ## Testing patterns
 
-Coverage comes from two sources, so their outputs are kept apart: PHPUnit writes to `.logs/phpunit/` and Behat writes to `.logs/behat/`. Both are uploaded to Codecov. Keep those paths in sync between `phpunit.xml`, `behat.yml` and `.github/workflows/test-php.yml`.
+Coverage comes from two sources, so their outputs are kept apart: PHPUnit writes to `.logs/phpunit/` and Behat writes to `.logs/behat/`. Both are uploaded to Codecov. Keep those paths in sync between `phpunit.xml`, `behat.yml`, `behat.php` and `.github/workflows/test-php.yml`.
 
-Tests use PHPUnit 11 attributes:
+`behat.yml` and `behat.php` turn on strict mode, so a step with no matching definition fails the run instead of being reported as undefined and passing.
+
+Tests use PHPUnit 12 attributes:
 
 - `#[CoversClass(ClassName::class)]` for coverage metadata.
 - `#[DataProvider('providerMethodName')]` for data providers. Provider methods are named with a `dataProvider` prefix and placed after the test method they serve.
 
+Build a test double with `createStub()` or `getStubBuilder()` unless the test calls `expects()` on it. PHPUnit 12.5 reports a notice for every mock object that has no expectation, so a mock is only worth creating when the test asserts how it's called. `ApiServerContextTest` follows the same split: `createContextWithClient()` returns a stub, and `createMockContextWithClient()` returns a mock for the tests that assert on `isRunning()` and `start()`.
+
 ## CI
 
-`.github/workflows/test-php.yml` runs the matrix PHP 8.3, 8.4 and 8.5, against `normal` and `lowest` dependencies, on both `ubuntu-latest` and `macos-latest`. Both operating systems are tested on purpose - see Known issues.
+`.github/workflows/test-php.yml` runs the matrix PHP 8.3, 8.4 and 8.5, against Behat 3 and Behat 4, with `normal` and `lowest` dependencies, on both `ubuntu-latest` and `macos-latest`. Both operating systems are tested on purpose - see Known issues.
 
-Linting, the coverage threshold check and the Codecov uploads run once, on Ubuntu with PHP 8.4 and normal dependencies.
+Each job picks its Behat major with `composer update --with="behat/behat:^3"` or `^4`. Composer combines that temporary constraint with the `^3.32.0 || ^4.0@alpha` range in `composer.json` rather than replacing it, so the `lowest` jobs still start from the `composer.json` floors. The dev constraints allow both majors for the same reason: `friends-of-behat/mink-extension` is `^2.7.5 || ^3.0@alpha`, and `dvdoug/behat-code-coverage` is `^5.3.7`, since 5.5.0 is its first release that allows Behat 4. `prefer-stable` keeps a plain `composer install` on Behat 3.
+
+`require-dev` holds `symfony/dependency-injection` `^6.4 || ^7.0 || ^8.0`, even though no code in this repository uses it directly. `dvdoug/behat-code-coverage` builds its services with the `PhpFileLoader` from `symfony/dependency-injection`, and `friends-of-behat/mink-extension` 3.0 requires `symfony/config` 7.4 or newer, but no package declares that `symfony/dependency-injection` 5.4 can't load with that `symfony/config`. Without the floor, the Behat 4 `lowest` jobs resolve exactly that pair, and Behat stops with a fatal error before it runs a scenario.
+
+Job names follow `PHP <version>, Behat <major>, Deps <dependencies> on <os>`, for example `PHP 8.4, Behat 4, Deps lowest on ubuntu-latest`. The `main` ruleset requires every job by that name, plus `codecov/patch` and `codecov/project`, so a change to the job names needs the same change to the ruleset's required status checks.
+
+Linting runs on Ubuntu with PHP 8.4 and normal dependencies, once per Behat major, so PHPStan checks the code against both. The coverage threshold check and the Codecov uploads run once, on the Behat 3 job of that combination.
 
 The `lowest` half of the matrix resolves every dependency to the floor its constraint allows, so it is sensitive to `config.policy.advisories.block` in `composer.json`. Leave that set to `true`. Setting it to `false` lets Composer select releases with known security advisories, and the floors it then reaches (Guzzle 7.9, `guzzlehttp/promises` 1.5, `symfony/http-client` 6.0) emit PHP 8.4 deprecations that Behat converts into step failures, so the whole BDD suite fails on PHP 8.4 and 8.5.
 

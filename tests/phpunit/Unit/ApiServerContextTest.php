@@ -5,7 +5,11 @@ declare(strict_types=1);
 namespace DrevOps\BehatPhpServer\Tests\Unit;
 
 use Behat\Gherkin\Node\PyStringNode;
+use Behat\Step\Given;
+use Behat\Step\Then;
+use Behat\Step\When;
 use DrevOps\BehatPhpServer\ApiServerContext;
+use DrevOps\BehatPhpServer\Tests\Traits\BehatDefinitionTrait;
 use DrevOps\BehatPhpServer\Tests\Traits\ReflectionTrait;
 use GuzzleHttp\Client;
 use GuzzleHttp\Handler\MockHandler;
@@ -20,6 +24,7 @@ use Psr\Http\Message\RequestInterface;
 #[CoversClass(ApiServerContext::class)]
 class ApiServerContextTest extends TestCase {
 
+  use BehatDefinitionTrait;
   use ReflectionTrait;
 
   /**
@@ -75,10 +80,10 @@ class ApiServerContextTest extends TestCase {
    */
   #[DataProvider('dataProviderPrepareResponse')]
   public function testPrepareResponse(string $json_input, array $expected_values): void {
-    $context = $this->getMockBuilder(ApiServerContext::class)
+    $context = $this->getStubBuilder(ApiServerContext::class)
       ->disableOriginalConstructor()
       ->onlyMethods(['printDebug'])
-      ->getMock();
+      ->getStub();
 
     $result = static::callProtectedMethod($context, 'prepareResponse', [$json_input]);
 
@@ -157,10 +162,10 @@ class ApiServerContextTest extends TestCase {
    */
   #[DataProvider('dataProviderPrepareResponseInvalid')]
   public function testPrepareResponseInvalid(string $json_input, string $exception_class, string $exception_message): void {
-    $context = $this->getMockBuilder(ApiServerContext::class)
+    $context = $this->getStubBuilder(ApiServerContext::class)
       ->disableOriginalConstructor()
       ->onlyMethods(['printDebug'])
-      ->getMock();
+      ->getStub();
 
     if (class_exists($exception_class)) {
       $this->expectException($exception_class);
@@ -339,17 +344,57 @@ class ApiServerContextTest extends TestCase {
    * @param string[] $fixtures_paths
    *   Fixture paths to configure on the context.
    *
-   * @return \PHPUnit\Framework\MockObject\MockObject&\DrevOps\BehatPhpServer\ApiServerContext
-   *   Context with a mocked client and stubbed server lifecycle methods.
+   * @return \PHPUnit\Framework\MockObject\Stub&\DrevOps\BehatPhpServer\ApiServerContext
+   *   Context with a canned client and stubbed server lifecycle methods.
    */
   protected function createContextWithClient(array $queue, \ArrayObject $history = new \ArrayObject(), array $fixtures_paths = []): ApiServerContext {
-    $stack = HandlerStack::create(new MockHandler($queue));
-    $stack->push(Middleware::history($history));
+    $context = $this->getStubBuilder(ApiServerContext::class)
+      ->disableOriginalConstructor()
+      ->onlyMethods(['isRunning', 'start'])
+      ->getStub();
 
+    $this->replaceClient($context, $queue, $history, $fixtures_paths);
+
+    return $context;
+  }
+
+  /**
+   * Create a context mock whose HTTP client returns a canned set of responses.
+   *
+   * @param array<int, \GuzzleHttp\Psr7\Response> $queue
+   *   Responses to return, in the order they are requested.
+   * @param \ArrayObject<int, array> $history
+   *   Populated with the transactions the client performed.
+   *
+   * @return \PHPUnit\Framework\MockObject\MockObject&\DrevOps\BehatPhpServer\ApiServerContext
+   *   Context with a canned client and mocked server lifecycle methods.
+   */
+  protected function createMockContextWithClient(array $queue, \ArrayObject $history = new \ArrayObject()): ApiServerContext {
     $context = $this->getMockBuilder(ApiServerContext::class)
       ->disableOriginalConstructor()
       ->onlyMethods(['isRunning', 'start'])
       ->getMock();
+
+    $this->replaceClient($context, $queue, $history);
+
+    return $context;
+  }
+
+  /**
+   * Replace the HTTP client of a context with one that returns canned responses.
+   *
+   * @param \DrevOps\BehatPhpServer\ApiServerContext $context
+   *   Context to configure.
+   * @param array<int, \GuzzleHttp\Psr7\Response> $queue
+   *   Responses to return, in the order they are requested.
+   * @param \ArrayObject<int, array> $history
+   *   Populated with the transactions the client performed.
+   * @param string[] $fixtures_paths
+   *   Fixture paths to configure on the context.
+   */
+  protected function replaceClient(ApiServerContext $context, array $queue, \ArrayObject $history, array $fixtures_paths = []): void {
+    $stack = HandlerStack::create(new MockHandler($queue));
+    $stack->push(Middleware::history($history));
 
     // Mirror the production client, which reports failures through the status
     // code rather than by throwing.
@@ -358,8 +403,6 @@ class ApiServerContextTest extends TestCase {
     static::setProtectedValue($context, 'client', $client);
     static::setProtectedValue($context, 'debug', FALSE);
     static::setProtectedValue($context, 'fixturesPaths', $fixtures_paths);
-
-    return $context;
   }
 
   /**
@@ -453,7 +496,7 @@ class ApiServerContextTest extends TestCase {
    */
   public function testApiIsRunningWhenServerResponds(): void {
     $history = new \ArrayObject();
-    $context = $this->createContextWithClient([new Response(200)], $history);
+    $context = $this->createMockContextWithClient([new Response(200)], $history);
     $context->expects($this->once())->method('isRunning')->willReturn(TRUE);
     $context->expects($this->never())->method('start');
 
@@ -468,7 +511,7 @@ class ApiServerContextTest extends TestCase {
    */
   public function testApiIsRunningStartsStoppedServer(): void {
     $history = new \ArrayObject();
-    $context = $this->createContextWithClient([new Response(200)], $history);
+    $context = $this->createMockContextWithClient([new Response(200)], $history);
     $context->expects($this->once())->method('isRunning')->willReturn(FALSE);
     $context->expects($this->once())->method('start');
 
@@ -481,7 +524,7 @@ class ApiServerContextTest extends TestCase {
    * Test that a non-200 status response is reported as a failure.
    */
   public function testApiIsRunningThrowsOnUnexpectedStatus(): void {
-    $context = $this->createContextWithClient([new Response(503)]);
+    $context = $this->createMockContextWithClient([new Response(503)]);
     $context->expects($this->once())->method('isRunning')->willReturn(TRUE);
 
     $this->expectException(\Exception::class);
@@ -817,6 +860,86 @@ class ApiServerContextTest extends TestCase {
         'expect_exception' => TRUE,
       ],
     ];
+  }
+
+  /**
+   * Test that each step method is declared with its step attributes.
+   *
+   * @param string $method
+   *   Step method name.
+   * @param array<int, array{0: string, 1: array<int|string, mixed>}> $expected_attributes
+   *   Expected attribute class names paired with their arguments, in
+   *   declaration order.
+   */
+  #[DataProvider('dataProviderStepAttributes')]
+  public function testStepAttributes(string $method, array $expected_attributes): void {
+    $this->assertSame($expected_attributes, static::getMethodAttributes(ApiServerContext::class, $method));
+  }
+
+  /**
+   * Data provider for step attribute tests.
+   *
+   * @return array<string, array<string, mixed>>
+   *   Test cases.
+   */
+  public static function dataProviderStepAttributes(): array {
+    return [
+      'server is running' => [
+        'method' => 'apiIsRunning',
+        'expected_attributes' => [[Given::class, ['(the )API server is running']]],
+      ],
+      'server is reset' => [
+        'method' => 'apiIsReset',
+        'expected_attributes' => [[Given::class, ['(the )API server is reset']]],
+      ],
+      'no responses' => [
+        'method' => 'apiHasNoResponses',
+        'expected_attributes' => [[Given::class, ['(the )API has no responses']]],
+      ],
+      'debug requests' => [
+        'method' => 'apiDebugRequests',
+        'expected_attributes' => [[When::class, ['I debug API requests']]],
+      ],
+      'respond with' => [
+        'method' => 'apiWillRespondWith',
+        'expected_attributes' => [[Given::class, ['(the )API will respond with:']]],
+      ],
+      'respond with JSON' => [
+        'method' => 'apiWillRespondWithJson',
+        'expected_attributes' => [
+          [Given::class, ['(the )API will respond with JSON:']],
+          [Given::class, ['(the )API will respond with JSON and :code code:']],
+        ],
+      ],
+      'respond with file' => [
+        'method' => 'apiWillRespondWithFile',
+        'expected_attributes' => [
+          [Given::class, ['(the )API will respond with file :file_path']],
+          [Given::class, ['(the )API will respond with file :file_path and :code code']],
+        ],
+      ],
+      'queued responses' => [
+        'method' => 'apiShouldHaveQueuedResponses',
+        'expected_attributes' => [
+          [Then::class, ['(the )API server should have :count queued response(s)']],
+          [Then::class, ['(the )API server should have :count response(s) queued']],
+        ],
+      ],
+      'received requests' => [
+        'method' => 'apiShouldHaveReceivedRequests',
+        'expected_attributes' => [
+          [Then::class, ['(the )API server should have received :count request(s)']],
+          [Then::class, ['(the )API server should have :count received request(s)']],
+        ],
+      ],
+    ];
+  }
+
+  /**
+   * Test that the context declares no Behat annotations.
+   */
+  public function testDeclaresNoBehatAnnotations(): void {
+    $this->assertSame([], static::getBehatAnnotations(ApiServerContext::class));
   }
 
 }

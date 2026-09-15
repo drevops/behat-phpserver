@@ -5,15 +5,17 @@ declare(strict_types=1);
 use Behat\Behat\Context\Context;
 use Behat\Behat\Context\Environment\InitializedContextEnvironment;
 use Behat\Behat\Hook\Scope\BeforeScenarioScope;
+use Behat\Hook\BeforeScenario;
 use Behat\Mink\Driver\BrowserKitDriver;
 use Behat\MinkExtension\Context\MinkContext;
+use Behat\Step\Given;
+use Behat\Step\Then;
+use Behat\Step\When;
 use DrevOps\BehatPhpServer\ApiServerContext;
 use DrevOps\BehatPhpServer\PhpServerContext;
 
 /**
  * Defines application features from the specific context.
- *
- * @phpcs:disable Drupal.Commenting.DocComment.MissingShort
  */
 class FeatureContext extends MinkContext implements Context {
 
@@ -28,8 +30,9 @@ class FeatureContext extends MinkContext implements Context {
   protected string $apiServerUrl;
 
   /**
-   * @beforeScenario
+   * Read the server URLs from the registered server contexts.
    */
+  #[BeforeScenario]
   public function beforeScenarioInit(BeforeScenarioScope $scope): void {
     $environment = $scope->getEnvironment();
 
@@ -45,16 +48,18 @@ class FeatureContext extends MinkContext implements Context {
   }
 
   /**
-   * @Given (I )am on (the )phpserver test page
-   * @When (I )go to (the )phpserver test page
+   * Visit the test page served by the PHP server.
    */
+  #[Given('(I )am on (the )phpserver test page')]
+  #[When('(I )go to (the )phpserver test page')]
   public function goToPhpServerTestPage(): void {
     $this->getSession()->visit($this->phpServerUrl . '/test_page.html');
   }
 
   /**
-   * @When I send a :method request to :path in the API server
+   * Send a request with the given method to the API server.
    */
+  #[When('I send a :method request to :path in the API server')]
   public function sendRequestToApiServer(string $method, string $path): void {
     $driver = $this->getSession()->getDriver();
 
@@ -66,8 +71,9 @@ class FeatureContext extends MinkContext implements Context {
   }
 
   /**
-   * @Then the response header should contain :name with value :value
+   * Assert that a response header contains a value, ignoring case.
    */
+  #[Then('the response header should contain :name with value :value')]
   public function responseHeaderContains(string $name, string $value): void {
     $actual = (string) $this->getSession()->getResponseHeader($name);
     $message = sprintf('The header "%s" does not contain the value "%s", but has a value of "%s".', $name, $value, $actual);
@@ -78,8 +84,9 @@ class FeatureContext extends MinkContext implements Context {
   }
 
   /**
-   * @Then the response should not contain header :name
+   * Assert that the response does not carry a header.
    */
+  #[Then('the response should not contain header :name')]
   public function theResponseShouldNotContainHeader(string $name): void {
     $actual = (string) $this->getSession()->getResponseHeader($name);
     $message = sprintf('The header "%s" is present in the response with a value of "%s", but it should not be.', $name, $actual);
@@ -90,15 +97,17 @@ class FeatureContext extends MinkContext implements Context {
   }
 
   /**
-   * @When I send a GET request to :path
+   * Send a GET request to the API server.
    */
+  #[When('I send a GET request to :path')]
   public function sendGetRequestToPath(string $path): void {
     $this->sendRequestToApiServer('GET', $path);
   }
 
   /**
-   * @Then the response header :name should be :value
+   * Assert that a response header equals a value.
    */
+  #[Then('the response header :name should be :value')]
   public function theResponseHeaderShouldBe(string $name, string $value): void {
     $actual = (string) $this->getSession()->getResponseHeader($name);
     $message = sprintf('The header "%s" does not have the value "%s", but has a value of "%s".', $name, $value, $actual);
@@ -109,8 +118,9 @@ class FeatureContext extends MinkContext implements Context {
   }
 
   /**
-   * @Then the response header :name should contain :value
+   * Assert that a response header contains a value.
    */
+  #[Then('the response header :name should contain :value')]
   public function theResponseHeaderShouldContain(string $name, string $value): void {
     $actual = (string) $this->getSession()->getResponseHeader($name);
     $message = sprintf('The header "%s" does not contain the value "%s", but has a value of "%s".', $name, $value, $actual);
@@ -121,8 +131,9 @@ class FeatureContext extends MinkContext implements Context {
   }
 
   /**
-   * @Then the response should be HTML
+   * Assert that the response is an HTML document.
    */
+  #[Then('the response should be HTML')]
   public function theResponseShouldBeHtml(): void {
     $content_type = (string) $this->getSession()->getResponseHeader('Content-Type');
     $message = sprintf('The response is not HTML, but has Content-Type "%s".', $content_type);

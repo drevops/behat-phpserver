@@ -32,7 +32,10 @@
 
 ## 📦 Installation
 
-Requires PHP 8.3 or newer.
+| Behat        | PHP     | Configuration file                                             |
+|--------------|---------|----------------------------------------------------------------|
+| `^3.32.0`    | `>=8.3` | `behat.yml`, `behat.dist.yml`, `behat.php` or `behat.dist.php` |
+| `^4.0@alpha` | `>=8.3` | `behat.php` or `behat.dist.php`                                |
 
     composer require --dev drevops/behat-phpserver
 
@@ -89,6 +92,48 @@ default:
               - '%paths.base%/tests/behat/fixtures2'
 ```
 
+### PHP configuration
+
+Behat 4 reads its configuration from `behat.php`, or from `behat.dist.php` when there's no `behat.php`. Here are both examples above as PHP:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use Behat\Config\Config;
+use Behat\Config\Profile;
+use Behat\Config\Suite;
+use DrevOps\BehatPhpServer\ApiServerContext;
+use DrevOps\BehatPhpServer\PhpServerContext;
+
+$suite = (new Suite('default'))
+  ->addContext(PhpServerContext::class, [
+    'webroot' => '%paths.base%/tests/behat/fixtures',
+    'protocol' => 'http',
+    'host' => '0.0.0.0',
+    'port' => 8888,
+    'debug' => FALSE,
+  ])
+  ->addContext(ApiServerContext::class, [
+    'webroot' => '%paths.base%/apiserver',
+    'protocol' => 'http',
+    'host' => '0.0.0.0',
+    'port' => 8889,
+    'debug' => FALSE,
+    'paths' => [
+      '%paths.base%/tests/behat/fixtures',
+      '%paths.base%/tests/behat/fixtures2',
+    ],
+  ]);
+
+$profile = (new Profile('default'))->withSuite($suite);
+
+return (new Config())->withProfile($profile);
+```
+
+The option names are the same in both formats, so the table below covers either one.
+
 ### Context options
 
 | Option               | Default                      | Description                                                                 |
@@ -105,6 +150,8 @@ default:
 `ApiServerContext` defaults `webroot` to the bundled `apiserver` directory. `PhpServerContext` has no usable default, so always set it.
 
 Both contexts default to port `8888`. When both are registered, give each one its own port, as shown above.
+
+[`behat.dist.yml`](behat.dist.yml) and [`behat.dist.php`](behat.dist.php) set every option for both contexts.
 
 ## 📖 Step definitions
 
@@ -217,6 +264,7 @@ declare(strict_types=1);
 use Behat\Behat\Context\Context;
 use Behat\Behat\Context\Environment\InitializedContextEnvironment;
 use Behat\Behat\Hook\Scope\BeforeScenarioScope;
+use Behat\Hook\BeforeScenario;
 use DrevOps\BehatPhpServer\ApiServerContext;
 use DrevOps\BehatPhpServer\PhpServerContext;
 
@@ -234,9 +282,8 @@ class FeatureContext implements Context {
 
   /**
    * Initialize the context.
-   *
-   * @beforeScenario
    */
+  #[BeforeScenario]
   public function beforeScenarioInit(BeforeScenarioScope $scope): void {
     $environment = $scope->getEnvironment();
 

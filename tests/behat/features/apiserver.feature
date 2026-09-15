@@ -301,3 +301,4 @@ Feature: API Server
     When I send a GET request to "/test/endpoint" in the API server
     And I debug API requests
     Then the API server should have 1 received request
+    And the API server should have received 1 request

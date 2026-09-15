@@ -7,7 +7,10 @@ namespace DrevOps\BehatPhpServer\Tests\Unit;
 use Behat\Behat\Hook\Scope\ScenarioScope;
 use Behat\Gherkin\Node\FeatureNode;
 use Behat\Gherkin\Node\ScenarioNode;
+use Behat\Hook\AfterScenario;
+use Behat\Hook\BeforeScenario;
 use DrevOps\BehatPhpServer\PhpServerContext;
+use DrevOps\BehatPhpServer\Tests\Traits\BehatDefinitionTrait;
 use DrevOps\BehatPhpServer\Tests\Traits\ReflectionTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -16,6 +19,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(PhpServerContext::class)]
 class PhpServerContextTest extends TestCase {
 
+  use BehatDefinitionTrait;
   use ReflectionTrait;
 
   /**
@@ -140,10 +144,10 @@ class PhpServerContextTest extends TestCase {
       }
     }
 
-    $context = $this->getMockBuilder(PhpServerContext::class)
+    $context = $this->getStubBuilder(PhpServerContext::class)
       ->disableOriginalConstructor()
       ->onlyMethods(['stop', 'executeCommand', 'printDebug', 'isRunning'])
-      ->getMock();
+      ->getStub();
 
     $this->setProtectedValue($context, 'host', '127.0.0.1');
     $this->setProtectedValue($context, 'port', 8888);
@@ -278,10 +282,10 @@ class PhpServerContextTest extends TestCase {
     bool $expected_result,
     int $expected_pid,
   ): void {
-    $context = $this->getMockBuilder(PhpServerContext::class)
+    $context = $this->getStubBuilder(PhpServerContext::class)
       ->disableOriginalConstructor()
       ->onlyMethods(['processExists', 'terminateProcess', 'isPortInUse', 'freePort', 'printDebug'])
-      ->getMock();
+      ->getStub();
 
     $this->setProtectedValue($context, 'pid', $pid);
     $this->setProtectedValue($context, 'port', 8888);
@@ -378,10 +382,10 @@ class PhpServerContextTest extends TestCase {
    * Test the stop method when an exception is thrown during port check.
    */
   public function testStopWithException(): void {
-    $context = $this->getMockBuilder(PhpServerContext::class)
+    $context = $this->getStubBuilder(PhpServerContext::class)
       ->disableOriginalConstructor()
       ->onlyMethods(['processExists', 'terminateProcess', 'isPortInUse', 'printDebug'])
-      ->getMock();
+      ->getStub();
 
     $this->setProtectedValue($context, 'pid', 12345);
     $this->setProtectedValue($context, 'port', 8888);
@@ -772,13 +776,12 @@ class PhpServerContextTest extends TestCase {
    */
   #[DataProvider('dataProviderProcessExists')]
   public function testProcessExists(int $pid, array $output, bool $expected_result): void {
-    $context = $this->getMockBuilder(PhpServerContext::class)
+    $context = $this->getStubBuilder(PhpServerContext::class)
       ->disableOriginalConstructor()
       ->onlyMethods(['executeCommand', 'printDebug'])
-      ->getMock();
+      ->getStub();
 
-    $context->expects($this->any())
-      ->method('executeCommand')
+    $context->method('executeCommand')
       ->willReturnCallback(function (string $command, array &$output_param) use ($output): bool {
         $output_param = $output;
         return TRUE;
@@ -859,8 +862,7 @@ class PhpServerContextTest extends TestCase {
         );
     }
     else {
-      $context->expects($this->any())
-        ->method('executeCommand')
+      $context->method('executeCommand')
         ->willReturnCallback(function (string $command, array &$output) use ($kill_return_code): bool {
           $output = [];
           return !$kill_return_code;
@@ -1100,10 +1102,10 @@ class PhpServerContextTest extends TestCase {
    */
   #[DataProvider('dataProviderFreePort')]
   public function testFreePort(int $pid, bool $terminated, bool $still_in_use, bool $expected_result): void {
-    $context = $this->getMockBuilder(PhpServerContext::class)
+    $context = $this->getStubBuilder(PhpServerContext::class)
       ->setConstructorArgs([static::getFixturesPath()])
       ->onlyMethods(['getPid', 'terminateProcess', 'isPortInUse'])
-      ->getMock();
+      ->getStub();
 
     $context->method('getPid')->willReturn($pid);
     $context->method('terminateProcess')->willReturn($terminated);
@@ -1151,10 +1153,10 @@ class PhpServerContextTest extends TestCase {
    * Test that an error raised while freeing a port is contained.
    */
   public function testFreePortHandlesFailure(): void {
-    $context = $this->getMockBuilder(PhpServerContext::class)
+    $context = $this->getStubBuilder(PhpServerContext::class)
       ->setConstructorArgs([static::getFixturesPath()])
       ->onlyMethods(['getPid'])
-      ->getMock();
+      ->getStub();
 
     $context->method('getPid')->willThrowException(new \RuntimeException('Unable to inspect the port.'));
 
@@ -1176,7 +1178,7 @@ class PhpServerContextTest extends TestCase {
     $scenario = new ScenarioNode('Test scenario', $scenario_tags, [], 'Scenario', 1);
     $feature = new FeatureNode('Test feature', NULL, $feature_tags, NULL, [$scenario], 'Feature', 'en', NULL, 1);
 
-    $scope = $this->createMock(ScenarioScope::class);
+    $scope = $this->createStub(ScenarioScope::class);
     $scope->method('getScenario')->willReturn($scenario);
     $scope->method('getFeature')->willReturn($feature);
 
@@ -1218,7 +1220,71 @@ class PhpServerContextTest extends TestCase {
         'feature_tags' => ['apiserver'],
         'expected_result' => FALSE,
       ],
+      'prefixed tag on the scenario' => [
+        'scenario_tags' => ['@phpserver'],
+        'feature_tags' => [],
+        'expected_result' => TRUE,
+      ],
+      'prefixed tag on the feature' => [
+        'scenario_tags' => [],
+        'feature_tags' => ['@phpserver'],
+        'expected_result' => TRUE,
+      ],
+      'prefixed tag among other tags' => [
+        'scenario_tags' => ['@smoke', '@phpserver'],
+        'feature_tags' => ['@api'],
+        'expected_result' => TRUE,
+      ],
+      'a different prefixed tag only' => [
+        'scenario_tags' => ['@apiserver'],
+        'feature_tags' => ['@apiserver'],
+        'expected_result' => FALSE,
+      ],
+      'a longer tag containing the name' => [
+        'scenario_tags' => ['@phpserver-extra', 'no-phpserver'],
+        'feature_tags' => ['@my-phpserver'],
+        'expected_result' => FALSE,
+      ],
     ];
+  }
+
+  /**
+   * Test that each hook is declared with its attribute.
+   *
+   * @param string $method
+   *   Hook method name.
+   * @param array<int, array{0: string, 1: array<int|string, mixed>}> $expected_attributes
+   *   Expected attribute class names paired with their arguments.
+   */
+  #[DataProvider('dataProviderHookAttributes')]
+  public function testHookAttributes(string $method, array $expected_attributes): void {
+    $this->assertSame($expected_attributes, static::getMethodAttributes(PhpServerContext::class, $method));
+  }
+
+  /**
+   * Data provider for hook attribute tests.
+   *
+   * @return array<string, array<string, mixed>>
+   *   Test cases.
+   */
+  public static function dataProviderHookAttributes(): array {
+    return [
+      'start the server before each scenario' => [
+        'method' => 'beforeScenarioStartServer',
+        'expected_attributes' => [[BeforeScenario::class, []]],
+      ],
+      'stop the server after each scenario' => [
+        'method' => 'afterScenarioStopServer',
+        'expected_attributes' => [[AfterScenario::class, []]],
+      ],
+    ];
+  }
+
+  /**
+   * Test that the context declares no Behat annotations.
+   */
+  public function testDeclaresNoBehatAnnotations(): void {
+    $this->assertSame([], static::getBehatAnnotations(PhpServerContext::class));
   }
 
 }

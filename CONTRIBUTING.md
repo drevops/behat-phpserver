@@ -20,6 +20,13 @@ There are two suites. PHPUnit covers the classes, and Behat exercises both conte
     composer test
     composer test-bdd
 
+`composer install` sets up Behat 3, which runs the suite from `behat.yml`. To run the suites on Behat 4, which reads `behat.php` instead, switch to it first:
+
+    composer update --with=behat/behat:^4
+    composer test-bdd
+
+`composer update --with=behat/behat:^3` switches back to Behat 3.
+
 To produce coverage reports, run `composer test-coverage`. PHPUnit writes to `.logs/phpunit/` and Behat writes to `.logs/behat/`.
 
 The Behat suite binds real ports, so it can fail on machines where those ports are already in use, or where process handling differs. If a run fails to connect, check that ports 8888 and 8889 are free.
