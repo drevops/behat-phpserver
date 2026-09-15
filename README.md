@@ -340,7 +340,7 @@ An error response carries its message in the status line and in a JSON body, suc
 ]
 ```
 
-`body` must be **base64-encoded** - the server decodes it before replaying the response. The step definitions do this encoding for you, so it only matters when calling the endpoint directly. `code` must be between 100 and 599, `reason` must be a non-empty string, and `headers` must be an object with scalar values. A payload that breaks these rules is refused with `400`.
+`body` must be **base64-encoded** - the server decodes it before replaying the response. The step definitions do this encoding for you, so it only matters when calling the endpoint directly. `code` must be between 100 and 599, `reason` must be a non-empty string, and `headers` must be an object with scalar values. A payload that breaks these rules is refused with `400`, and none of its responses are queued.
 
 ## 🤝 Contributing
 
