@@ -99,7 +99,7 @@ class ApiServerContext extends PhpServerContext {
   }
 
   /**
-   * Check if the API server is running.
+   * Start the API server if it is not running, then check its status.
    */
   #[Given('(the )API server is running')]
   public function apiIsRunning(): void {

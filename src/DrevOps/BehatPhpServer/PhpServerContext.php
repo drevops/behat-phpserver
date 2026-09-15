@@ -92,7 +92,7 @@ class PhpServerContext implements Context {
   }
 
   /**
-   * Start server before each scenario.
+   * Start the server before a scenario tagged for it.
    *
    * @param \Behat\Behat\Hook\Scope\BeforeScenarioScope $scope
    *   Scenario scope.
@@ -105,7 +105,7 @@ class PhpServerContext implements Context {
   }
 
   /**
-   * Stop server after each scenario.
+   * Stop the server after a scenario tagged for it.
    *
    * @param \Behat\Behat\Hook\Scope\AfterScenarioScope $scope
    *   Scenario scope.
@@ -183,7 +183,7 @@ class PhpServerContext implements Context {
    * Stop running server.
    *
    * @return bool
-   *   TRUE if server process was stopped, FALSE otherwise.
+   *   TRUE if the port is free once the server is stopped, FALSE otherwise.
    */
   public function stop(): bool {
     if ($this->pid !== 0 && $this->processExists($this->pid)) {

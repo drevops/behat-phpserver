@@ -4,8 +4,9 @@
  * @file
  * API test server to return queued responses to HTTP requests.
  *
- * Responses can be enqueued via the `/admin/*` endpoints. Requests are
- * recorded automatically as they arrive.
+ * Responses are enqueued through `PUT /admin/responses`. A request to any
+ * path other than the admin endpoints below is recorded and answered with
+ * the next queued response.
  *
  * Supported endpoints:
  * - GET `/admin/status`: Check the server status.
@@ -18,7 +19,7 @@
  *   > X-Received-Requests: 1
  *   > X-Queued-Responses: 0
  *   > Content-Type: application/json
- *   > [{'http_method': 'GET', 'uri': '/', 'headers': {}, 'body': 'string'}]
+ *   > [{'method': 'GET', 'uri': '/', 'headers': {}, 'body': 'string'}]
  *
  * - DELETE `/admin/requests`: Delete all received requests.
  *   > HTTP/1.1 200 OK
@@ -30,22 +31,23 @@
  *   > X-Received-Requests: 0
  *   > X-Queued-Responses: 1
  *   > Content-Type: application/json
- *   > [{'code': 200, 'reason': 'OK', 'headers': {}, 'body': '' }]
+ *   > [{'code': 200, 'reason': 'OK', 'headers': {}, 'body': ''}]
  *
  * - DELETE `/admin/responses`: Delete all queued responses.
  *   > HTTP/1.1 200 OK
  *   > X-Received-Requests: 0
  *   > X-Queued-Responses: 0
  *
- * - PUT `/admin/responses`: Enqueue responses.
+ * - PUT `/admin/responses`: Enqueue the responses in the JSON array sent as
+ *   the request body, such as
+ *   [{'code': 200, 'reason': 'OK', 'headers': {}, 'body': ''}].
  *   > HTTP/1.1 201 Created
  *   > X-Received-Requests: 0
  *   > X-Queued-Responses: 1
- *   > Content-Type: application/json
- *   > [{'code': 200, 'reason': 'OK', 'headers': {}, 'body': '' }, {'code': 404, 'reason': 'Not found', 'headers': {}, 'body': '' }]
  *
  * Any other method on one of these endpoints is refused with `405 Method Not
- * Allowed` and an `Allow` header listing the methods it accepts.
+ * Allowed` and an `Allow` header listing the methods it accepts. A refused
+ * request is not recorded.
  *
  * This file is intended to be lightweight and portable.
  *
