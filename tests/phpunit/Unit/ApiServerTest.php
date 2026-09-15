@@ -513,7 +513,7 @@ class ApiServerTest extends TestCase {
   public function testHandleRequestQueuesResponses(): void {
     $body = json_encode([
       ['code' => 200, 'reason' => 'OK', 'headers' => ['X-Custom' => 'value'], 'body' => base64_encode('first')],
-      ['code' => 404, 'reason' => 'Not found'],
+      ['code' => 404, 'reason' => 'Not found', 'headers' => []],
     ]);
 
     $server = $this->createServer(new Request('PUT', '/admin/responses', [], (string) $body));
@@ -585,6 +585,14 @@ class ApiServerTest extends TestCase {
       'body is a single response object' => [
         'body' => '{"code": 200}',
         'expected_message' => 'Invalid responses JSON payload provided: Expected an array of response objects.',
+      ],
+      'body is an empty JSON object' => [
+        'body' => '{}',
+        'expected_message' => 'Invalid responses JSON payload provided: Expected an array of response objects.',
+      ],
+      'element is an array' => [
+        'body' => '[[]]',
+        'expected_message' => 'Invalid response #1 payload: Response must be an object.',
       ],
       'element is not an object' => [
         'body' => '["not an object"]',
