@@ -2,7 +2,7 @@
 
 ## 2.x to 3.0
 
-**Your `.feature` files don't need to change.** None of the Gherkin step phrases moved, and neither did any of the context option names in `behat.yml` or `behat.php`. Most of what follows is about PHP-level names, so it only affects you if you call the context methods from your own code or subclass a context. There are 3 exceptions: the admin endpoints check the HTTP method, a queued `Content-Type` is kept for JSON bodies, and file responses need `paths` set in your Behat configuration.
+**Your `.feature` files don't need to change.** None of the Gherkin step phrases moved, and neither did any of the context option names in `behat.yml` or `behat.php`. Most of what follows is about PHP-level names, so it only affects you if you call the context methods from your own code or subclass a context. There are 4 exceptions: the admin endpoints check the HTTP method, a queued `Content-Type` is kept for JSON bodies, `API will respond with JSON:` rejects a body that is not valid JSON, and file responses need `paths` set in your Behat configuration.
 
 ### PHP 8.3 or newer is required
 
@@ -33,6 +33,10 @@ The step definitions have always used the supported methods, so this only affect
 ### A queued `Content-Type` is kept for JSON bodies
 
 The server replaced a queued `Content-Type` with `application/json` whenever the body parsed as JSON, so a `.txt` fixture holding JSON was served as `application/json`. It now sends the queued `Content-Type`, and sets `application/json` only when none was queued.
+
+### `API will respond with JSON:` rejects a body that is not valid JSON
+
+The step queued a `null` body when its JSON did not parse, so the step passed and the mistake only surfaced in the response. It now throws an `\InvalidArgumentException` and queues nothing. Correct the JSON in any step that starts to fail.
 
 ### Step methods on `ApiServerContext` were renamed
 
