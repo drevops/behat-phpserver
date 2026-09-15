@@ -38,12 +38,12 @@ The server replaced a queued `Content-Type` with `application/json` whenever the
 
 The class spelled the same idea 4 different ways: an `api` prefix on 5 methods, an `Api` suffix on 1, an `Api` infix on 1, and an `assert` prefix on 2. They all now follow one rule - the method name is the step phrase in camelCase, with the `API` token folded into a leading `api` prefix.
 
-| Old method                      | New method                       | Step phrase (unchanged)                                  |
-|---------------------------------|----------------------------------|----------------------------------------------------------|
-| `resetApi()`                    | `apiIsReset()`                   | `the API server is reset`                                 |
-| `debugApiRequests()`            | `apiDebugRequests()`             | `I debug API requests`                                    |
-| `assertQueuedResponsesCount()`  | `apiShouldHaveQueuedResponses()` | `the API server should have :count queued response(s)`    |
-| `assertReceivedRequestsCount()` | `apiShouldHaveReceivedRequests()`| `the API server should have :count received request(s)`   |
+| Old method                      | New method                        | Step phrase (unchanged)                                 |
+|---------------------------------|-----------------------------------|---------------------------------------------------------|
+| `resetApi()`                    | `apiIsReset()`                    | `the API server is reset`                               |
+| `debugApiRequests()`            | `apiDebugRequests()`              | `I debug API requests`                                  |
+| `assertQueuedResponsesCount()`  | `apiShouldHaveQueuedResponses()`  | `the API server should have :count queued response(s)`  |
+| `assertReceivedRequestsCount()` | `apiShouldHaveReceivedRequests()` | `the API server should have :count received request(s)` |
 
 The other 5 step methods - `apiIsRunning()`, `apiHasNoResponses()`, `apiWillRespondWith()`, `apiWillRespondWithJson()` and `apiWillRespondWithFile()` - already followed the rule and kept their names.
 
