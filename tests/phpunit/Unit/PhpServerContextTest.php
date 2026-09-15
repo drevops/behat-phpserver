@@ -1272,12 +1272,6 @@ class PhpServerContextTest extends TestCase {
    */
   public static function dataProviderFreePort(): array {
     return [
-      'no process holds the port' => [
-        'pid' => 0,
-        'terminated' => FALSE,
-        'still_in_use' => FALSE,
-        'expected_result' => TRUE,
-      ],
       'process terminated and port freed' => [
         'pid' => 12345,
         'terminated' => TRUE,

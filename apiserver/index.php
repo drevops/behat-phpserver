@@ -269,7 +269,7 @@ class ApiServer {
   }
 
   /**
-   * Send the response.
+   * Send the response with the request and queue counts in its headers.
    *
    * @param \DrevOps\BehatPhpServer\ApiServer\Response $response
    *   The response object.
