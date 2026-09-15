@@ -73,7 +73,7 @@ class PhpServerContext implements Context {
     ?int $connection_timeout = NULL,
     ?int $retry_delay = NULL,
   ) {
-    if (!file_exists($this->webroot)) {
+    if (!is_dir($this->webroot)) {
       throw new \RuntimeException(sprintf('"webroot" directory %s does not exist.', $this->webroot));
     }
 

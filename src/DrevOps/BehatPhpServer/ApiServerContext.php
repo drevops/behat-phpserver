@@ -283,7 +283,7 @@ class ApiServerContext extends PhpServerContext {
     foreach ($this->fixturesPaths as $fixtures_path) {
       $path = $fixtures_path . '/' . $file_path;
 
-      if (file_exists($path)) {
+      if (is_file($path)) {
         $absolute_path = $path;
         break;
       }

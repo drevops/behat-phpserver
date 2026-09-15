@@ -1103,11 +1103,35 @@ class PhpServerContextTest extends TestCase {
     $this->assertEquals(500, static::getProtectedValue($context, 'retryDelay'));
   }
 
-  public function testConstructorThrowsWhenWebrootMissing(): void {
+  /**
+   * Test that a webroot that is not a directory is refused.
+   *
+   * @param string $webroot
+   *   The webroot passed to the constructor.
+   */
+  #[DataProvider('dataProviderConstructorThrowsWhenWebrootMissing')]
+  public function testConstructorThrowsWhenWebrootMissing(string $webroot): void {
     $this->expectException(\RuntimeException::class);
-    $this->expectExceptionMessage('"webroot" directory /nonexistent/webroot does not exist');
+    $this->expectExceptionMessage(sprintf('"webroot" directory %s does not exist.', $webroot));
 
-    new PhpServerContext('/nonexistent/webroot');
+    new PhpServerContext($webroot);
+  }
+
+  /**
+   * Data provider for testConstructorThrowsWhenWebrootMissing().
+   *
+   * @return array<string, array<string, string>>
+   *   Test cases.
+   */
+  public static function dataProviderConstructorThrowsWhenWebrootMissing(): array {
+    return [
+      'missing path' => [
+        'webroot' => '/nonexistent/webroot',
+      ],
+      'file' => [
+        'webroot' => __FILE__,
+      ],
+    ];
   }
 
   /**

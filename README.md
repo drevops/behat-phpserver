@@ -136,7 +136,7 @@ The option names are the same in both formats, so the table below covers either 
 
 | Option               | Default                      | Description                                                                 |
 |----------------------|------------------------------|-----------------------------------------------------------------------------|
-| `webroot`            | See below                    | Document root the server serves from. Must exist, or the constructor throws. |
+| `webroot`            | See below                    | Document root the server serves from. Must be an existing directory, or the constructor throws. |
 | `host`               | `127.0.0.1`                  | Server host.                                                                |
 | `port`               | `8888`                       | Server port.                                                                |
 | `protocol`           | `http`                       | Server protocol, used to build the server URL.                              |
