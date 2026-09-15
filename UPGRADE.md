@@ -67,6 +67,16 @@ parent::__construct(paths: '8888');
 
 Elements *inside* a `paths` list are still cast to string, so a list with an unquoted number in it keeps working.
 
+### `ApiServerContext` has no default `paths`
+
+Leaving `paths` out used to search `<webroot>/../tests/behat/fixtures`, and with the bundled `webroot` that's a directory the installed package doesn't include. There's no default now. Set `paths` to use `API will respond with file`, which otherwise throws and asks for the option.
+
+### `PhpServerContext` requires `webroot`
+
+`$webroot` is now a required `string` on `PhpServerContext::__construct()`, and the `PhpServerContext::DEFAULT_WEBROOT` constant is gone. The constant named a directory that doesn't exist, so leaving `webroot` out already threw, and working configurations don't change. Behat now reports the missing option by name.
+
+`ApiServerContext` keeps its default, the bundled `apiserver` directory.
+
 ### `PhpServerContext::debug()` is now `printDebug()`
 
 `PhpServerContext` had a `$debug` constructor option and a `debug()` method sitting next to each other, and `$this->debug` and `$this->debug()` differ only by the parentheses. The method is now `printDebug()`.

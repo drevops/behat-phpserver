@@ -319,25 +319,14 @@ class ApiServerContextTest extends TestCase {
    *
    * @param array<string>|string|null $paths
    *   Fixture paths to test.
-   * @param array<string>|callable $expected_paths
-   *   Expected fixture paths or a callback that returns expected paths.
+   * @param array<string> $expected_paths
+   *   Expected fixture paths.
    */
   #[DataProvider('dataProviderConstructorFixturesPaths')]
-  public function testConstructorFixturesPaths(array|string|null $paths, mixed $expected_paths): void {
-    $webroot = sys_get_temp_dir() . '/test_webroot_' . uniqid();
-    mkdir($webroot, 0777, TRUE);
+  public function testConstructorFixturesPaths(array|string|null $paths, array $expected_paths): void {
+    $context = new ApiServerContext(paths: $paths);
 
-    $context = new ApiServerContext($webroot, '127.0.0.1', 8888, 'http', FALSE, NULL, NULL, $paths);
-
-    $result = self::getProtectedValue($context, 'fixturesPaths');
-
-    if (is_callable($expected_paths)) {
-      $expected_paths = $expected_paths($webroot);
-    }
-
-    $this->assertEquals($expected_paths, $result);
-
-    rmdir($webroot);
+    $this->assertSame($expected_paths, self::getProtectedValue($context, 'fixturesPaths'));
   }
 
   /**
@@ -348,9 +337,9 @@ class ApiServerContextTest extends TestCase {
    */
   public static function dataProviderConstructorFixturesPaths(): array {
     return [
-      'default path (null)' => [
+      'no paths' => [
         'paths' => NULL,
-        'expected_paths' => fn($webroot): array => [dirname($webroot) . '/tests/behat/fixtures'],
+        'expected_paths' => [],
       ],
       'string path' => [
         'paths' => '/path/to/fixtures',
@@ -360,17 +349,55 @@ class ApiServerContextTest extends TestCase {
         'paths' => ['/path/to/fixtures1', '/path/to/fixtures2'],
         'expected_paths' => ['/path/to/fixtures1', '/path/to/fixtures2'],
       ],
-      'empty array (fallback to default)' => [
+      'empty array' => [
         'paths' => [],
-        'expected_paths' => fn($webroot): array => [dirname($webroot) . '/tests/behat/fixtures'],
+        'expected_paths' => [],
       ],
-      'empty string (fallback to default)' => [
+      'empty string' => [
         'paths' => '',
-        'expected_paths' => fn($webroot): array => [dirname($webroot) . '/tests/behat/fixtures'],
+        'expected_paths' => [],
       ],
       'numeric string path' => [
         'paths' => '123',
         'expected_paths' => ['123'],
+      ],
+    ];
+  }
+
+  /**
+   * Test that the webroot falls back to the bundled API server directory.
+   *
+   * @param string|null $webroot
+   *   Webroot passed to the constructor.
+   * @param string $expected_webroot
+   *   Expected webroot.
+   */
+  #[DataProvider('dataProviderConstructorWebroot')]
+  public function testConstructorWebroot(?string $webroot, string $expected_webroot): void {
+    $context = new ApiServerContext($webroot);
+
+    $this->assertSame($expected_webroot, self::getProtectedValue($context, 'webroot'));
+  }
+
+  /**
+   * Data provider for testConstructorWebroot.
+   *
+   * @return array<string, array<string, string|null>>
+   *   Test cases.
+   */
+  public static function dataProviderConstructorWebroot(): array {
+    return [
+      'not set' => [
+        'webroot' => NULL,
+        'expected_webroot' => ApiServerContext::DEFAULT_WEBROOT,
+      ],
+      'empty' => [
+        'webroot' => '',
+        'expected_webroot' => ApiServerContext::DEFAULT_WEBROOT,
+      ],
+      'custom' => [
+        'webroot' => __DIR__,
+        'expected_webroot' => __DIR__,
       ],
     ];
   }
@@ -812,6 +839,19 @@ class ApiServerContextTest extends TestCase {
     $queued = $this->decodeQueuedResponse($this->getHistoryRequest($history, 0));
 
     $this->assertEquals(404, $queued['code']);
+  }
+
+  /**
+   * Test that a file response without fixture paths is reported.
+   */
+  public function testApiWillRespondWithFileThrowsWithoutPaths(): void {
+    $history = new \ArrayObject();
+    $context = $this->createContextWithClient([], $history);
+
+    $this->expectException(\RuntimeException::class);
+    $this->expectExceptionMessage('File "test_data.json" cannot be found because no fixture paths are configured. Set the "paths" option of the context.');
+
+    $context->apiWillRespondWithFile('test_data.json');
   }
 
   /**
