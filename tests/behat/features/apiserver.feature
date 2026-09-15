@@ -236,7 +236,7 @@ Feature: API Server
     When I send a GET request to "/"
     Then the response status code should be 202
     And the response should be HTML
-    And the response header "Content-Type" should contain "text/html"
+    And the response header should contain "Content-Type" with value "text/html"
 
   Scenario: API server responds with file from primary fixtures path
     Given API server is running
@@ -254,7 +254,7 @@ Feature: API Server
     When I send a GET request to "/"
     Then the response status code should be 200
     And the response should contain "sample text file in the secondary fixtures directory"
-    And the response header "Content-Type" should contain "text/plain"
+    And the response header should contain "Content-Type" with value "text/plain"
 
   #
   # Admin operations

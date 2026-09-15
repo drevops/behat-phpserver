@@ -74,7 +74,7 @@ class FeatureContext extends MinkContext implements Context {
    * Assert that a response header contains a value, ignoring case.
    */
   #[Then('the response header should contain :name with value :value')]
-  public function responseHeaderContains(string $name, string $value): void {
+  public function theResponseHeaderShouldContain(string $name, string $value): void {
     $actual = (string) $this->getSession()->getResponseHeader($name);
     $message = sprintf('The header "%s" does not contain the value "%s", but has a value of "%s".', $name, $value, $actual);
 
@@ -100,7 +100,7 @@ class FeatureContext extends MinkContext implements Context {
    * Send a GET request to the API server.
    */
   #[When('I send a GET request to :path')]
-  public function sendGetRequestToPath(string $path): void {
+  public function sendGetRequestToApiServer(string $path): void {
     $this->sendRequestToApiServer('GET', $path);
   }
 
@@ -113,19 +113,6 @@ class FeatureContext extends MinkContext implements Context {
     $message = sprintf('The header "%s" does not have the value "%s", but has a value of "%s".', $name, $value, $actual);
 
     if ($actual !== $value) {
-      throw new \Exception($message);
-    }
-  }
-
-  /**
-   * Assert that a response header contains a value.
-   */
-  #[Then('the response header :name should contain :value')]
-  public function theResponseHeaderShouldContain(string $name, string $value): void {
-    $actual = (string) $this->getSession()->getResponseHeader($name);
-    $message = sprintf('The header "%s" does not contain the value "%s", but has a value of "%s".', $name, $value, $actual);
-
-    if (!str_contains($actual, $value)) {
       throw new \Exception($message);
     }
   }
