@@ -378,21 +378,37 @@ class Response {
   ) {
     if (is_scalar($body)) {
       $this->body = (string) $body;
-
-      if (static::isJson($this->body)) {
-        $this->headers['Content-Type'] = 'application/json';
-      }
+      $is_json = static::isJson($this->body);
     }
     else {
       // $body may hold bytes that are not valid UTF-8. json_encode() returns
       // FALSE for invalid UTF-8, and FALSE casts to an empty body.
       $this->body = (string) json_encode($body, JSON_INVALID_UTF8_SUBSTITUTE);
+      $is_json = TRUE;
+    }
+
+    if ($is_json && !$this->hasHeader('Content-Type')) {
       $this->headers['Content-Type'] = 'application/json';
     }
 
     if ($this->body !== '') {
       $this->headers['Content-Length'] = (string) strlen($this->body);
     }
+  }
+
+  /**
+   * Check whether a header is set, ignoring the case of its name.
+   *
+   * @param string $name
+   *   The header name.
+   *
+   * @return bool
+   *   TRUE if the header is set, FALSE otherwise.
+   */
+  protected function hasHeader(string $name): bool {
+    $header_names = array_map(strtolower(...), array_keys($this->headers));
+
+    return in_array(strtolower($name), $header_names, TRUE);
   }
 
   /**

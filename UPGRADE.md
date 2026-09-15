@@ -30,6 +30,10 @@ An unexpected method on `/admin/requests` or `/admin/responses` used to fall thr
 
 The step definitions have always used the supported methods, so this only affects code that calls the endpoints directly.
 
+### A queued `Content-Type` is kept for JSON bodies
+
+The server replaced a queued `Content-Type` with `application/json` whenever the body parsed as JSON, so a `.txt` fixture holding JSON was served as `application/json`. It now sends the queued `Content-Type`, and sets `application/json` only when none was queued.
+
 ### Step methods on `ApiServerContext` were renamed
 
 The class spelled the same idea 4 different ways: an `api` prefix on 5 methods, an `Api` suffix on 1, an `Api` infix on 1, and an `assert` prefix on 2. They all now follow one rule - the method name is the step phrase in camelCase, with the `API` token folded into a leading `api` prefix.

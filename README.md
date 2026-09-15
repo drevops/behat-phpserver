@@ -251,8 +251,6 @@ See the [test feature](tests/behat/features/apiserver.feature) for worked exampl
 | `.txt`           | `text/plain`               |
 | anything else    | `application/octet-stream` |
 
-A file whose content is valid JSON is served as `application/json`, whatever its extension.
-
 ### Accessing the server URL from your own context
 
 To point an API client at the running server, read the URL in a `#[BeforeScenario]` hook:

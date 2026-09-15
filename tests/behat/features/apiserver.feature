@@ -189,6 +189,24 @@ Feature: API Server
     And the API server should have 2 received requests
     And the API server should have 0 responses queued
 
+  Scenario: A queued content type is kept for a JSON body
+    Given API server is running
+    And API server is reset
+    And the API will respond with:
+      """
+      {
+        "code": 200,
+        "headers": {
+          "Content-Type": "text/plain"
+        },
+        "body": "42"
+      }
+      """
+    When I send a GET request to "/someurl" in the API server
+    Then the response status code should be 200
+    And the response header should contain "Content-Type" with value "text/plain"
+    And the response should contain "42"
+
   Scenario: API server responds with JSON file content
     Given API server is running
     And API server is reset
