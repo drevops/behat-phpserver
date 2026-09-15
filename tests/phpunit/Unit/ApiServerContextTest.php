@@ -16,11 +16,17 @@ use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
 use GuzzleHttp\Psr7\Response;
+use GuzzleHttp\RequestOptions;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\RequestInterface;
 
+/**
+ * Tests the API server context.
+ *
+ * @phpstan-type HistoryTransaction array{request: \Psr\Http\Message\RequestInterface, response: \Psr\Http\Message\ResponseInterface|null, error: mixed, options: array<array-key, mixed>}
+ */
 #[CoversClass(ApiServerContext::class)]
 class ApiServerContextTest extends TestCase {
 
@@ -28,15 +34,19 @@ class ApiServerContextTest extends TestCase {
   use ReflectionTrait;
 
   /**
-   * Test createHttpClient method.
+   * Test that the created client applies its options to a request.
    *
    * @param string $server_url
    *   Server URL to mock.
    * @param array<string, mixed> $additional_options
    *   Additional options for client.
+   * @param string $expected_uri
+   *   The URI the request is expected to be sent to.
+   * @param array<string, mixed> $expected_options
+   *   Request options expected to reach the handler.
    */
   #[DataProvider('dataProviderCreateHttpClient')]
-  public function testCreateHttpClient(string $server_url, array $additional_options): void {
+  public function testCreateHttpClient(string $server_url, array $additional_options, string $expected_uri, array $expected_options): void {
     $context = $this->getMockBuilder(ApiServerContext::class)
       ->disableOriginalConstructor()
       ->onlyMethods(['getServerUrl'])
@@ -46,9 +56,24 @@ class ApiServerContextTest extends TestCase {
       ->method('getServerUrl')
       ->willReturn($server_url);
 
-    $client = static::callProtectedMethod($context, 'createHttpClient', [$additional_options]);
+    $history = new \ArrayObject();
+    $options = ['handler' => $this->createHandlerStack([new Response(500)], $history)] + $additional_options;
+
+    $client = static::callProtectedMethod($context, 'createHttpClient', [$options]);
 
     $this->assertInstanceOf(Client::class, $client);
+
+    $response = $client->request('GET', '/admin/status');
+
+    $this->assertSame(500, $response->getStatusCode());
+    $this->assertSame($expected_uri, (string) $this->getHistoryRequest($history, 0)->getUri());
+
+    $sent_options = $this->getHistoryTransaction($history, 0)['options'];
+
+    foreach ($expected_options as $name => $expected) {
+      $this->assertArrayHasKey($name, $sent_options);
+      $this->assertSame($expected, $sent_options[$name]);
+    }
   }
 
   /**
@@ -59,13 +84,39 @@ class ApiServerContextTest extends TestCase {
    */
   public static function dataProviderCreateHttpClient(): array {
     return [
-      'simple URL' => [
+      'defaults' => [
         'server_url' => 'http://test.example',
         'additional_options' => [],
+        'expected_uri' => 'http://test.example/admin/status',
+        'expected_options' => [
+          RequestOptions::HTTP_ERRORS => FALSE,
+          RequestOptions::CONNECT_TIMEOUT => ApiServerContext::DEFAULT_CONNECT_TIMEOUT,
+          RequestOptions::TIMEOUT => ApiServerContext::DEFAULT_REQUEST_TIMEOUT,
+          RequestOptions::READ_TIMEOUT => ApiServerContext::DEFAULT_READ_TIMEOUT,
+        ],
       ],
-      'with additional options' => [
+      'additional option' => [
         'server_url' => 'https://test.example',
-        'additional_options' => ['verify' => FALSE],
+        'additional_options' => [RequestOptions::VERIFY => FALSE],
+        'expected_uri' => 'https://test.example/admin/status',
+        'expected_options' => [
+          RequestOptions::HTTP_ERRORS => FALSE,
+          RequestOptions::CONNECT_TIMEOUT => ApiServerContext::DEFAULT_CONNECT_TIMEOUT,
+          RequestOptions::TIMEOUT => ApiServerContext::DEFAULT_REQUEST_TIMEOUT,
+          RequestOptions::READ_TIMEOUT => ApiServerContext::DEFAULT_READ_TIMEOUT,
+          RequestOptions::VERIFY => FALSE,
+        ],
+      ],
+      'additional option replaces a default' => [
+        'server_url' => 'http://test.example',
+        'additional_options' => [RequestOptions::TIMEOUT => 30],
+        'expected_uri' => 'http://test.example/admin/status',
+        'expected_options' => [
+          RequestOptions::HTTP_ERRORS => FALSE,
+          RequestOptions::CONNECT_TIMEOUT => ApiServerContext::DEFAULT_CONNECT_TIMEOUT,
+          RequestOptions::TIMEOUT => 30,
+          RequestOptions::READ_TIMEOUT => ApiServerContext::DEFAULT_READ_TIMEOUT,
+        ],
       ],
     ];
   }
@@ -339,7 +390,7 @@ class ApiServerContextTest extends TestCase {
    *
    * @param array<int, \GuzzleHttp\Psr7\Response> $queue
    *   Responses to return, in the order they are requested.
-   * @param \ArrayObject<int, array> $history
+   * @param \ArrayObject<int, HistoryTransaction> $history
    *   Populated with the transactions the client performed.
    * @param string[] $fixtures_paths
    *   Fixture paths to configure on the context.
@@ -363,7 +414,7 @@ class ApiServerContextTest extends TestCase {
    *
    * @param array<int, \GuzzleHttp\Psr7\Response> $queue
    *   Responses to return, in the order they are requested.
-   * @param \ArrayObject<int, array> $history
+   * @param \ArrayObject<int, HistoryTransaction> $history
    *   Populated with the transactions the client performed.
    *
    * @return \PHPUnit\Framework\MockObject\MockObject&\DrevOps\BehatPhpServer\ApiServerContext
@@ -387,18 +438,15 @@ class ApiServerContextTest extends TestCase {
    *   Context to configure.
    * @param array<int, \GuzzleHttp\Psr7\Response> $queue
    *   Responses to return, in the order they are requested.
-   * @param \ArrayObject<int, array> $history
+   * @param \ArrayObject<int, HistoryTransaction> $history
    *   Populated with the transactions the client performed.
    * @param string[] $fixtures_paths
    *   Fixture paths to configure on the context.
    */
   protected function replaceClient(ApiServerContext $context, array $queue, \ArrayObject $history, array $fixtures_paths = []): void {
-    $stack = HandlerStack::create(new MockHandler($queue));
-    $stack->push(Middleware::history($history));
-
     // Mirror the production client, which reports failures through the status
     // code rather than by throwing.
-    $client = new Client(['handler' => $stack, 'http_errors' => FALSE]);
+    $client = new Client(['handler' => $this->createHandlerStack($queue, $history), 'http_errors' => FALSE]);
 
     static::setProtectedValue($context, 'client', $client);
     static::setProtectedValue($context, 'debug', FALSE);
@@ -406,9 +454,48 @@ class ApiServerContextTest extends TestCase {
   }
 
   /**
+   * Create a handler stack that returns canned responses and records history.
+   *
+   * @param array<int, \GuzzleHttp\Psr7\Response> $queue
+   *   Responses to return, in the order they are requested.
+   * @param \ArrayObject<int, HistoryTransaction> $history
+   *   Populated with the transactions the client performed.
+   *
+   * @return \GuzzleHttp\HandlerStack<callable(\Psr\Http\Message\RequestInterface, array<array-key, mixed>): \GuzzleHttp\Promise\PromiseInterface<\Psr\Http\Message\ResponseInterface, mixed>>
+   *   The handler stack.
+   */
+  protected function createHandlerStack(array $queue, \ArrayObject $history): HandlerStack {
+    $stack = HandlerStack::create(new MockHandler($queue));
+    $stack->push(Middleware::history($history));
+
+    return $stack;
+  }
+
+  /**
+   * Get the transaction recorded at the given position of the client history.
+   *
+   * @param \ArrayObject<int, HistoryTransaction> $history
+   *   Transactions recorded by the client.
+   * @param int $index
+   *   Position to read.
+   *
+   * @return HistoryTransaction
+   *   The recorded transaction.
+   */
+  protected function getHistoryTransaction(\ArrayObject $history, int $index): array {
+    $transaction = $history[$index] ?? NULL;
+
+    if ($transaction === NULL) {
+      $this->fail(sprintf('No transaction was recorded at position %d.', $index));
+    }
+
+    return $transaction;
+  }
+
+  /**
    * Get the request recorded at the given position of the client history.
    *
-   * @param \ArrayObject<int, array> $history
+   * @param \ArrayObject<int, HistoryTransaction> $history
    *   Transactions recorded by the client.
    * @param int $index
    *   Position to read.
@@ -417,19 +504,7 @@ class ApiServerContextTest extends TestCase {
    *   The recorded request.
    */
   protected function getHistoryRequest(\ArrayObject $history, int $index): RequestInterface {
-    $transaction = $history[$index] ?? NULL;
-
-    if ($transaction === NULL) {
-      $this->fail(sprintf('No transaction was recorded at position %d.', $index));
-    }
-
-    $request = $transaction['request'] ?? NULL;
-
-    if (!$request instanceof RequestInterface) {
-      $this->fail(sprintf('Transaction %d does not carry a request.', $index));
-    }
-
-    return $request;
+    return $this->getHistoryTransaction($history, $index)['request'];
   }
 
   /**
