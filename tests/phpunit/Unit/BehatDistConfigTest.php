@@ -23,7 +23,7 @@ class BehatDistConfigTest extends TestCase {
   }
 
   /**
-   * Test that the dist configuration sets every constructor option of a context.
+   * Test that the dist configuration sets every context constructor option.
    *
    * @param class-string $class
    *   The context class.

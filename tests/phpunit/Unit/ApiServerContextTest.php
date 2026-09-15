@@ -460,7 +460,7 @@ class ApiServerContextTest extends TestCase {
   }
 
   /**
-   * Replace the HTTP client of a context with one that returns canned responses.
+   * Replace the context's HTTP client with one that returns canned responses.
    *
    * @param \DrevOps\BehatPhpServer\ApiServerContext $context
    *   Context to configure.

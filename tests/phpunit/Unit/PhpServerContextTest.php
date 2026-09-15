@@ -830,7 +830,8 @@ class PhpServerContextTest extends TestCase {
    * @param bool $process_exists
    *   Whether the process exists before termination.
    * @param int|array<int> $kill_return_code
-   *   The return code of the kill command(s). Can be an array for testing multiple commands.
+   *   The return code of the kill command(s). Can be an array for testing
+   *   multiple commands.
    * @param bool $process_exists_after
    *   Whether the process still exists after termination.
    * @param bool $expected_result
