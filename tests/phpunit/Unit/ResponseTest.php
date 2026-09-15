@@ -106,4 +106,67 @@ class ResponseTest extends TestCase {
     ];
   }
 
+  /**
+   * Test that a JSON body sets the content type unless one is already set.
+   *
+   * @param array<string, string> $headers
+   *   Headers passed to the response.
+   * @param mixed $body
+   *   Body passed to the response.
+   * @param array<string, string> $expected_headers
+   *   Expected response headers.
+   */
+  #[DataProvider('dataProviderContentType')]
+  public function testContentType(array $headers, mixed $body, array $expected_headers): void {
+    $response = new Response(200, 'OK', $headers, $body);
+
+    $this->assertSame($expected_headers, $response->headers);
+  }
+
+  /**
+   * Data provider for testContentType().
+   *
+   * @return array<string, array<string, mixed>>
+   *   Test cases.
+   */
+  public static function dataProviderContentType(): array {
+    return [
+      'empty body' => [
+        'headers' => [],
+        'body' => '',
+        'expected_headers' => [],
+      ],
+      'text body' => [
+        'headers' => [],
+        'body' => 'hello',
+        'expected_headers' => ['Content-Length' => '5'],
+      ],
+      'JSON text body' => [
+        'headers' => [],
+        'body' => '{"key":"value"}',
+        'expected_headers' => ['Content-Type' => 'application/json', 'Content-Length' => '15'],
+      ],
+      'JSON text body with a content type' => [
+        'headers' => ['Content-Type' => 'text/plain'],
+        'body' => '42',
+        'expected_headers' => ['Content-Type' => 'text/plain', 'Content-Length' => '2'],
+      ],
+      'JSON text body with a lowercase content type' => [
+        'headers' => ['content-type' => 'text/plain'],
+        'body' => '42',
+        'expected_headers' => ['content-type' => 'text/plain', 'Content-Length' => '2'],
+      ],
+      'array body' => [
+        'headers' => [],
+        'body' => ['key' => 'value'],
+        'expected_headers' => ['Content-Type' => 'application/json', 'Content-Length' => '15'],
+      ],
+      'array body with a content type' => [
+        'headers' => ['Content-Type' => 'application/problem+json'],
+        'body' => ['key' => 'value'],
+        'expected_headers' => ['Content-Type' => 'application/problem+json', 'Content-Length' => '15'],
+      ],
+    ];
+  }
+
 }
