@@ -111,7 +111,7 @@ class ApiServerContext extends PhpServerContext {
     $response = $this->client->request('GET', '/admin/status');
 
     if ($response->getStatusCode() !== 200) {
-      throw new \Exception('API server is not up.');
+      throw new \RuntimeException('API server is not up.');
     }
   }
 
@@ -410,6 +410,11 @@ class ApiServerContext extends PhpServerContext {
   #[Then('(the )API server should have :count response(s) queued')]
   public function apiShouldHaveQueuedResponses(string $count): void {
     $response = $this->client->request('GET', '/admin/status');
+
+    if ($response->getStatusCode() !== 200) {
+      throw new \RuntimeException('Failed to fetch the API server status.');
+    }
+
     $queued_responses = $response->getHeaderLine('X-Queued-Responses');
 
     if ($queued_responses !== $count) {
@@ -429,6 +434,11 @@ class ApiServerContext extends PhpServerContext {
   #[Then('(the )API server should have :count received request(s)')]
   public function apiShouldHaveReceivedRequests(string $count): void {
     $response = $this->client->request('GET', '/admin/status');
+
+    if ($response->getStatusCode() !== 200) {
+      throw new \RuntimeException('Failed to fetch the API server status.');
+    }
+
     $received_requests = $response->getHeaderLine('X-Received-Requests');
 
     if ($received_requests !== $count) {

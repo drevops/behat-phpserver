@@ -671,8 +671,8 @@ class ApiServerContextTest extends TestCase {
     $context = $this->createMockContextWithClient([new Response(503)]);
     $context->expects($this->once())->method('isRunning')->willReturn(TRUE);
 
-    $this->expectException(\Exception::class);
-    $this->expectExceptionMessage('API server is not up');
+    $this->expectException(\RuntimeException::class);
+    $this->expectExceptionMessage('API server is not up.');
 
     $context->apiIsRunning();
   }
@@ -994,6 +994,18 @@ class ApiServerContextTest extends TestCase {
   }
 
   /**
+   * Test that a failure to fetch the queued response count is reported.
+   */
+  public function testApiShouldHaveQueuedResponsesThrowsOnFailure(): void {
+    $context = $this->createContextWithClient([new Response(500)]);
+
+    $this->expectException(\RuntimeException::class);
+    $this->expectExceptionMessage('Failed to fetch the API server status.');
+
+    $context->apiShouldHaveQueuedResponses('0');
+  }
+
+  /**
    * Test asserting the number of received requests.
    *
    * @param string $header_value
@@ -1041,6 +1053,18 @@ class ApiServerContextTest extends TestCase {
         'expect_exception' => TRUE,
       ],
     ];
+  }
+
+  /**
+   * Test that a failure to fetch the received request count is reported.
+   */
+  public function testApiShouldHaveReceivedRequestsThrowsOnFailure(): void {
+    $context = $this->createContextWithClient([new Response(500)]);
+
+    $this->expectException(\RuntimeException::class);
+    $this->expectExceptionMessage('Failed to fetch the API server status.');
+
+    $context->apiShouldHaveReceivedRequests('0');
   }
 
   /**
