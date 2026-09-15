@@ -571,18 +571,25 @@ class PhpServerContext implements Context {
       return [];
     }
 
+    // grep matches the port as a substring, so ':80' also matches ':8080'.
+    $port_pattern = '/:' . $port . '(?!\d)/';
+
     $output = [];
     $this->executeCommand($command, $output);
+    $lines = preg_grep($port_pattern, $output) ?: [];
 
-    if (empty($output)) {
+    if ($lines === []) {
       // The process may be in another state, so retry without the LISTEN
       // filter.
       $command = str_replace(" | grep 'LISTEN'", '', $command);
       $this->printDebug(sprintf('No LISTEN processes found, retrying with command: %s', $command));
+
+      $output = [];
       $this->executeCommand($command, $output);
+      $lines = preg_grep($port_pattern, $output) ?: [];
     }
 
-    if (empty($output)) {
+    if ($lines === []) {
       $this->printDebug(sprintf('No processes found on port %d', $port));
 
       return [];
@@ -590,7 +597,7 @@ class PhpServerContext implements Context {
 
     $processes = [];
 
-    foreach ($output as $i => $line) {
+    foreach (array_values($lines) as $i => $line) {
       $this->printDebug(sprintf('Found process %d: %s', $i + 1, $line));
       $processes[] = explode(' ', trim((string) preg_replace('/\s+/', ' ', $line)));
     }
