@@ -39,68 +39,110 @@ class ResponseTest extends TestCase {
   /**
    * Data provider for testFromArray().
    *
-   * @return array<array<mixed>>
-   *   The test data.
+   * @return array<string, array<string, mixed>>
+   *   Test cases.
    */
   public static function dataProviderFromArray(): array {
     return [
-      // Valid data.
-      [['code' => 200], new Response(), NULL],
-      [['code' => 404], new Response(404), NULL],
-      [['code' => 200, 'reason' => 'OK'], new Response(200, 'OK'), NULL],
-
-      [
-        ['code' => 200, 'reason' => 'OK', 'body' => base64_encode((string) json_encode(['key' => 'value']))],
-        new Response(200, 'OK', [], ['key' => 'value']),
-        NULL,
+      'code only' => [
+        'data' => ['code' => 200],
+        'expected_response' => new Response(),
       ],
-
-      [['code' => 500], new Response(500), NULL],
-      [['code' => 500, 'reason' => 'Custom error'], new Response(500, 'Custom error'), NULL],
-
-      [
-        ['code' => 200, 'reason' => 'OK', 'headers' => ['Content-Type' => 'application/json']],
-        new Response(200, 'OK', ['Content-Type' => 'application/json']),
-        NULL,
+      'client error code' => [
+        'data' => ['code' => 404],
+        'expected_response' => new Response(404),
       ],
-
-      [
-        ['code' => 200, 'reason' => 'OK', 'headers' => ['Content-Type' => 'application/json'], 'body' => ''],
-        new Response(200, 'OK', ['Content-Type' => 'application/json'], ''),
-        NULL,
+      'code and reason' => [
+        'data' => ['code' => 200, 'reason' => 'OK'],
+        'expected_response' => new Response(200, 'OK'),
       ],
-
-      [
-        ['code' => 200, 'reason' => 'OK', 'headers' => ['customheader' => 'customheadervalue'], 'body' => base64_encode('Hello, World!')],
-        new Response(200, 'OK', ['customheader' => 'customheadervalue', 'Content-Length' => '7'], 'Hello, World!'),
-        NULL,
+      'encoded JSON body' => [
+        'data' => ['code' => 200, 'reason' => 'OK', 'body' => base64_encode((string) json_encode(['key' => 'value']))],
+        'expected_response' => new Response(200, 'OK', [], ['key' => 'value']),
       ],
-
-      [['code' => 200, 'reason' => '0'], new Response(200, '0'), NULL],
-      [['code' => 200, 'method' => 'PATCH'], new Response(200), NULL],
-
-      // Invalid: reason.
-      [['code' => 200, 'reason' => ''], new Response(200), 'Reason must be a non-empty string.'],
-      [['code' => 200, 'reason' => []], new Response(200), 'Reason must be a non-empty string.'],
-
-      // Invalid: code.
-      [['code' => ''], new Response(), 'Response code is required.'],
-      [['code' => 'status'], new Response(), 'Response code must be a number between 100 and 599.'],
-      [['code' => 2], new Response(), 'Response code must be a number between 100 and 599.'],
-      [['code' => 600], new Response(), 'Response code must be a number between 100 and 599.'],
-
-      // Invalid: headers.
-      [['code' => 200, 'headers' => ''], new Response(200), 'Headers must be an array.'],
-      [['code' => 200, 'headers' => 'invalid'], new Response(200), 'Headers must be an array.'],
-      [['code' => 200, 'headers' => [123]], new Response(200), 'Header "0" value must be a string.'],
-      [
-        ['code' => 200, 'headers' => ['header' => [123]]],
-        new Response(200),
-        'Header "header" value must be a string.',
+      'server error code' => [
+        'data' => ['code' => 500],
+        'expected_response' => new Response(500),
       ],
-
-      // Invalid: body.
-      [['code' => 200, 'body' => []], new Response(200), 'Body must be a string.'],
+      'custom reason' => [
+        'data' => ['code' => 500, 'reason' => 'Custom error'],
+        'expected_response' => new Response(500, 'Custom error'),
+      ],
+      'headers' => [
+        'data' => ['code' => 200, 'reason' => 'OK', 'headers' => ['Content-Type' => 'application/json']],
+        'expected_response' => new Response(200, 'OK', ['Content-Type' => 'application/json']),
+      ],
+      'headers with an empty body' => [
+        'data' => ['code' => 200, 'reason' => 'OK', 'headers' => ['Content-Type' => 'application/json'], 'body' => ''],
+        'expected_response' => new Response(200, 'OK', ['Content-Type' => 'application/json'], ''),
+      ],
+      'headers with an encoded text body' => [
+        'data' => ['code' => 200, 'reason' => 'OK', 'headers' => ['customheader' => 'customheadervalue'], 'body' => base64_encode('Hello, World!')],
+        'expected_response' => new Response(200, 'OK', ['customheader' => 'customheadervalue'], 'Hello, World!'),
+      ],
+      'reason that is falsy' => [
+        'data' => ['code' => 200, 'reason' => '0'],
+        'expected_response' => new Response(200, '0'),
+      ],
+      'unknown key' => [
+        'data' => ['code' => 200, 'method' => 'PATCH'],
+        'expected_response' => new Response(200),
+      ],
+      'empty reason' => [
+        'data' => ['code' => 200, 'reason' => ''],
+        'expected_response' => NULL,
+        'exception' => 'Reason must be a non-empty string.',
+      ],
+      'non-string reason' => [
+        'data' => ['code' => 200, 'reason' => []],
+        'expected_response' => NULL,
+        'exception' => 'Reason must be a non-empty string.',
+      ],
+      'empty code' => [
+        'data' => ['code' => ''],
+        'expected_response' => NULL,
+        'exception' => 'Response code is required.',
+      ],
+      'non-numeric code' => [
+        'data' => ['code' => 'status'],
+        'expected_response' => NULL,
+        'exception' => 'Response code must be a number between 100 and 599.',
+      ],
+      'code below range' => [
+        'data' => ['code' => 2],
+        'expected_response' => NULL,
+        'exception' => 'Response code must be a number between 100 and 599.',
+      ],
+      'code above range' => [
+        'data' => ['code' => 600],
+        'expected_response' => NULL,
+        'exception' => 'Response code must be a number between 100 and 599.',
+      ],
+      'empty headers' => [
+        'data' => ['code' => 200, 'headers' => ''],
+        'expected_response' => NULL,
+        'exception' => 'Headers must be an array.',
+      ],
+      'string headers' => [
+        'data' => ['code' => 200, 'headers' => 'invalid'],
+        'expected_response' => NULL,
+        'exception' => 'Headers must be an array.',
+      ],
+      'header without a name' => [
+        'data' => ['code' => 200, 'headers' => [123]],
+        'expected_response' => NULL,
+        'exception' => 'Header "0" value must be a string.',
+      ],
+      'non-scalar header value' => [
+        'data' => ['code' => 200, 'headers' => ['header' => [123]]],
+        'expected_response' => NULL,
+        'exception' => 'Header "header" value must be a string.',
+      ],
+      'non-string body' => [
+        'data' => ['code' => 200, 'body' => []],
+        'expected_response' => NULL,
+        'exception' => 'Body must be a string.',
+      ],
     ];
   }
 
