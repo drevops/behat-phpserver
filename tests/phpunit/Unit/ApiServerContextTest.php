@@ -814,12 +814,13 @@ class ApiServerContextTest extends TestCase {
    * Test that a failure to queue a response is reported.
    */
   public function testApiWillRespondWithThrowsOnFailure(): void {
-    $context = $this->createContextWithClient([new Response(200)]);
+    $reason = 'Invalid response #1 payload: Response code must be a number between 100 and 599.';
+    $context = $this->createContextWithClient([new Response(400, [], NULL, '1.1', $reason)]);
 
     $this->expectException(\RuntimeException::class);
-    $this->expectExceptionMessage('Failed to set the API response.');
+    $this->expectExceptionMessage('Failed to set the API response: ' . $reason);
 
-    $context->apiWillRespondWith(new PyStringNode(['{"code": 200}'], 1));
+    $context->apiWillRespondWith(new PyStringNode(['{"code": 42}'], 1));
   }
 
   /**
