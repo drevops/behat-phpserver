@@ -87,7 +87,7 @@ Each job also picks a Guzzle major from its dependency level. The `normal` jobs 
 
 Job names follow `PHP <version>, Behat <major>, Deps <dependencies> on <os>`, for example `PHP 8.4, Behat 4, Deps lowest on ubuntu-latest`. The `main` ruleset requires every job by that name, plus `codecov/patch` and `codecov/project`, so a change to the job names needs the same change to the ruleset's required status checks.
 
-Linting runs on Ubuntu with PHP 8.4 and normal dependencies, once per Behat major, so PHPStan checks the code against both Behat majors, and against Guzzle 8 only. The coverage threshold check and the Codecov uploads run once, on the Behat 3 job of that combination.
+Linting runs on Ubuntu with PHP 8.4 and normal dependencies, once per Behat major, so PHPStan checks the code against both Behat majors, and against Guzzle 8 only. `ApiServerContextTest` uses types that only Guzzle 8 declares, the generic `HandlerStack<...>` and the `HistoryTransaction` shape that `Middleware::history()` records, so PHPStan reports errors when it runs against Guzzle 7. Keep those types, because CI lints against Guzzle 8. The coverage threshold check and the Codecov uploads run once, on the Behat 3 job of that combination.
 
 The `lowest` half of the matrix resolves every dependency to the floor its constraint allows, so it is sensitive to `config.policy.advisories.block` in `composer.json`. Leave that set to `true`. Setting it to `false` lets Composer select releases with known security advisories, and the floors it then reaches (Guzzle 7.9, `guzzlehttp/promises` 1.5, `symfony/http-client` 6.0) emit PHP 8.4 deprecations that Behat converts into step failures, so the whole BDD suite fails on PHP 8.4 and 8.5.
 
