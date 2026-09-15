@@ -937,8 +937,6 @@ class ApiServerContextTest extends TestCase {
 
   /**
    * Test that the context declares no Behat annotations.
-   *
-   * Behat 4 ignores step, hook and transformation annotations.
    */
   public function testDeclaresNoBehatAnnotations(): void {
     $this->assertSame([], static::getBehatAnnotations(ApiServerContext::class));

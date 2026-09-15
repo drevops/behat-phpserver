@@ -136,9 +136,6 @@ class PhpServerContext implements Context {
    * nodes are checked so that tagging once per feature works as well as
    * tagging each scenario.
    *
-   * The legacy Gherkin parser strips the leading '@' from a tag and the
-   * 'gherkin-32' parser keeps it, so tags are compared without it.
-   *
    * @param \Behat\Behat\Hook\Scope\ScenarioScope $scope
    *   Scenario scope.
    *

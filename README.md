@@ -70,8 +70,6 @@ Scenario: Visit a page served by the PHP server
 
 Tagging the `Feature:` line instead starts the server for every scenario in that feature.
 
-The tag matches in both of Behat's Gherkin parsing modes: `legacy`, which strips the `@` from tag names, and `gherkin-32`, which keeps it and is the Behat 4 default.
-
 Reach the running server through `getServerUrl()` - see [Accessing the server URL from your own context](#accessing-the-server-url-from-your-own-context).
 
 ### `ApiServerContext`

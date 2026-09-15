@@ -60,15 +60,13 @@ Prefer these over calling the underlying binaries directly.
 - Single quotes for strings, double quotes only when the string contains a single quote.
 - All files end with a newline.
 - Step methods on `ApiServerContext` are named `api` plus the step phrase in camelCase, with the `API` / `API server` token folded into the prefix - `the API server is reset` becomes `apiIsReset()`. The step attribute is the published contract and the method name is derived from it, so renaming a method never means rewriting its step phrase.
-- Hooks and step definitions are declared with PHP attributes, such as `#[BeforeScenario]` and `#[Given('(the )API server is running')]`, never with docblock annotations. Behat 4 doesn't read annotations at all, so on Behat 4 an annotated hook never runs and an annotated step is reported as undefined. `testDeclaresNoBehatAnnotations()` in both context tests fails on any Behat annotation, and `testStepAttributes()` pins every published step phrase.
+- Hooks and step definitions are declared with PHP attributes, such as `#[BeforeScenario]` and `#[Given('(the )API server is running')]`, never with docblock annotations. `testDeclaresNoBehatAnnotations()` in both context tests fails on any Behat annotation, and `testStepAttributes()` pins every published step phrase.
 
 ## Testing patterns
 
 Coverage comes from two sources, so their outputs are kept apart: PHPUnit writes to `.logs/phpunit/` and Behat writes to `.logs/behat/`. Both are uploaded to Codecov. Keep those paths in sync between `phpunit.xml`, `behat.yml`, `behat.php` and `.github/workflows/test-php.yml`.
 
-`behat.yml` and `behat.php` turn on strict mode, so a step with no matching definition fails the run instead of being reported as undefined and passing. Neither file sets a Gherkin compatibility mode, so each Behat major parses in its default: Behat 3 in `legacy`, which strips the `@` from tag names, and Behat 4 in `gherkin-32`, which keeps it. That way CI covers tag matching in both modes.
-
-The Gherkin parser caches parsed features in the system temp directory, keyed by file path and Gherkin version but not by parsing mode. After switching Behat majors locally, a run can reuse the other mode's parse of an unchanged feature file. Give each major its own cache directory to rule that out, for example `BEHAT_PARAMS='{"gherkin":{"cache":".artifacts/tmp/gherkin-cache/behat4"}}' composer test-bdd`.
+`behat.yml` and `behat.php` turn on strict mode, so a step with no matching definition fails the run instead of being reported as undefined and passing.
 
 Tests use PHPUnit 12 attributes:
 

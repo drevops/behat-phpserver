@@ -1241,7 +1241,7 @@ class PhpServerContextTest extends TestCase {
         'expected_result' => FALSE,
       ],
       'a longer tag containing the name' => [
-        'scenario_tags' => ['@phpserver-legacy', 'no-phpserver'],
+        'scenario_tags' => ['@phpserver-extra', 'no-phpserver'],
         'feature_tags' => ['@my-phpserver'],
         'expected_result' => FALSE,
       ],
@@ -1282,8 +1282,6 @@ class PhpServerContextTest extends TestCase {
 
   /**
    * Test that the context declares no Behat annotations.
-   *
-   * Behat 4 ignores step, hook and transformation annotations.
    */
   public function testDeclaresNoBehatAnnotations(): void {
     $this->assertSame([], static::getBehatAnnotations(PhpServerContext::class));

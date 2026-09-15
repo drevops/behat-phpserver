@@ -31,9 +31,6 @@ trait BehatDefinitionTrait {
   /**
    * Get the Behat annotations on the methods a class declares itself.
    *
-   * Step, hook and transformation annotations are matched the way Behat 3
-   * reads them: case-insensitively, at the start of a docblock line.
-   *
    * @param class-string $class
    *   Class to inspect.
    *
