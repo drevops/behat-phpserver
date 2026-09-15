@@ -230,9 +230,11 @@ class ApiServer {
     elseif ($request->uri === '/admin/responses' && $request->method === 'PUT') {
       $responses_data = json_decode($request->body, TRUE);
 
-      if ($responses_data === NULL || !is_array($responses_data)) {
+      if (!is_array($responses_data) || !array_is_list($responses_data)) {
         throw new \InvalidArgumentException('Invalid responses JSON payload provided: Expected an array of response objects.', 400);
       }
+
+      $responses = [];
 
       foreach ($responses_data as $k => $response_data) {
         if (!is_array($response_data)) {
@@ -240,14 +242,16 @@ class ApiServer {
         }
 
         try {
-          $response = Response::fromArray($response_data);
+          $responses[] = Response::fromArray($response_data);
         }
         catch (\InvalidArgumentException $exception) {
           throw new \InvalidArgumentException(sprintf('Invalid response #%d payload: %s', $k + 1, $exception->getMessage()), 400, $exception);
         }
-
-        $this->responses[] = $response;
       }
+
+      // Every response is validated before any is queued, so a refused payload
+      // leaves the queue untouched.
+      $this->responses = array_merge($this->responses, $responses);
 
       $this->handleResponse(new Response(201, 'Created'));
     }

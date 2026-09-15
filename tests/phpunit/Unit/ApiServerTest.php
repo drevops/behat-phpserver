@@ -538,7 +538,7 @@ class ApiServerTest extends TestCase {
   }
 
   /**
-   * Test that a payload that is not a list of responses is rejected.
+   * Test that a payload that is not a list of valid responses queues nothing.
    *
    * @param string $body
    *   The posted body.
@@ -548,12 +548,22 @@ class ApiServerTest extends TestCase {
   #[DataProvider('dataProviderHandleRequestRejectsInvalidResponsesPayload')]
   public function testHandleRequestRejectsInvalidResponsesPayload(string $body, string $expected_message): void {
     $server = $this->createServer(new Request('PUT', '/admin/responses', [], $body));
+    static::setProtectedValue($server, 'responses', [new Response(200, 'OK', [], 'queued')]);
+    $exception = NULL;
 
-    $this->expectException(\InvalidArgumentException::class);
-    $this->expectExceptionCode(400);
-    $this->expectExceptionMessage($expected_message);
+    // The queue is asserted after the throw, so the exception is captured
+    // instead of declared with expectException().
+    try {
+      $server->handleRequest();
+    }
+    catch (\InvalidArgumentException $invalid_argument_exception) {
+      $exception = $invalid_argument_exception;
+    }
 
-    $server->handleRequest();
+    $this->assertInstanceOf(\InvalidArgumentException::class, $exception);
+    $this->assertSame(400, $exception->getCode());
+    $this->assertSame($expected_message, $exception->getMessage());
+    $this->assertCount(1, $this->serverState($server, 'responses'));
   }
 
   /**
@@ -570,6 +580,10 @@ class ApiServerTest extends TestCase {
       ],
       'body is a JSON scalar' => [
         'body' => '"a string"',
+        'expected_message' => 'Invalid responses JSON payload provided: Expected an array of response objects.',
+      ],
+      'body is a single response object' => [
+        'body' => '{"code": 200}',
         'expected_message' => 'Invalid responses JSON payload provided: Expected an array of response objects.',
       ],
       'element is not an object' => [
