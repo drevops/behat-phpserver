@@ -495,39 +495,9 @@ class PhpServerContext implements Context {
    *   PID as number.
    */
   protected function getPidLsof(int $port): int {
-    if (!$this->executeCommand('which lsof 2>/dev/null')) {
-      return 0;
-    }
-
     $command = sprintf("lsof -i -P -n 2>/dev/null | grep 'php' | grep ':%s' | grep 'LISTEN'", $port);
 
-    $output = [];
-    $this->executeCommand($command, $output);
-
-    if (empty($output)) {
-      // The process may be in another state, so retry without the LISTEN
-      // filter.
-      $command = str_replace(" | grep 'LISTEN'", '', $command);
-      $this->printDebug(sprintf('No LISTEN processes found, retrying with command: %s', $command));
-      $this->executeCommand($command, $output);
-    }
-
-    if (empty($output)) {
-      $this->printDebug(sprintf('No processes found on port %d', $port));
-
-      return 0;
-    }
-
-    foreach ($output as $i => $line) {
-      $this->printDebug(sprintf('Found process %d: %s', $i + 1, $line));
-    }
-
-    foreach ($output as $line) {
-      $line = trim((string) preg_replace('/\s+/', ' ', $line));
-
-      $this->printDebug(sprintf('Processing line: %s', $line));
-      $parts = explode(' ', $line);
-
+    foreach ($this->listPortProcesses('lsof', $command, $port) as $parts) {
       // Accept any executable that starts with "php" (php, php-fpm, php8.3).
       if (count($parts) > 1 && str_starts_with($parts[0], 'php') && is_numeric($parts[1])) {
         $pid = (int) $parts[1];
@@ -550,39 +520,10 @@ class PhpServerContext implements Context {
    *   PID as number.
    */
   protected function getPidNetstat(int $port): int {
-    if (!$this->executeCommand('which netstat 2>/dev/null')) {
-      return 0;
-    }
-
     // -p is only available on Linux.
     $command = sprintf("netstat -anp 2>/dev/null | grep ':%s' | grep 'LISTEN'", $port);
 
-    $output = [];
-    $this->executeCommand($command, $output);
-
-    if (empty($output)) {
-      // The process may be in another state, so retry without the LISTEN
-      // filter.
-      $command = str_replace(" | grep 'LISTEN'", '', $command);
-      $this->printDebug(sprintf('No LISTEN processes found, retrying with command: %s', $command));
-      $this->executeCommand($command, $output);
-    }
-
-    if (empty($output)) {
-      $this->printDebug(sprintf('No processes found on port %d', $port));
-
-      return 0;
-    }
-
-    foreach ($output as $i => $line) {
-      $this->printDebug(sprintf('Found process %d: %s', $i + 1, $line));
-    }
-
-    foreach ($output as $line) {
-      $line = trim((string) preg_replace('/\s+/', ' ', $line));
-      $this->printDebug(sprintf('Processing line: %s', $line));
-      $parts = explode(' ', $line);
-
+    foreach ($this->listPortProcesses('netstat', $command, $port) as $parts) {
       foreach ($parts as $part) {
         if (!str_contains($part, '/php')) {
           continue;
@@ -609,6 +550,52 @@ class PhpServerContext implements Context {
     }
 
     return 0;
+  }
+
+  /**
+   * List the processes on a port with a port listing tool.
+   *
+   * @param string $tool
+   *   The listing tool that the command runs.
+   * @param string $command
+   *   The command that lists the processes listening on the port.
+   * @param int $port
+   *   Port number.
+   *
+   * @return array<int, array<int, string>>
+   *   The whitespace-separated fields of each output line, or an empty array
+   *   when the tool is not installed or lists no process.
+   */
+  protected function listPortProcesses(string $tool, string $command, int $port): array {
+    if (!$this->executeCommand('which ' . $tool . ' 2>/dev/null')) {
+      return [];
+    }
+
+    $output = [];
+    $this->executeCommand($command, $output);
+
+    if (empty($output)) {
+      // The process may be in another state, so retry without the LISTEN
+      // filter.
+      $command = str_replace(" | grep 'LISTEN'", '', $command);
+      $this->printDebug(sprintf('No LISTEN processes found, retrying with command: %s', $command));
+      $this->executeCommand($command, $output);
+    }
+
+    if (empty($output)) {
+      $this->printDebug(sprintf('No processes found on port %d', $port));
+
+      return [];
+    }
+
+    $processes = [];
+
+    foreach ($output as $i => $line) {
+      $this->printDebug(sprintf('Found process %d: %s', $i + 1, $line));
+      $processes[] = explode(' ', trim((string) preg_replace('/\s+/', ' ', $line)));
+    }
+
+    return $processes;
   }
 
   /**

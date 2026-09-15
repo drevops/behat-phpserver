@@ -739,7 +739,7 @@ class ApiServerContextTest extends TestCase {
   /**
    * Test that a failure to fetch the received requests is reported.
    */
-  public function testDebugApiRequestsThrowsOnFailure(): void {
+  public function testApiDebugRequestsThrowsOnFailure(): void {
     $context = $this->createContextWithClient([new Response(500)]);
 
     $this->expectException(\RuntimeException::class);
@@ -887,8 +887,8 @@ class ApiServerContextTest extends TestCase {
    * @param bool $expect_exception
    *   Whether the assertion is expected to fail.
    */
-  #[DataProvider('dataProviderAssertQueuedResponsesCount')]
-  public function testAssertQueuedResponsesCount(string $header_value, string $expected_count, bool $expect_exception): void {
+  #[DataProvider('dataProviderApiShouldHaveQueuedResponses')]
+  public function testApiShouldHaveQueuedResponses(string $header_value, string $expected_count, bool $expect_exception): void {
     $context = $this->createContextWithClient([new Response(200, ['X-Queued-Responses' => $header_value])]);
 
     if ($expect_exception) {
@@ -907,7 +907,7 @@ class ApiServerContextTest extends TestCase {
    * @return array<string, array<string, mixed>>
    *   Test cases.
    */
-  public static function dataProviderAssertQueuedResponsesCount(): array {
+  public static function dataProviderApiShouldHaveQueuedResponses(): array {
     return [
       'matching count' => [
         'header_value' => '3',
@@ -937,8 +937,8 @@ class ApiServerContextTest extends TestCase {
    * @param bool $expect_exception
    *   Whether the assertion is expected to fail.
    */
-  #[DataProvider('dataProviderAssertReceivedRequestsCount')]
-  public function testAssertReceivedRequestsCount(string $header_value, string $expected_count, bool $expect_exception): void {
+  #[DataProvider('dataProviderApiShouldHaveReceivedRequests')]
+  public function testApiShouldHaveReceivedRequests(string $header_value, string $expected_count, bool $expect_exception): void {
     $context = $this->createContextWithClient([new Response(200, ['X-Received-Requests' => $header_value])]);
 
     if ($expect_exception) {
@@ -957,7 +957,7 @@ class ApiServerContextTest extends TestCase {
    * @return array<string, array<string, mixed>>
    *   Test cases.
    */
-  public static function dataProviderAssertReceivedRequestsCount(): array {
+  public static function dataProviderApiShouldHaveReceivedRequests(): array {
     return [
       'matching count' => [
         'header_value' => '2',

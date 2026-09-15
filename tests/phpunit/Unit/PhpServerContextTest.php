@@ -530,14 +530,14 @@ class PhpServerContextTest extends TestCase {
       /**
        * Flag indicating if lsof exists on the system.
        */
-      private readonly bool $lsofExists;
+      protected readonly bool $lsofExists;
 
       /**
        * Mock output from the lsof command.
        *
        * @var array<string>
        */
-      private readonly array $mockOutput;
+      protected readonly array $mockOutput;
 
       /**
        * Constructor.
@@ -652,14 +652,14 @@ class PhpServerContextTest extends TestCase {
       /**
        * Flag indicating if netstat exists on the system.
        */
-      private readonly bool $netstatExists;
+      protected readonly bool $netstatExists;
 
       /**
        * Mock output from the netstat command.
        *
        * @var array<string>
        */
-      private readonly array $mockOutput;
+      protected readonly array $mockOutput;
 
       /**
        * Constructor.
