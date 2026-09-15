@@ -2,12 +2,13 @@
 
 ## Supported versions
 
-Security fixes are released for the latest `2.x` release. Earlier series are no longer maintained.
+Security fixes are released for the latest `3.x` release, and for the latest `2.x` release until 31 December 2026. Earlier series are no longer maintained.
 
-| Version | Supported          |
-|---------|--------------------|
-| 2.x     | :white_check_mark: |
-| < 2.0   | :x:                |
+| Version | Supported                                 |
+|---------|-------------------------------------------|
+| 3.x     | :white_check_mark:                        |
+| 2.x     | :white_check_mark: until 31 December 2026 |
+| < 2.0   | :x:                                       |
 
 ## Reporting a vulnerability
 
