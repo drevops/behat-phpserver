@@ -39,9 +39,8 @@ return RectorConfig::configure()
     DeclareStrictTypesRector::class,
   ])
   ->withSkip([
-    // Promotion rewrites the documented properties of the anonymous test
-    // classes into the constructor signature, which moves their docblocks
-    // inside the parameter list and leaves PHPCBF unable to format the result.
+    // Promotion moves the docblocks of the anonymous test classes' properties
+    // into the constructor parameter list, which PHPCBF cannot format.
     ClassPropertyAssignToConstructorPromotionRector::class => [
       __DIR__ . '/tests',
     ],

@@ -332,7 +332,6 @@ class ApiServerContext extends PhpServerContext {
 
     $data += [
       'code' => 200,
-      // @todo Validate reason.
       'reason' => 'OK',
       'headers' => [],
       'body' => '',
@@ -354,7 +353,6 @@ class ApiServerContext extends PhpServerContext {
       }
     }
 
-    // Serialise an array body to JSON, then base64-encode it for transport.
     if (isset($data['body'])) {
       if (is_array($data['body'])) {
         $data['body'] = json_encode($data['body']) ?: '';
