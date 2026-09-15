@@ -214,6 +214,9 @@ class ApiServerContext extends PhpServerContext {
    *
    * Shorthand for the API response with JSON body.
    *
+   * @throws \InvalidArgumentException
+   *   If the body is not valid JSON.
+   *
    * @code
    * Given API will respond with JSON:
    * """
@@ -237,6 +240,10 @@ class ApiServerContext extends PhpServerContext {
   #[Given('(the )API will respond with JSON:')]
   #[Given('(the )API will respond with JSON and :code code:')]
   public function apiWillRespondWithJson(PyStringNode $json, ?string $code = NULL): void {
+    if (!json_validate($json->getRaw())) {
+      throw new \InvalidArgumentException('Body must be valid JSON.');
+    }
+
     $data = json_encode([
       'body' => json_decode($json->getRaw()),
       'code' => $code ?? 200,

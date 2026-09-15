@@ -326,6 +326,47 @@ class ApiServerContextTest extends TestCase {
   }
 
   /**
+   * Test that a body that is not valid JSON is rejected before it is queued.
+   *
+   * @param string $json_content
+   *   JSON content for PyStringNode.
+   */
+  #[DataProvider('dataProviderApiWillRespondWithJsonThrowsOnInvalidJson')]
+  public function testApiWillRespondWithJsonThrowsOnInvalidJson(string $json_content): void {
+    $context = $this->getMockBuilder(ApiServerContext::class)
+      ->disableOriginalConstructor()
+      ->onlyMethods(['apiWillRespondWith'])
+      ->getMock();
+
+    $context->expects($this->never())->method('apiWillRespondWith');
+
+    $this->expectException(\InvalidArgumentException::class);
+    $this->expectExceptionMessage('Body must be valid JSON.');
+
+    $context->apiWillRespondWithJson(new PyStringNode([$json_content], 1));
+  }
+
+  /**
+   * Data provider for testApiWillRespondWithJsonThrowsOnInvalidJson().
+   *
+   * @return array<string, array<string, string>>
+   *   Test cases.
+   */
+  public static function dataProviderApiWillRespondWithJsonThrowsOnInvalidJson(): array {
+    return [
+      'not JSON' => [
+        'json_content' => 'not json',
+      ],
+      'empty' => [
+        'json_content' => '',
+      ],
+      'unterminated object' => [
+        'json_content' => '{"key": "value"',
+      ],
+    ];
+  }
+
+  /**
    * Test fixture paths in constructor.
    *
    * @param array<string>|string|null $paths
