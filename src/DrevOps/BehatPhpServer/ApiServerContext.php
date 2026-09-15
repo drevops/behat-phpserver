@@ -203,7 +203,7 @@ class ApiServerContext extends PhpServerContext {
     ]);
 
     if ($response->getStatusCode() !== 201) {
-      throw new \RuntimeException('Failed to set the API response.');
+      throw new \RuntimeException(sprintf('Failed to set the API response: %s', $response->getReasonPhrase()));
     }
 
     $this->printDebug('Successfully queued API response.');
