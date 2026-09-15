@@ -49,21 +49,23 @@ There are no aliases for the old names. If you called or overrode one of the 4, 
 
 The `$paths` parameter was the only untyped parameter in the library. It's now `array|string|null`, matching the `string[]|string|null` its docblock always claimed.
 
-The parameter name is unchanged, so the `paths:` key in `behat.yml` keeps working. What changes is that a value PHP used to coerce is now a `TypeError`. In practice that means an unquoted number:
+The parameter name is unchanged, so the `paths:` key in `behat.yml` keeps working. Behat builds contexts without strict types, so an unquoted number such as `paths: 8888` is still converted to the string `'8888'`.
 
-```yaml
-# Fails on 3.0 - YAML reads this as an integer.
-paths: 8888
+Strict typing applies when PHP code calls the constructor from a file that declares `strict_types=1`, such as a subclass calling the parent constructor. There, passing a number is now a `TypeError`:
 
-# Fine.
-paths: '8888'
+```php
+// Fails on 3.0.
+parent::__construct(paths: 8888);
+
+// Fine.
+parent::__construct(paths: '8888');
 ```
 
 Elements *inside* a `paths` list are still cast to string, so a list with an unquoted number in it keeps working.
 
 ### `PhpServerContext::debug()` is now `printDebug()`
 
-`PhpServerContext` had a `$debug` constructor option and a `debug()` method sitting next to each other, and `$this->debug` versus `$this->debug()` is one character apart. The method is now `printDebug()`.
+`PhpServerContext` had a `$debug` constructor option and a `debug()` method sitting next to each other, and `$this->debug` and `$this->debug()` differ only by the parentheses. The method is now `printDebug()`.
 
 The `debug` option in `behat.yml` is unchanged - only the method moved. Rename any call or override in your own contexts:
 

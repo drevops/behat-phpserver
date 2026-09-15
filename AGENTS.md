@@ -71,7 +71,7 @@ Coverage comes from two sources, so their outputs are kept apart: PHPUnit writes
 Tests use PHPUnit 12 attributes:
 
 - `#[CoversClass(ClassName::class)]` for coverage metadata.
-- `#[DataProvider('providerMethodName')]` for data providers. Provider methods are named with a `dataProvider` prefix and placed after the test method they serve.
+- `#[DataProvider('dataProviderMethodName')]` for data providers. Provider methods are named with a `dataProvider` prefix and placed after the test method they serve.
 
 Build a test double with `createStub()` or `getStubBuilder()` unless the test calls `expects()` on it. PHPUnit 12.5 reports a notice for every mock object that has no expectation, so a mock is only worth creating when the test asserts how it's called. `ApiServerContextTest` follows the same split: `createContextWithClient()` returns a stub, and `createMockContextWithClient()` returns a mock for the tests that assert on `isRunning()` and `start()`.
 

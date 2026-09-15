@@ -11,7 +11,7 @@ default:
             connection_timeout: 2
             retry_delay: 100000
         - DrevOps\BehatPhpServer\ApiServerContext:
-            webroot: '%paths.base%/apiserver'
+            webroot: '%paths.base%/vendor/drevops/behat-phpserver/apiserver'
             host: 127.0.0.1
             port: 8889
             protocol: http
