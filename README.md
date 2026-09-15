@@ -319,6 +319,8 @@ These endpoints and the replayed responses carry an `X-Received-Requests` and an
 
 Any other request is recorded and answered with the next queued response. When the queue is empty, the server answers `500` with `No responses in queue`.
 
+An error response carries its message in the status line and in a JSON body, such as `{"error":"No responses in queue"}`.
+
 `PUT /admin/responses` takes an array of response objects:
 
 ```json
@@ -338,7 +340,7 @@ Any other request is recorded and answered with the next queued response. When t
 ]
 ```
 
-`body` must be **base64-encoded** - the server decodes it before replaying the response. The step definitions do this encoding for you, so it only matters when calling the endpoint directly. `code` must be between 100 and 599; `reason` must be a non-empty string; header names and values must be scalars.
+`body` must be **base64-encoded** - the server decodes it before replaying the response. The step definitions do this encoding for you, so it only matters when calling the endpoint directly. `code` must be between 100 and 599, `reason` must be a non-empty string, and `headers` must be an object with scalar values. A payload that breaks these rules is refused with `400`.
 
 ## 🤝 Contributing
 

@@ -26,6 +26,7 @@ Both contexts start a server before each scenario and stop it afterwards.
 - `apiserver/index.php` - the mock API server itself, served by the PHP built-in server. It is part of the distributed package, not a test fixture, and is covered by both PHPCS and PHPStan.
 - `tests/phpunit/Unit/` - unit tests.
 - `tests/phpunit/Traits/` - shared test utilities such as `ReflectionTrait` and `BehatDefinitionTrait`.
+- `tests/behat/bootstrap/FeatureContext.php` - the suite's own context. It extends `MinkContext` with the request and response header steps the feature files use.
 - `tests/behat/features/` - the Behat feature files that exercise both contexts end to end.
 - `tests/behat/fixtures/` and `tests/behat/fixtures2/` - fixture files used by the file-response steps. Two directories exist deliberately, to prove that multiple configured fixture paths are searched in order.
 - `behat.yml` and `behat.php` - the test suite configuration. Behat 3 reads `behat.yml` before any PHP file, and Behat 4 reads PHP configuration only, so each Behat major runs the suite from its own file. A change to the suite goes in both.
