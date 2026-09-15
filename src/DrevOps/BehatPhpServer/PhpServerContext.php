@@ -22,11 +22,6 @@ class PhpServerContext implements Context {
   const TAG = 'phpserver';
 
   /**
-   * Default webroot directory.
-   */
-  const DEFAULT_WEBROOT = __DIR__ . '/fixtures';
-
-  /**
    * Default connection retry timeout in seconds.
    */
   const DEFAULT_CONNECTION_TIMEOUT = 2;
@@ -35,11 +30,6 @@ class PhpServerContext implements Context {
    * Default retry delay in microseconds.
    */
   const DEFAULT_RETRY_DELAY = 100000;
-
-  /**
-   * Webroot directory.
-   */
-  protected string $webroot;
 
   /**
    * Server process id.
@@ -59,7 +49,7 @@ class PhpServerContext implements Context {
   /**
    * Constructs the PhpServerContext.
    *
-   * @param string|null $webroot
+   * @param string $webroot
    *   Webroot directory.
    * @param string $host
    *   Server hostname.
@@ -75,7 +65,7 @@ class PhpServerContext implements Context {
    *   Retry delay in microseconds.
    */
   public function __construct(
-    ?string $webroot = NULL,
+    protected string $webroot,
     protected string $host = '127.0.0.1',
     protected int $port = 8888,
     protected string $protocol = 'http',
@@ -83,8 +73,6 @@ class PhpServerContext implements Context {
     ?int $connection_timeout = NULL,
     ?int $retry_delay = NULL,
   ) {
-    $this->webroot = $webroot ?: static::DEFAULT_WEBROOT;
-
     if (!file_exists($this->webroot)) {
       throw new \RuntimeException(sprintf('"webroot" directory %s does not exist.', $this->webroot));
     }

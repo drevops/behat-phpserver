@@ -143,9 +143,9 @@ The option names are the same in both formats, so the table below covers either 
 | `debug`              | `false`                      | Print verbose output about server start, stop and connection attempts.      |
 | `connection_timeout` | `2`                          | Seconds to keep retrying a connection before the server is declared failed.  |
 | `retry_delay`        | `100000`                     | Microseconds to wait between connection retries.                            |
-| `paths`              | `<webroot>/../tests/behat/fixtures` | `ApiServerContext` only. One path or a list of paths searched, in order, for file responses. |
+| `paths`              | None                         | `ApiServerContext` only. One path or a list of paths searched, in order, for file responses. File responses need at least one. |
 
-`ApiServerContext` defaults `webroot` to the bundled `apiserver` directory. `PhpServerContext` has no usable default, so always set it.
+`PhpServerContext` requires `webroot`. `ApiServerContext` defaults it to the bundled `apiserver` directory.
 
 Both contexts default to port `8888`. When both are registered, give each one its own port, as shown above.
 

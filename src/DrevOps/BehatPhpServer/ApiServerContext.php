@@ -24,7 +24,7 @@ class ApiServerContext extends PhpServerContext {
   const TAG = 'apiserver';
 
   /**
-   * {@inheritdoc}
+   * Default webroot directory.
    */
   const DEFAULT_WEBROOT = __DIR__ . '/../../../apiserver';
 
@@ -59,7 +59,7 @@ class ApiServerContext extends PhpServerContext {
    * Constructs the ApiServerContext.
    *
    * @param string|null $webroot
-   *   The webroot to use.
+   *   The webroot to use, or NULL for the bundled API server directory.
    * @param string $host
    *   The host to use.
    * @param int $port
@@ -73,7 +73,8 @@ class ApiServerContext extends PhpServerContext {
    * @param int|null $retry_delay
    *   The retry delay.
    * @param string[]|string|null $paths
-   *   An array of fixture paths or a single path string.
+   *   An array of fixture paths or a single path string. File responses need
+   *   at least one.
    */
   public function __construct(
     ?string $webroot = NULL,
@@ -85,17 +86,14 @@ class ApiServerContext extends PhpServerContext {
     ?int $retry_delay = NULL,
     array|string|null $paths = NULL,
   ) {
-    parent::__construct($webroot, $host, $port, $protocol, $debug, $connection_timeout, $retry_delay);
+    parent::__construct($webroot ?: static::DEFAULT_WEBROOT, $host, $port, $protocol, $debug, $connection_timeout, $retry_delay);
 
     $this->client = $this->createHttpClient();
 
-    if (empty($paths)) {
-      $this->fixturesPaths[] = dirname($this->webroot) . '/tests/behat/fixtures';
-    }
-    elseif (is_array($paths)) {
+    if (is_array($paths)) {
       $this->fixturesPaths = array_map(strval(...), $paths);
     }
-    else {
+    elseif (is_string($paths) && $paths !== '') {
       $this->fixturesPaths[] = $paths;
     }
   }
@@ -256,7 +254,7 @@ class ApiServerContext extends PhpServerContext {
    *   The response code.
    *
    * @throws \RuntimeException
-   *   If the file cannot be read.
+   *   If no fixture paths are configured, or the file cannot be found or read.
    *
    * @code
    * Given API will respond with file "test_data.json"
@@ -269,6 +267,10 @@ class ApiServerContext extends PhpServerContext {
   #[Given('(the )API will respond with file :file_path')]
   #[Given('(the )API will respond with file :file_path and :code code')]
   public function apiWillRespondWithFile(string $file_path, ?string $code = NULL): void {
+    if ($this->fixturesPaths === []) {
+      throw new \RuntimeException(sprintf('File "%s" cannot be found because no fixture paths are configured. Set the "paths" option of the context.', $file_path));
+    }
+
     $absolute_path = '';
 
     foreach ($this->fixturesPaths as $fixtures_path) {
