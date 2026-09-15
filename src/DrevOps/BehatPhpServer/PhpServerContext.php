@@ -570,7 +570,8 @@ class PhpServerContext implements Context {
       return [];
     }
 
-    // grep matches the port as a substring, so ':80' also matches ':8080'.
+    // The grep filter matches the port as a substring, so ':80' also matches
+    // ':8080'.
     $port_pattern = '/:' . $port . '(?!\d)/';
 
     $output = [];

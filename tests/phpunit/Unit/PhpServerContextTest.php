@@ -262,32 +262,27 @@ class PhpServerContextTest extends TestCase {
    */
   #[DataProvider('dataProviderStartQuotesCommandArguments')]
   public function testStartQuotesCommandArguments(string $webroot, string $expected_arguments): void {
-    $context = $this->getStubBuilder(PhpServerContext::class)
+    $context = $this->getMockBuilder(PhpServerContext::class)
       ->disableOriginalConstructor()
       ->onlyMethods(['stop', 'executeCommand', 'printDebug', 'isRunning'])
-      ->getStub();
+      ->getMock();
 
     $this->setProtectedValue($context, 'host', '127.0.0.1');
     $this->setProtectedValue($context, 'port', 8888);
     $this->setProtectedValue($context, 'webroot', $webroot);
 
-    /** @var \ArrayObject<int, string> $commands */
-    $commands = new \ArrayObject();
-
     $context->method('stop')->willReturn(TRUE);
     $context->method('isRunning')->willReturn(TRUE);
-    $context->method('executeCommand')
-      ->willReturnCallback(function (string $command, array &$output) use ($commands): bool {
-        $commands[] = $command;
+    $context->expects($this->once())
+      ->method('executeCommand')
+      ->with($this->matchesRegularExpression('/^PROCESS_TIMESTAMP=[0-9.]+ php -S ' . preg_quote($expected_arguments, '/') . ' >\/dev\/null 2>&1 & echo \$!$/'))
+      ->willReturnCallback(static function (string $command, array &$output): bool {
         $output = ['12345'];
 
         return TRUE;
       });
 
-    $context->start();
-
-    $this->assertCount(1, $commands);
-    $this->assertMatchesRegularExpression('/^PROCESS_TIMESTAMP=[0-9.]+ php -S ' . preg_quote($expected_arguments, '/') . ' >\/dev\/null 2>&1 & echo \$!$/', $commands[0]);
+    $this->assertSame(12345, $context->start());
   }
 
   /**
