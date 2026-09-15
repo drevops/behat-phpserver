@@ -473,8 +473,8 @@ class Response {
       $data['body'] = base64_decode($data['body']);
     }
 
-    if (empty($data['reason']) || !is_string($data['reason'])) {
-      throw new \InvalidArgumentException('Reason must be a string.');
+    if (!is_string($data['reason']) || $data['reason'] === '') {
+      throw new \InvalidArgumentException('Reason must be a non-empty string.');
     }
 
     return new static($data['code'], $data['reason'], $data['headers'], $data['body']);

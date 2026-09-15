@@ -244,6 +244,16 @@ class ApiServerContextTest extends TestCase {
         'exception_class' => \InvalidArgumentException::class,
         'exception_message' => 'Status code must be a number.',
       ],
+      'empty reason' => [
+        'json_input' => '{"code": 200, "reason": ""}',
+        'exception_class' => \InvalidArgumentException::class,
+        'exception_message' => 'Reason must be a non-empty string.',
+      ],
+      'non-string reason' => [
+        'json_input' => '{"code": 200, "reason": 404}',
+        'exception_class' => \InvalidArgumentException::class,
+        'exception_message' => 'Reason must be a non-empty string.',
+      ],
       'non-array headers' => [
         'json_input' => '{"code": 200, "headers": "not-an-array"}',
         'exception_class' => \InvalidArgumentException::class,

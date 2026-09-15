@@ -81,9 +81,11 @@ class ResponseTest extends TestCase {
       [['method' => []], new Response(), 'Method must be a string.'],
       [['method' => 'OTHER'], new Response(), 'Unsupported HTTP method "OTHER". Supported methods are GET, POST, PUT, DELETE.'],
 
+      [['code' => 200, 'reason' => '0'], new Response(200, '0'), NULL],
+
       // Invalid: reason.
-      [['code' => 200, 'reason' => ''], new Response(200), 'Reason must be a string.'],
-      [['code' => 200, 'reason' => []], new Response(200), 'Reason must be a string.'],
+      [['code' => 200, 'reason' => ''], new Response(200), 'Reason must be a non-empty string.'],
+      [['code' => 200, 'reason' => []], new Response(200), 'Reason must be a non-empty string.'],
 
       // Invalid: code.
       [['code' => ''], new Response(), 'Response code is required.'],
