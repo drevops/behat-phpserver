@@ -422,20 +422,11 @@ class Response {
    */
   public static function fromArray(array $data): static {
     $data += [
-      'method' => 'GET',
       'code' => 200,
       'reason' => 'OK',
       'headers' => [],
       'body' => '',
     ];
-
-    if (!is_string($data['method'])) {
-      throw new \InvalidArgumentException('Method must be a string.');
-    }
-
-    if (!in_array($data['method'], ['GET', 'POST', 'PUT', 'DELETE'], TRUE)) {
-      throw new \InvalidArgumentException(sprintf('Unsupported HTTP method "%s". Supported methods are GET, POST, PUT, DELETE.', $data['method']));
-    }
 
     if (empty($data['code'])) {
       throw new \InvalidArgumentException('Response code is required.');
