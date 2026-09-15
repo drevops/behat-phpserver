@@ -1133,10 +1133,16 @@ class PhpServerContextTest extends TestCase {
         'still_in_use' => TRUE,
         'expected_result' => FALSE,
       ],
-      'termination failed' => [
+      'termination reported a failure but port freed' => [
         'pid' => 12345,
         'terminated' => FALSE,
         'still_in_use' => FALSE,
+        'expected_result' => TRUE,
+      ],
+      'termination failed and port still held' => [
+        'pid' => 12345,
+        'terminated' => FALSE,
+        'still_in_use' => TRUE,
         'expected_result' => FALSE,
       ],
     ];
