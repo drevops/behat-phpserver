@@ -27,6 +27,14 @@ There are two suites. PHPUnit covers the classes, and Behat exercises both conte
 
 `composer update --with=behat/behat:^3` switches back to Behat 3.
 
+`composer install` also sets up Guzzle 8. The package supports Guzzle 7 as well, so to check a change against it, switch to it first:
+
+    composer update --with=guzzlehttp/guzzle:^7
+    composer test
+    composer test-bdd
+
+`composer update --with=guzzlehttp/guzzle:^8` switches back to Guzzle 8. Each `composer update` resolves every package again, so combine both `--with` flags to run Behat 4 on Guzzle 7.
+
 To produce coverage reports, run `composer test-coverage`. PHPUnit writes to `.logs/phpunit/` and Behat writes to `.logs/behat/`.
 
 The Behat suite binds real ports, so it can fail on machines where those ports are already in use, or where process handling differs. If a run fails to connect, check that ports 8888 and 8889 are free.
