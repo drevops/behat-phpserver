@@ -820,6 +820,77 @@ class PhpServerContextTest extends TestCase {
   }
 
   /**
+   * Test that only the processes on the exact port are listed.
+   *
+   * @param array<string> $output
+   *   The output of the listing command.
+   * @param array<int, array<int, string>> $expected_processes
+   *   The expected fields of each listed process.
+   */
+  #[DataProvider('dataProviderListPortProcesses')]
+  public function testListPortProcesses(array $output, array $expected_processes): void {
+    $context = $this->getStubBuilder(PhpServerContext::class)
+      ->disableOriginalConstructor()
+      ->onlyMethods(['executeCommand', 'printDebug'])
+      ->getStub();
+
+    $context->method('executeCommand')
+      ->willReturnCallback(function (string $command, array &$output_param = []) use ($output): bool {
+        if (!str_starts_with($command, 'which ')) {
+          $output_param = $output;
+        }
+
+        return TRUE;
+      });
+
+    $processes = static::callProtectedMethod($context, 'listPortProcesses', ['lsof', "lsof -i -P -n 2>/dev/null | grep 'php' | grep ':80' | grep 'LISTEN'", 80]);
+
+    $this->assertSame($expected_processes, $processes);
+  }
+
+  /**
+   * Data provider for testListPortProcesses().
+   *
+   * @return array<string, array<string, mixed>>
+   *   Test cases.
+   */
+  public static function dataProviderListPortProcesses(): array {
+    return [
+      'no output' => [
+        'output' => [],
+        'expected_processes' => [],
+      ],
+      'listening on the port' => [
+        'output' => ['php 12345 user 5u IPv4 0t0 TCP 127.0.0.1:80 (LISTEN)'],
+        'expected_processes' => [['php', '12345', 'user', '5u', 'IPv4', '0t0', 'TCP', '127.0.0.1:80', '(LISTEN)']],
+      ],
+      'listening on a longer port' => [
+        'output' => ['php 12345 user 5u IPv4 0t0 TCP 127.0.0.1:8080 (LISTEN)'],
+        'expected_processes' => [],
+      ],
+      'listening on a longer port and on the port' => [
+        'output' => [
+          'php 11111 user 5u IPv4 0t0 TCP 127.0.0.1:8080 (LISTEN)',
+          'php 12345 user 5u IPv4 0t0 TCP *:80 (LISTEN)',
+        ],
+        'expected_processes' => [['php', '12345', 'user', '5u', 'IPv4', '0t0', 'TCP', '*:80', '(LISTEN)']],
+      ],
+      'connected from the port' => [
+        'output' => ['php 12345 user 5u IPv4 0t0 TCP 127.0.0.1:80->127.0.0.1:52345 (ESTABLISHED)'],
+        'expected_processes' => [['php', '12345', 'user', '5u', 'IPv4', '0t0', 'TCP', '127.0.0.1:80->127.0.0.1:52345', '(ESTABLISHED)']],
+      ],
+      'netstat listening on the port' => [
+        'output' => ['tcp        0      0 0.0.0.0:80          0.0.0.0:*               LISTEN      12345/php'],
+        'expected_processes' => [['tcp', '0', '0', '0.0.0.0:80', '0.0.0.0:*', 'LISTEN', '12345/php']],
+      ],
+      'netstat listening on a longer port' => [
+        'output' => ['tcp        0      0 0.0.0.0:8000          0.0.0.0:*               LISTEN      12345/php'],
+        'expected_processes' => [],
+      ],
+    ];
+  }
+
+  /**
    * Test the processExists method with mocked executeCommand.
    *
    * @param int $pid
