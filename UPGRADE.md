@@ -2,7 +2,7 @@
 
 ## 2.x to 3.0
 
-**Your `.feature` files don't need to change.** None of the Gherkin step phrases moved, and neither did any of the `behat.yml` option keys. Most of what follows is about PHP-level names, so it only affects you if you call the context methods from your own code or subclass a context. The exception is the admin endpoint change below, which affects code that calls those endpoints directly.
+**Your `.feature` files don't need to change.** None of the Gherkin step phrases moved, and neither did any of the `behat.yml` option keys. Most of what follows is about PHP-level names, so it only affects you if you call the context methods from your own code or subclass a context. There are 3 exceptions: the admin endpoints check the HTTP method, a queued `Content-Type` is kept for JSON bodies, and file responses need `paths` set in `behat.yml`.
 
 ### PHP 8.3 or newer is required
 
