@@ -37,7 +37,7 @@ There are two suites. PHPUnit covers the classes, and Behat exercises both conte
 
 Switch back to Guzzle 8 before you run `composer lint`. The tests use generic types that only Guzzle 8 declares, such as `HandlerStack<...>`, so PHPStan reports them as errors on Guzzle 7.
 
-To produce coverage reports, run `composer test-coverage`. PHPUnit writes to `.logs/phpunit/` and Behat writes to `.logs/behat/`.
+`composer test-coverage` writes the PHPUnit coverage report to `.logs/phpunit/`. `composer test-bdd` writes the Behat coverage report to `.logs/behat/` whenever pcov or Xdebug is enabled.
 
 The Behat suite binds real ports, so it can fail on machines where those ports are already in use, or where process handling differs. If a run fails to connect, check that ports 8888 and 8889 are free.
 

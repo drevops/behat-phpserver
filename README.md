@@ -82,7 +82,6 @@ default:
     default:
       contexts:
         - DrevOps\BehatPhpServer\ApiServerContext:
-            webroot: '%paths.base%/apiserver'
             protocol: http
             host: 0.0.0.0
             port: 8889
@@ -116,7 +115,6 @@ $suite = (new Suite('default'))
     'debug' => FALSE,
   ])
   ->addContext(ApiServerContext::class, [
-    'webroot' => '%paths.base%/apiserver',
     'protocol' => 'http',
     'host' => '0.0.0.0',
     'port' => 8889,
@@ -187,11 +185,12 @@ Given API will respond with:
   }
   """
 
-# Every field except "code" may be omitted.
+# Every field may be omitted: "code" defaults to 200, "reason" to "OK",
+# "headers" to none and "body" to empty.
 Given API will respond with:
   """
   {
-    "code": 200
+    "code": 201
   }
   """
 
@@ -252,9 +251,11 @@ See the [test feature](tests/behat/features/apiserver.feature) for worked exampl
 | `.txt`           | `text/plain`               |
 | anything else    | `application/octet-stream` |
 
+A file whose content is valid JSON is served as `application/json`, whatever its extension.
+
 ### Accessing the server URL from your own context
 
-To point an API client at the running server, read the URL in a `beforeScenario` hook:
+To point an API client at the running server, read the URL in a `#[BeforeScenario]` hook:
 
 ```php
 <?php

@@ -19,7 +19,7 @@ $suite = (new Suite('default'))
     'retry_delay' => 100000,
   ])
   ->addContext(ApiServerContext::class, [
-    'webroot' => '%paths.base%/apiserver',
+    'webroot' => '%paths.base%/vendor/drevops/behat-phpserver/apiserver',
     'host' => '127.0.0.1',
     'port' => 8889,
     'protocol' => 'http',
