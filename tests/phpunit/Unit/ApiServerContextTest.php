@@ -147,20 +147,21 @@ class ApiServerContextTest extends TestCase {
         $this->assertArrayHasKey('body', $result[0], 'Result should have a body key');
         $this->assertIsString($expected, 'Body raw value should be a string');
         $this->assertEquals(base64_encode($expected), $result[0]['body'], 'Body should be base64 encoded correctly');
-      }
-      else {
-        $path = explode('.', $key);
-        $value = $result[0];
-        $this->assertIsArray($value, 'Result should be an array');
 
-        foreach ($path as $segment) {
-          $this->assertIsArray($value, 'Value should be an array before accessing key');
-          $this->assertArrayHasKey($segment, $value, sprintf('Array should have key "%s"', $segment));
-          $value = $value[$segment];
-        }
-
-        $this->assertEquals($expected, $value);
+        continue;
       }
+
+      $path = explode('.', $key);
+      $value = $result[0];
+      $this->assertIsArray($value, 'Result should be an array');
+
+      foreach ($path as $segment) {
+        $this->assertIsArray($value, 'Value should be an array before accessing key');
+        $this->assertArrayHasKey($segment, $value, sprintf('Array should have key "%s"', $segment));
+        $value = $value[$segment];
+      }
+
+      $this->assertEquals($expected, $value);
     }
   }
 
@@ -216,14 +217,14 @@ class ApiServerContextTest extends TestCase {
       ->onlyMethods(['printDebug'])
       ->getStub();
 
-    if (class_exists($exception_class)) {
-      $this->expectException($exception_class);
-      $this->expectExceptionMessage($exception_message);
-      static::callProtectedMethod($context, 'prepareResponse', [$json_input]);
-    }
-    else {
+    if (!class_exists($exception_class)) {
       $this->fail(sprintf('Exception class %s does not exist', $exception_class));
     }
+
+    $this->expectException($exception_class);
+    $this->expectExceptionMessage($exception_message);
+
+    static::callProtectedMethod($context, 'prepareResponse', [$json_input]);
   }
 
   /**
