@@ -143,6 +143,7 @@ class FeatureContext extends MinkContext implements Context {
     }
 
     $content = $this->getSession()->getPage()->getContent();
+
     if (!str_contains($content, '<html') && !str_contains($content, '<body')) {
       throw new \Exception('The response content does not appear to be HTML.');
     }

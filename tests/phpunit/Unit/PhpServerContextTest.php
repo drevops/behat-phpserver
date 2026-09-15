@@ -139,6 +139,7 @@ class PhpServerContextTest extends TestCase {
   ): void {
     if ($expect_exception) {
       $this->expectException(\RuntimeException::class);
+
       if ($exception_message) {
         $this->expectExceptionMessage($exception_message);
       }
@@ -170,6 +171,7 @@ class PhpServerContextTest extends TestCase {
           $output = [];
           $code = 1;
         }
+
         return $command_success;
       });
 
@@ -406,7 +408,6 @@ class PhpServerContextTest extends TestCase {
 
   #[DataProvider('dataProviderGetPid')]
   public function testGetPid(bool $has_pid, int $lsof_pid, int $netstat_pid, ?int $expected_pid, bool $expect_exception = FALSE): void {
-
     $context = new class($has_pid, $lsof_pid, $netstat_pid, $expect_exception) extends PhpServerContext {
       /**
        * Flag indicating if the mock has a PID.
@@ -467,6 +468,7 @@ class PhpServerContextTest extends TestCase {
         if ($this->expectException && $this->lsofPid === 0 && $this->netstatPid === 0) {
           throw new \RuntimeException('Unable to determine PHP server process for port ' . $port);
         }
+
         return $this->getPid($port);
       }
 
@@ -538,7 +540,6 @@ class PhpServerContextTest extends TestCase {
    */
   #[DataProvider('dataProviderGetPidLsof')]
   public function testGetPidLsof(bool $lsof_exists, array $output, int $expected_pid): void {
-
     $context = new class($lsof_exists, $output) extends PhpServerContext {
       /**
        * Flag indicating if lsof exists on the system.
@@ -584,13 +585,17 @@ class PhpServerContextTest extends TestCase {
       protected function executeCommand(string $command, array &$output = [], int &$code = 0): bool {
         if (str_contains($command, 'which lsof')) {
           $code = $this->lsofExists ? 0 : 1;
+
           return $this->lsofExists;
         }
+
         if (str_contains($command, 'lsof -i -P -n')) {
           $output = $this->mockOutput;
           $code = empty($output) ? 1 : 0;
+
           return !empty($output);
         }
+
         return FALSE;
       }
 
@@ -657,7 +662,6 @@ class PhpServerContextTest extends TestCase {
    */
   #[DataProvider('dataProviderGetPidNetstat')]
   public function testGetPidNetstat(bool $netstat_exists, array $output, int $expected_pid): void {
-
     $context = new class($netstat_exists, $output) extends PhpServerContext {
       /**
        * Flag indicating if netstat exists on the system.
@@ -703,13 +707,17 @@ class PhpServerContextTest extends TestCase {
       protected function executeCommand(string $command, array &$output = [], int &$code = 0): bool {
         if (str_contains($command, 'which netstat')) {
           $code = $this->netstatExists ? 0 : 1;
+
           return $this->netstatExists;
         }
+
         if (str_contains($command, 'netstat -an')) {
           $output = $this->mockOutput;
           $code = empty($output) ? 1 : 0;
+
           return !empty($output);
         }
+
         return FALSE;
       }
 
@@ -784,6 +792,7 @@ class PhpServerContextTest extends TestCase {
     $context->method('executeCommand')
       ->willReturnCallback(function (string $command, array &$output_param) use ($output): bool {
         $output_param = $output;
+
         return TRUE;
       });
 
@@ -856,15 +865,13 @@ class PhpServerContextTest extends TestCase {
       // An array covers the graceful then forceful termination path.
       $context->expects($this->exactly(2))
         ->method('executeCommand')
-        ->willReturnOnConsecutiveCalls(
-          !$kill_return_code[0],
-          !$kill_return_code[1]
-        );
+        ->willReturnOnConsecutiveCalls(!$kill_return_code[0], !$kill_return_code[1]);
     }
     else {
       $context->method('executeCommand')
         ->willReturnCallback(function (string $command, array &$output) use ($kill_return_code): bool {
           $output = [];
+
           return !$kill_return_code;
         });
     }

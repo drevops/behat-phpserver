@@ -88,6 +88,7 @@ class PhpServerContext implements Context {
     if (!file_exists($this->webroot)) {
       throw new \RuntimeException(sprintf('"webroot" directory %s does not exist.', $this->webroot));
     }
+
     $this->connectionTimeout = $connection_timeout ?? static::DEFAULT_CONNECTION_TIMEOUT;
     $this->retryDelay = $retry_delay ?? static::DEFAULT_RETRY_DELAY;
   }
@@ -164,13 +165,7 @@ class PhpServerContext implements Context {
     }
 
     // The per-run timestamp is passed so the served scripts can read it.
-    $command = sprintf(
-      'PROCESS_TIMESTAMP=%s php -S %s:%d -t %s >/dev/null 2>&1 & echo $!',
-      microtime(TRUE),
-      $this->host,
-      $this->port,
-      $this->webroot
-    );
+    $command = sprintf('PROCESS_TIMESTAMP=%s php -S %s:%d -t %s >/dev/null 2>&1 & echo $!', microtime(TRUE), $this->host, $this->port, $this->webroot);
 
     $this->printDebug(sprintf('Starting PHP server with command: %s', $command));
 
@@ -190,10 +185,7 @@ class PhpServerContext implements Context {
 
     if (!$this->isRunning()) {
       $this->stop();
-      throw new \RuntimeException(sprintf(
-        'PHP server failed to start or accept connections within %d seconds.',
-        $this->connectionTimeout
-      ));
+      throw new \RuntimeException(sprintf('PHP server failed to start or accept connections within %d seconds.', $this->connectionTimeout));
     }
 
     $this->printDebug('PHP server is now running and accepting connections.');
@@ -210,6 +202,7 @@ class PhpServerContext implements Context {
   public function stop(): bool {
     if ($this->pid !== 0 && $this->processExists($this->pid)) {
       $this->printDebug(sprintf('Terminating known process with PID %d.', $this->pid));
+
       if ($this->terminateProcess($this->pid)) {
         $this->printDebug('Successfully terminated process.');
         $this->pid = 0;
@@ -223,11 +216,13 @@ class PhpServerContext implements Context {
 
         if (!$port_freed) {
           $this->printDebug(sprintf('Failed to free port %d. Free port function returned failure.', $this->port));
+
           return FALSE;
         }
 
         if ($this->isPortInUse($this->port)) {
           $this->printDebug(sprintf('Failed to free port %d. Port is still in use after freeing attempt.', $this->port));
+
           return FALSE;
         }
 
@@ -239,6 +234,7 @@ class PhpServerContext implements Context {
     }
     catch (\Exception $exception) {
       $this->printDebug(sprintf('Error while trying to stop server: %s', $exception->getMessage()));
+
       return FALSE;
     }
 
@@ -269,11 +265,13 @@ class PhpServerContext implements Context {
     }
 
     $counter = 1;
+
     while ((microtime(TRUE) - $start) <= $timeout) {
       $this->printDebug(sprintf('Checking if server is running. Attempt %s.', $counter));
 
       if ($this->canConnect()) {
         $this->printDebug('Server is running and accepting connections.');
+
         return TRUE;
       }
 
@@ -301,19 +299,14 @@ class PhpServerContext implements Context {
     set_error_handler(static fn(): bool => TRUE);
 
     // A very short timeout avoids hanging.
-    $connection = @fsockopen(
-      $this->host === '0.0.0.0' ? '127.0.0.1' : $this->host,
-      $port,
-      $errno,
-      $errstr,
-      0.1
-    );
+    $connection = @fsockopen($this->host === '0.0.0.0' ? '127.0.0.1' : $this->host, $port, $errno, $errstr, 0.1);
 
     restore_error_handler();
 
     if ($connection !== FALSE) {
       fclose($connection);
       $this->printDebug(sprintf('Port %d is already in use (connection succeeded).', $port));
+
       return TRUE;
     }
 
@@ -324,6 +317,7 @@ class PhpServerContext implements Context {
 
     if ($connection_refused) {
       $this->printDebug(sprintf('Port %d is available (connection refused).', $port));
+
       return FALSE;
     }
 
@@ -348,24 +342,25 @@ class PhpServerContext implements Context {
 
     try {
       $pid = $this->getPid($port);
-      if ($pid > 0) {
-        $this->printDebug(sprintf('Found process with PID %d using port %d.', $pid, $port));
-        $result = $this->terminateProcess($pid);
 
-        $is_free = !$this->isPortInUse($port);
-
-        if (!$is_free) {
-          $this->printDebug(sprintf('Port %d is still in use after terminating process %d.', $port, $pid));
-          return FALSE;
-        }
-
-        return $result;
+      if ($pid <= 0) {
+        return TRUE;
       }
 
-      return TRUE;
+      $this->printDebug(sprintf('Found process with PID %d using port %d.', $pid, $port));
+      $terminated = $this->terminateProcess($pid);
+
+      if ($this->isPortInUse($port)) {
+        $this->printDebug(sprintf('Port %d is still in use after terminating process %d.', $port, $pid));
+
+        return FALSE;
+      }
+
+      return $terminated;
     }
     catch (\Exception $exception) {
       $this->printDebug(sprintf('Error while trying to free port %d: %s', $port, $exception->getMessage()));
+
       return FALSE;
     }
   }
@@ -391,6 +386,7 @@ class PhpServerContext implements Context {
 
     if ($connection === FALSE) {
       $this->printDebug(sprintf('Unable to connect to the server. Error: %s (%s)', $errstr, $errno));
+
       return FALSE;
     }
 
@@ -411,35 +407,30 @@ class PhpServerContext implements Context {
    *   TRUE if the process was successfully terminated, FALSE otherwise.
    */
   protected function terminateProcess(int $pid): bool {
-    $termination_status = 'unknown';
-
     $this->printDebug(sprintf('Terminating PHP server process with PID %s.', $pid));
 
     if (!$this->processExists($pid)) {
       $this->printDebug(sprintf('Process with PID %d does not exist, no need to terminate.', $pid));
+
       return TRUE;
     }
 
     $output = [];
     $success = $this->executeCommand('kill ' . $pid . ' 2>/dev/null', $output);
+    $termination_status = 'graceful';
 
     if (!$success) {
       $this->printDebug('Graceful termination failed, trying forceful termination (SIGKILL).');
       $success = $this->executeCommand('kill -9 ' . $pid . ' 2>/dev/null', $output);
       $termination_status = $success ? 'forceful' : 'failed';
     }
-    else {
-      $termination_status = 'graceful';
-    }
 
     // The process needs a short time to terminate.
     usleep($this->retryDelay);
 
     if ($this->processExists($pid)) {
-      $this->printDebug(sprintf(
-        'Process termination verification failed (%s termination status), process may still be running.',
-        $termination_status
-      ));
+      $this->printDebug(sprintf('Process termination verification failed (%s termination status), process may still be running.', $termination_status));
+
       return FALSE;
     }
 
@@ -490,6 +481,7 @@ class PhpServerContext implements Context {
 
     if ($this->pid > 0 && $this->processExists($this->pid)) {
       $this->printDebug(sprintf('Found existing process with PID %s is still running.', $this->pid));
+
       return $this->pid;
     }
 
@@ -536,6 +528,7 @@ class PhpServerContext implements Context {
 
     if (empty($output)) {
       $this->printDebug(sprintf('No processes found on port %d', $port));
+
       return 0;
     }
 
@@ -553,6 +546,7 @@ class PhpServerContext implements Context {
       if (count($parts) > 1 && str_starts_with($parts[0], 'php') && is_numeric($parts[1])) {
         $pid = (int) $parts[1];
         $this->printDebug(sprintf('Found PHP process with PID %s using lsof.', $pid));
+
         return $pid;
       }
     }
@@ -590,6 +584,7 @@ class PhpServerContext implements Context {
 
     if (empty($output)) {
       $this->printDebug(sprintf('No processes found on port %d', $port));
+
       return 0;
     }
 
@@ -646,6 +641,7 @@ class PhpServerContext implements Context {
   protected function executeCommand(string $command, array &$output = [], int &$code = 0): bool {
     // @codeCoverageIgnoreStart
     exec($command, $output, $code);
+
     return !$code;
     // @codeCoverageIgnoreEnd
   }
