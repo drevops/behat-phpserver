@@ -2,7 +2,7 @@
 
 ## 2.x to 3.0
 
-**Your `.feature` files don't need to change.** None of the Gherkin step phrases moved, and neither did any of the `behat.yml` option keys. Most of what follows is about PHP-level names, so it only affects you if you call the context methods from your own code or subclass a context. There are 3 exceptions: the admin endpoints check the HTTP method, a queued `Content-Type` is kept for JSON bodies, and file responses need `paths` set in `behat.yml`.
+**Your `.feature` files don't need to change.** None of the Gherkin step phrases moved, and neither did any of the context option names in `behat.yml` or `behat.php`. Most of what follows is about PHP-level names, so it only affects you if you call the context methods from your own code or subclass a context. There are 3 exceptions: the admin endpoints check the HTTP method, a queued `Content-Type` is kept for JSON bodies, and file responses need `paths` set in your Behat configuration.
 
 ### PHP 8.3 or newer is required
 
@@ -53,7 +53,7 @@ There are no aliases for the old names. If you called or overrode one of the 4, 
 
 The `$paths` parameter was the only untyped parameter in the library. It's now `array|string|null`, matching the `string[]|string|null` its docblock always claimed.
 
-The parameter name is unchanged, so the `paths:` key in `behat.yml` keeps working. Behat builds contexts without strict types, so an unquoted number such as `paths: 8888` is still converted to the string `'8888'`.
+The parameter name is unchanged, so the `paths` option keeps working in `behat.yml` and `behat.php`. Behat builds contexts without strict types, so an unquoted number such as `paths: 8888` is still converted to the string `'8888'`.
 
 Strict typing applies when PHP code calls the constructor from a file that declares `strict_types=1`, such as a subclass calling the parent constructor. There, passing a number is now a `TypeError`:
 
@@ -81,7 +81,7 @@ Leaving `paths` out used to search `<webroot>/../tests/behat/fixtures`, and with
 
 `PhpServerContext` had a `$debug` constructor option and a `debug()` method sitting next to each other, and `$this->debug` and `$this->debug()` differ only by the parentheses. The method is now `printDebug()`.
 
-The `debug` option in `behat.yml` is unchanged - only the method moved. Rename any call or override in your own contexts:
+The `debug` option is unchanged - only the method moved. Rename any call or override in your own contexts:
 
 ```php
 // Before.

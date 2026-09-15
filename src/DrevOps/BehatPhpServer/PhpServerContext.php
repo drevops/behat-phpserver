@@ -320,8 +320,8 @@ class PhpServerContext implements Context {
    *   The port to free.
    *
    * @return bool
-   *   TRUE if the port was successfully freed or no process was found,
-   *   FALSE if there was an error or the process could not be terminated.
+   *   TRUE if the port is free after terminating its process or no process
+   *   was found, FALSE if there was an error or the port is still in use.
    */
   protected function freePort(int $port): bool {
     $this->printDebug(sprintf('Attempting to free port %d.', $port));
@@ -334,7 +334,7 @@ class PhpServerContext implements Context {
       }
 
       $this->printDebug(sprintf('Found process with PID %d using port %d.', $pid, $port));
-      $terminated = $this->terminateProcess($pid);
+      $this->terminateProcess($pid);
 
       if ($this->isPortInUse($port)) {
         $this->printDebug(sprintf('Port %d is still in use after terminating process %d.', $port, $pid));
@@ -342,7 +342,7 @@ class PhpServerContext implements Context {
         return FALSE;
       }
 
-      return $terminated;
+      return TRUE;
     }
     catch (\Exception $exception) {
       $this->printDebug(sprintf('Error while trying to free port %d: %s', $port, $exception->getMessage()));
