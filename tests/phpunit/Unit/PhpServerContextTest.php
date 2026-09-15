@@ -253,6 +253,67 @@ class PhpServerContextTest extends TestCase {
   }
 
   /**
+   * Test that the server command quotes the address and the webroot.
+   *
+   * @param string $webroot
+   *   The webroot to serve.
+   * @param string $expected_arguments
+   *   The expected arguments of the server command.
+   */
+  #[DataProvider('dataProviderStartQuotesCommandArguments')]
+  public function testStartQuotesCommandArguments(string $webroot, string $expected_arguments): void {
+    $context = $this->getStubBuilder(PhpServerContext::class)
+      ->disableOriginalConstructor()
+      ->onlyMethods(['stop', 'executeCommand', 'printDebug', 'isRunning'])
+      ->getStub();
+
+    $this->setProtectedValue($context, 'host', '127.0.0.1');
+    $this->setProtectedValue($context, 'port', 8888);
+    $this->setProtectedValue($context, 'webroot', $webroot);
+
+    /** @var \ArrayObject<int, string> $commands */
+    $commands = new \ArrayObject();
+
+    $context->method('stop')->willReturn(TRUE);
+    $context->method('isRunning')->willReturn(TRUE);
+    $context->method('executeCommand')
+      ->willReturnCallback(function (string $command, array &$output) use ($commands): bool {
+        $commands[] = $command;
+        $output = ['12345'];
+
+        return TRUE;
+      });
+
+    $context->start();
+
+    $this->assertCount(1, $commands);
+    $this->assertMatchesRegularExpression('/^PROCESS_TIMESTAMP=[0-9.]+ php -S ' . preg_quote($expected_arguments, '/') . ' >\/dev\/null 2>&1 & echo \$!$/', $commands[0]);
+  }
+
+  /**
+   * Data provider for testStartQuotesCommandArguments().
+   *
+   * @return array<string, array<string, string>>
+   *   Test cases.
+   */
+  public static function dataProviderStartQuotesCommandArguments(): array {
+    return [
+      'plain webroot' => [
+        'webroot' => '/srv/webroot',
+        'expected_arguments' => "'127.0.0.1:8888' -t '/srv/webroot'",
+      ],
+      'webroot with a space' => [
+        'webroot' => '/srv/my webroot',
+        'expected_arguments' => "'127.0.0.1:8888' -t '/srv/my webroot'",
+      ],
+      'webroot with a quote' => [
+        'webroot' => "/srv/it's here",
+        'expected_arguments' => "'127.0.0.1:8888' -t '/srv/it'\\''s here'",
+      ],
+    ];
+  }
+
+  /**
    * Test the stop method.
    *
    * @param int $pid

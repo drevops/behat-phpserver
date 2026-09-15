@@ -151,7 +151,7 @@ class PhpServerContext implements Context {
     }
 
     // The per-run timestamp is passed so the served scripts can read it.
-    $command = sprintf('PROCESS_TIMESTAMP=%s php -S %s:%d -t %s >/dev/null 2>&1 & echo $!', microtime(TRUE), $this->host, $this->port, $this->webroot);
+    $command = sprintf('PROCESS_TIMESTAMP=%s php -S %s -t %s >/dev/null 2>&1 & echo $!', microtime(TRUE), escapeshellarg($this->host . ':' . $this->port), escapeshellarg($this->webroot));
 
     $this->printDebug(sprintf('Starting PHP server with command: %s', $command));
 
