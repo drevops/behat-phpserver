@@ -320,18 +320,14 @@ class PhpServerContext implements Context {
    *   The port to free.
    *
    * @return bool
-   *   TRUE if the port is free after terminating its process or no process
-   *   was found, FALSE if there was an error or the port is still in use.
+   *   TRUE if the port is free after the process holding it is terminated,
+   *   FALSE otherwise.
    */
   protected function freePort(int $port): bool {
     $this->printDebug(sprintf('Attempting to free port %d.', $port));
 
     try {
       $pid = $this->getPid($port);
-
-      if ($pid <= 0) {
-        return TRUE;
-      }
 
       $this->printDebug(sprintf('Found process with PID %d using port %d.', $pid, $port));
       $this->terminateProcess($pid);
@@ -461,6 +457,9 @@ class PhpServerContext implements Context {
    *
    * @return int
    *   PID as number.
+   *
+   * @throws \RuntimeException
+   *   If no process can be identified on the port.
    */
   protected function getPid(int $port): int {
     $this->printDebug(sprintf('Finding PID of the PHP server process on port %s.', $port));
