@@ -142,14 +142,13 @@ class ApiServerContextTest extends TestCase {
     $this->assertCount(1, $result);
 
     foreach ($expected_values as $key => $expected) {
-      if ($key === 'body_encoded' && isset($expected_values['body_raw'])) {
-        $body_raw = $expected_values['body_raw'];
+      if ($key === 'body_raw') {
         $this->assertIsArray($result[0], 'Result should be an array');
         $this->assertArrayHasKey('body', $result[0], 'Result should have a body key');
-        $this->assertIsString($body_raw, 'Body raw value should be a string');
-        $this->assertEquals(base64_encode($body_raw), $result[0]['body'], 'Body should be base64 encoded correctly');
+        $this->assertIsString($expected, 'Body raw value should be a string');
+        $this->assertEquals(base64_encode($expected), $result[0]['body'], 'Body should be base64 encoded correctly');
       }
-      elseif ($key !== 'body_raw') {
+      else {
         $path = explode('.', $key);
         $value = $result[0];
         $this->assertIsArray($value, 'Result should be an array');
@@ -178,6 +177,7 @@ class ApiServerContextTest extends TestCase {
         'expected_values' => [
           'code' => 200,
           'reason' => 'OK',
+          'body_raw' => '',
         ],
       ],
       'full response' => [

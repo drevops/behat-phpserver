@@ -405,28 +405,35 @@ class PhpServerContextTest extends TestCase {
     $this->assertEquals(0, $this->getProtectedValue($context, 'pid'), 'PID should be reset to 0 even when exception occurs');
   }
 
+  /**
+   * Test the getPid method.
+   *
+   * @param bool $has_pid
+   *   Whether the context already tracks a running process.
+   * @param int $lsof_pid
+   *   PID that lsof reports.
+   * @param int $netstat_pid
+   *   PID that netstat reports.
+   * @param int|null $expected_pid
+   *   Expected PID, or NULL when no process can be found.
+   */
   #[DataProvider('dataProviderGetPid')]
-  public function testGetPid(bool $has_pid, int $lsof_pid, int $netstat_pid, ?int $expected_pid, bool $expect_exception = FALSE): void {
-    $context = new class($has_pid, $lsof_pid, $netstat_pid, $expect_exception) extends PhpServerContext {
+  public function testGetPid(bool $has_pid, int $lsof_pid, int $netstat_pid, ?int $expected_pid): void {
+    $context = new class($has_pid, $lsof_pid, $netstat_pid) extends PhpServerContext {
       /**
        * Flag indicating if the mock has a PID.
        */
-      private readonly bool $hasPid;
+      protected readonly bool $hasPid;
 
       /**
        * PID to return from lsof command.
        */
-      private readonly int $lsofPid;
+      protected readonly int $lsofPid;
 
       /**
        * PID to return from netstat command.
        */
-      private readonly int $netstatPid;
-
-      /**
-       * Flag indicating if an exception is expected.
-       */
-      private readonly bool $expectException;
+      protected readonly int $netstatPid;
 
       /**
        * Constructor.
@@ -437,14 +444,11 @@ class PhpServerContextTest extends TestCase {
        *   PID to return from lsof command.
        * @param int $netstat_pid
        *   PID to return from netstat command.
-       * @param bool $expect_exception
-       *   Flag indicating if an exception is expected.
        */
-      public function __construct(bool $has_pid, int $lsof_pid, int $netstat_pid, bool $expect_exception) {
+      public function __construct(bool $has_pid, int $lsof_pid, int $netstat_pid) {
         $this->hasPid = $has_pid;
         $this->lsofPid = $lsof_pid;
         $this->netstatPid = $netstat_pid;
-        $this->expectException = $expect_exception;
         $this->pid = $has_pid ? 12345 : 0;
         // Skip parent constructor.
       }
@@ -461,31 +465,18 @@ class PhpServerContextTest extends TestCase {
         return $this->netstatPid;
       }
 
-      public function testGetPid(int $port): int {
-        // When an exception is expected in the failure case, throw it
-        // directly instead of letting the real method throw it.
-        if ($this->expectException && $this->lsofPid === 0 && $this->netstatPid === 0) {
-          throw new \RuntimeException('Unable to determine PHP server process for port ' . $port);
-        }
-
-        return $this->getPid($port);
-      }
-
       protected function printDebug(string $message): void {
         // Skip debug output.
       }
 
     };
 
-    if ($expect_exception) {
+    if ($expected_pid === NULL) {
       $this->expectException(\RuntimeException::class);
+      $this->expectExceptionMessage('Unable to determine PHP server process for port 8888.');
     }
 
-    $result = $context->testGetPid(8888);
-
-    if (!$expect_exception) {
-      $this->assertEquals($expected_pid, $result);
-    }
+    $this->assertSame($expected_pid, static::callProtectedMethod($context, 'getPid', [8888]));
   }
 
   /**
@@ -501,28 +492,24 @@ class PhpServerContextTest extends TestCase {
         'lsof_pid' => 0,
         'netstat_pid' => 0,
         'expected_pid' => 12345,
-        'expect_exception' => FALSE,
       ],
       'no existing pid, lsof succeeds' => [
         'has_pid' => FALSE,
         'lsof_pid' => 12345,
         'netstat_pid' => 0,
         'expected_pid' => 12345,
-        'expect_exception' => FALSE,
       ],
       'no existing pid, lsof fails, netstat succeeds' => [
         'has_pid' => FALSE,
         'lsof_pid' => 0,
         'netstat_pid' => 12345,
         'expected_pid' => 12345,
-        'expect_exception' => FALSE,
       ],
       'no existing pid, both utilities fail' => [
         'has_pid' => FALSE,
         'lsof_pid' => 0,
         'netstat_pid' => 0,
         'expected_pid' => NULL,
-        'expect_exception' => TRUE,
       ],
     ];
   }
