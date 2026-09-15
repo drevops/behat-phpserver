@@ -345,6 +345,10 @@ class ApiServerContext extends PhpServerContext {
 
     $data['code'] = (int) $data['code'];
 
+    if (!is_string($data['reason']) || $data['reason'] === '') {
+      throw new \InvalidArgumentException('Reason must be a non-empty string.');
+    }
+
     if (!is_array($data['headers'])) {
       throw new \InvalidArgumentException('Headers must be an array.');
     }
