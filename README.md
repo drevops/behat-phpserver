@@ -32,10 +32,10 @@
 
 ## 📦 Installation
 
-| Behat        | PHP     | Guzzle                | Configuration file                                             |
-|--------------|---------|-----------------------|----------------------------------------------------------------|
-| `^3.32.0`    | `>=8.3` | `^7.15.3 \|\| ^8.2.0` | `behat.yml`, `behat.dist.yml`, `behat.php` or `behat.dist.php` |
-| `^4.0@alpha` | `>=8.3` | `^7.15.3 \|\| ^8.2.0` | `behat.php` or `behat.dist.php`                                |
+| Behat        | PHP     | Guzzle            | Configuration file                                             |
+|--------------|---------|-------------------|----------------------------------------------------------------|
+| `^3.32.0`    | `>=8.3` | `^7.15.3 \|\| ^8` | `behat.yml`, `behat.dist.yml`, `behat.php` or `behat.dist.php` |
+| `^4.0@alpha` | `>=8.3` | `^7.15.3 \|\| ^8` | `behat.php` or `behat.dist.php`                                |
 
     composer require --dev drevops/behat-phpserver
 

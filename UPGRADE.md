@@ -10,7 +10,7 @@ The minimum supported PHP version is now 8.3.
 
 ### Guzzle 8 is supported alongside Guzzle 7
 
-`guzzlehttp/guzzle` is now `^7.15.3 || ^8.2.0`. Guzzle 8 is a stable release, so the next full `composer update` installs it, unless another package in your project requires Guzzle 7, `guzzlehttp/psr7` 2.x or `guzzlehttp/promises` 2.x.
+`guzzlehttp/guzzle` is now `^7.15.3 || ^8`. Guzzle 8 is a stable release, so the next full `composer update` installs it, unless another package in your project requires Guzzle 7, `guzzlehttp/psr7` 2.x or `guzzlehttp/promises` 2.x.
 
 That only matters if your own code uses the Guzzle client that `ApiServerContext` builds, through its `$client` property or an override of `createHttpClient()`. Guzzle 8 tightens parts of the client API that code might rely on. For example, passing `handler` as a request option now throws, and verbs without their own method, such as `$client->options()`, can no longer be called as methods. Check that code against the [Guzzle 8 upgrade guide](https://github.com/guzzle/guzzle/blob/8.2.0/UPGRADING.md#70-to-80), or require `guzzlehttp/guzzle:^7` in your own `composer.json` to stay on Guzzle 7.
 
