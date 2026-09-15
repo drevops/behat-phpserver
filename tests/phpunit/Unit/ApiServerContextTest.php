@@ -147,21 +147,19 @@ class ApiServerContextTest extends TestCase {
         $this->assertIsArray($result[0], 'Result should be an array');
         $this->assertArrayHasKey('body', $result[0], 'Result should have a body key');
         $this->assertIsString($body_raw, 'Body raw value should be a string');
-        $this->assertEquals(
-          base64_encode($body_raw),
-          $result[0]['body'],
-          'Body should be base64 encoded correctly'
-        );
+        $this->assertEquals(base64_encode($body_raw), $result[0]['body'], 'Body should be base64 encoded correctly');
       }
       elseif ($key !== 'body_raw') {
         $path = explode('.', $key);
         $value = $result[0];
         $this->assertIsArray($value, 'Result should be an array');
+
         foreach ($path as $segment) {
           $this->assertIsArray($value, 'Value should be an array before accessing key');
           $this->assertArrayHasKey($segment, $value, sprintf('Array should have key "%s"', $segment));
           $value = $value[$segment];
         }
+
         $this->assertEquals($expected, $value);
       }
     }
@@ -283,6 +281,7 @@ class ApiServerContextTest extends TestCase {
         $this->assertEquals($expected_code, $data['code']);
         $this->assertArrayHasKey('body', $data, 'Data should have a body key');
         $this->assertIsArray($data['body'], 'Body should be an array');
+
         return NULL;
       });
 
@@ -328,16 +327,7 @@ class ApiServerContextTest extends TestCase {
     $webroot = sys_get_temp_dir() . '/test_webroot_' . uniqid();
     mkdir($webroot, 0777, TRUE);
 
-    $context = new ApiServerContext(
-      $webroot,
-      '127.0.0.1',
-      8888,
-      'http',
-      FALSE,
-      NULL,
-      NULL,
-      $paths
-    );
+    $context = new ApiServerContext($webroot, '127.0.0.1', 8888, 'http', FALSE, NULL, NULL, $paths);
 
     $result = self::getProtectedValue($context, 'fixturesPaths');
 

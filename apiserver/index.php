@@ -378,6 +378,7 @@ class Response {
   ) {
     if (is_scalar($body)) {
       $this->body = (string) $body;
+
       if (static::isJson($this->body)) {
         $this->headers['Content-Type'] = 'application/json';
       }
@@ -437,12 +438,15 @@ class Response {
     }
 
     $headers = [];
+
     foreach ($data['headers'] as $header_name => $header_value) {
       if (!is_string($header_name) || !is_scalar($header_value)) {
         throw new \InvalidArgumentException(sprintf('Header "%s" value must be a string.', $header_name));
       }
+
       $headers[$header_name] = (string) $header_value;
     }
+
     $data['headers'] = $headers;
 
     if (isset($data['body'])) {

@@ -198,10 +198,10 @@ class ApiServerContext extends PhpServerContext {
    */
   #[Given('(the )API will respond with:')]
   public function apiWillRespondWith(PyStringNode $data): void {
-    $data = $this->prepareResponse($data->getRaw());
+    $responses = $this->prepareResponse($data->getRaw());
 
     $response = $this->client->request('PUT', '/admin/responses', [
-      RequestOptions::JSON => $data,
+      RequestOptions::JSON => $responses,
     ]);
 
     if ($response->getStatusCode() !== 201) {
@@ -402,11 +402,7 @@ class ApiServerContext extends PhpServerContext {
     $queued_responses = $response->getHeaderLine('X-Queued-Responses');
 
     if ($queued_responses !== $count) {
-      throw new \RuntimeException(sprintf(
-        'Expected %s queued responses, got %s.',
-        $count,
-        $queued_responses
-      ));
+      throw new \RuntimeException(sprintf('Expected %s queued responses, got %s.', $count, $queued_responses));
     }
 
     $this->printDebug(sprintf('Verified API server has %s queued responses', $count));
@@ -425,11 +421,7 @@ class ApiServerContext extends PhpServerContext {
     $received_requests = $response->getHeaderLine('X-Received-Requests');
 
     if ($received_requests !== $count) {
-      throw new \RuntimeException(sprintf(
-        'Expected %s received requests, got %s.',
-        $count,
-        $received_requests
-      ));
+      throw new \RuntimeException(sprintf('Expected %s received requests, got %s.', $count, $received_requests));
     }
 
     $this->printDebug(sprintf('Verified API server has received %s requests', $count));
