@@ -10,39 +10,59 @@ use DrevOps\BehatPhpServer\PhpServerContext;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Yaml\Yaml;
 
 #[CoversNothing]
-class BehatDistConfigTest extends TestCase {
+class BehatConfigTest extends TestCase {
 
   /**
-   * Test that behat.dist.yml and behat.dist.php hold the same configuration.
+   * Test that no YAML configuration takes precedence over behat.php.
+   *
+   * @param string $file
+   *   The configuration file name.
    */
-  public function testFormatsMatch(): void {
-    $this->assertSame(static::loadYamlConfig(), static::loadPhpConfig());
+  #[DataProvider('dataProviderNoYamlConfig')]
+  public function testNoYamlConfig(string $file): void {
+    $this->assertFileDoesNotExist(dirname(__DIR__, 3) . '/' . $file);
   }
 
   /**
-   * Test that the dist configuration sets every context constructor option.
+   * Data provider for testNoYamlConfig().
+   *
+   * @return array<string, array{string}>
+   *   Test cases.
+   */
+  public static function dataProviderNoYamlConfig(): array {
+    return [
+      'behat.yaml' => ['behat.yaml'],
+      'behat.yml' => ['behat.yml'],
+      'behat.yaml.dist' => ['behat.yaml.dist'],
+      'behat.yml.dist' => ['behat.yml.dist'],
+      'behat.dist.yaml' => ['behat.dist.yaml'],
+      'behat.dist.yml' => ['behat.dist.yml'],
+    ];
+  }
+
+  /**
+   * Test that behat.dist.php sets every context constructor option.
    *
    * @param class-string $class
    *   The context class.
    */
-  #[DataProvider('dataProviderSetsEveryOption')]
-  public function testSetsEveryOption(string $class): void {
+  #[DataProvider('dataProviderDistSetsEveryOption')]
+  public function testDistSetsEveryOption(string $class): void {
     $parameters = (new \ReflectionMethod($class, '__construct'))->getParameters();
     $expected = array_map(static fn(\ReflectionParameter $parameter): string => $parameter->getName(), $parameters);
 
-    $this->assertSame($expected, array_keys(static::getContextOptions($class)));
+    $this->assertSame($expected, array_keys(static::getDistContextOptions($class)));
   }
 
   /**
-   * Data provider for testSetsEveryOption().
+   * Data provider for testDistSetsEveryOption().
    *
    * @return array<string, array{class-string}>
    *   Test cases.
    */
-  public static function dataProviderSetsEveryOption(): array {
+  public static function dataProviderDistSetsEveryOption(): array {
     return [
       'php server' => [PhpServerContext::class],
       'api server' => [ApiServerContext::class],
@@ -55,7 +75,7 @@ class BehatDistConfigTest extends TestCase {
    * @return array<mixed>
    *   The configuration as an array.
    */
-  protected static function loadPhpConfig(): array {
+  protected static function loadDistConfig(): array {
     $config = require dirname(__DIR__, 3) . '/behat.dist.php';
 
     if (!$config instanceof Config) {
@@ -66,23 +86,7 @@ class BehatDistConfigTest extends TestCase {
   }
 
   /**
-   * Load the configuration in behat.dist.yml.
-   *
-   * @return array<mixed>
-   *   The configuration as an array.
-   */
-  protected static function loadYamlConfig(): array {
-    $config = Yaml::parseFile(dirname(__DIR__, 3) . '/behat.dist.yml');
-
-    if (!is_array($config)) {
-      self::fail('behat.dist.yml does not hold a Behat configuration.');
-    }
-
-    return $config;
-  }
-
-  /**
-   * Get the options that behat.dist.yml sets for a context.
+   * Get the options that behat.dist.php sets for a context.
    *
    * @param class-string $class
    *   The context class.
@@ -90,19 +94,19 @@ class BehatDistConfigTest extends TestCase {
    * @return array<mixed>
    *   The options, keyed by name.
    */
-  protected static function getContextOptions(string $class): array {
-    $contexts = static::loadYamlConfig();
+  protected static function getDistContextOptions(string $class): array {
+    $contexts = static::loadDistConfig();
 
     foreach (['default', 'suites', 'default', 'contexts'] as $key) {
       if (!is_array($contexts) || !isset($contexts[$key])) {
-        self::fail(sprintf('behat.dist.yml has no "%s" key on the path to the suite contexts.', $key));
+        self::fail(sprintf('behat.dist.php has no "%s" key on the path to the suite contexts.', $key));
       }
 
       $contexts = $contexts[$key];
     }
 
     if (!is_array($contexts)) {
-      self::fail('behat.dist.yml does not list the suite contexts.');
+      self::fail('behat.dist.php does not list the suite contexts.');
     }
 
     foreach ($contexts as $context) {
@@ -111,7 +115,7 @@ class BehatDistConfigTest extends TestCase {
       }
     }
 
-    self::fail(sprintf('behat.dist.yml does not configure %s.', $class));
+    self::fail(sprintf('behat.dist.php does not configure %s.', $class));
   }
 
 }
