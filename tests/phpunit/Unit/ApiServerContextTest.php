@@ -834,11 +834,7 @@ class ApiServerContextTest extends TestCase {
   #[DataProvider('dataProviderApiWillRespondWithFile')]
   public function testApiWillRespondWithFile(string $file_path, string $expected_type): void {
     $history = new \ArrayObject();
-    $context = $this->createContextWithClient([new Response(201)], $history, [
-      __DIR__ . '/../../behat/fixtures',
-      __DIR__ . '/../../behat/fixtures2',
-      __DIR__ . '/../../..',
-    ]);
+    $context = $this->createContextWithClient([new Response(201)], $history, [__DIR__ . '/../../behat/fixtures', __DIR__ . '/../../behat/fixtures2']);
 
     $context->apiWillRespondWithFile($file_path);
 
@@ -874,7 +870,7 @@ class ApiServerContextTest extends TestCase {
         'expected_type' => 'text/plain',
       ],
       'unknown extension falls back to binary' => [
-        'file_path' => 'behat.yml',
+        'file_path' => 'test_data.bin',
         'expected_type' => 'application/octet-stream',
       ],
     ];
