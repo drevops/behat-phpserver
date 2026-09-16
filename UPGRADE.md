@@ -14,6 +14,10 @@ The minimum supported PHP version is now 8.3.
 
 That only matters if your own code uses the Guzzle client that `ApiServerContext` builds, through its `$client` property or an override of `createHttpClient()`. Guzzle 8 tightens parts of the client API that code might rely on. For example, passing `handler` as a request option now throws, and verbs without their own method, such as `$client->options()`, can no longer be called as methods. Check that code against the [Guzzle 8 upgrade guide](https://github.com/guzzle/guzzle/blob/8.2.0/UPGRADING.md#70-to-80), or require `guzzlehttp/guzzle:^7` in your own `composer.json` to stay on Guzzle 7.
 
+### `behat.dist.yml` is removed
+
+The reference configuration that sets every context option ships as `behat.dist.php` only. Copy from that file instead, and update any configuration that imports `behat.dist.yml` from the package.
+
 ### Admin endpoints check the HTTP method
 
 `/admin/status` matched on the URI alone, so it answered `200 OK` to every verb. It now accepts `GET` only.
