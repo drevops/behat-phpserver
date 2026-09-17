@@ -29,8 +29,8 @@ Both contexts start a server before each scenario and stop it afterwards.
 - `tests/behat/bootstrap/FeatureContext.php` - the suite's own context. It extends `MinkContext` with the request and response header steps the feature files use.
 - `tests/behat/features/` - the Behat feature files that exercise both contexts end to end.
 - `tests/behat/fixtures/` and `tests/behat/fixtures2/` - fixture files used by the file-response steps. Two directories exist deliberately, to prove that multiple configured fixture paths are searched in order.
-- `behat.yml` and `behat.php` - the test suite configuration. Behat 3 reads `behat.yml` before any PHP file, and Behat 4 reads PHP configuration only, so each Behat major runs the suite from its own file. A change to the suite goes in both.
-- `behat.dist.yml` and `behat.dist.php` - both contexts with every option set, as a reference for anyone configuring the package. Behat never loads them in this repository, because `behat.yml` and `behat.php` take precedence. `BehatDistConfigTest` fails when the 2 files differ or when either one misses a constructor option.
+- `behat.php` - the test suite configuration, read by both Behat majors. Behat 3 reads any YAML configuration before `behat.php`, so the repository has none, and `BehatConfigTest` fails when one appears.
+- `behat.dist.php` - both contexts with every option set, as a reference for anyone configuring the package. Behat never loads it in this repository, because `behat.php` takes precedence. `BehatConfigTest` fails when it misses a constructor option.
 
 `apiserver/index.php` guards its own bootstrap with `SCRIPT_RUN_SKIP`. `phpunit.xml` sets that environment variable so the file can be loaded for unit testing without starting a server. Do not remove it.
 
@@ -65,9 +65,9 @@ Prefer these over calling the underlying binaries directly.
 
 ## Testing patterns
 
-Coverage comes from two sources, so their outputs are kept apart: PHPUnit writes to `.logs/phpunit/` and Behat writes to `.logs/behat/`. Both are uploaded to Codecov. Keep those paths in sync between `phpunit.xml`, `behat.yml`, `behat.php` and `.github/workflows/test-php.yml`.
+Coverage comes from two sources, so their outputs are kept apart: PHPUnit writes to `.logs/phpunit/` and Behat writes to `.logs/behat/`. Both are uploaded to Codecov. Keep those paths in sync between `phpunit.xml`, `behat.php` and `.github/workflows/test-php.yml`.
 
-`behat.yml` and `behat.php` turn on strict mode, so a step with no matching definition fails the run instead of being reported as undefined and passing.
+`behat.php` turns on strict mode, so a step with no matching definition fails the run instead of being reported as undefined and passing.
 
 Tests use PHPUnit 12 attributes:
 

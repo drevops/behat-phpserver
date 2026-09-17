@@ -43,57 +43,7 @@ Coming from 2.x? See [`UPGRADE.md`](UPGRADE.md) - the step phrases are unchanged
 
 ## 🚀 Usage
 
-### `PhpServerContext`
-
-Serves static assets from a pre-defined document root.
-
-```yaml
-default:
-  suites:
-    default:
-      contexts:
-        - DrevOps\BehatPhpServer\PhpServerContext:
-            webroot: '%paths.base%/tests/behat/fixtures'
-            protocol: http
-            host: 0.0.0.0
-            port: 8888
-            debug: false
-```
-
-This context adds no step definitions. It starts the server before a tagged scenario and stops it afterwards, so tag the scenarios that need it:
-
-```gherkin
-@phpserver
-Scenario: Visit a page served by the PHP server
-  ...
-```
-
-Tagging the `Feature:` line instead starts the server for every scenario in that feature.
-
-Reach the running server through `getServerUrl()` - see [Accessing the server URL from your own context](#accessing-the-server-url-from-your-own-context).
-
-### `ApiServerContext`
-
-Serves pre-set API responses. It extends `PhpServerContext`, so it accepts the same options plus `paths`.
-
-```yaml
-default:
-  suites:
-    default:
-      contexts:
-        - DrevOps\BehatPhpServer\ApiServerContext:
-            protocol: http
-            host: 0.0.0.0
-            port: 8889
-            debug: false
-            paths:
-              - '%paths.base%/tests/behat/fixtures'
-              - '%paths.base%/tests/behat/fixtures2'
-```
-
-### PHP configuration
-
-Behat 4 reads its configuration from `behat.php`, or from `behat.dist.php` when there's no `behat.php`. Here are both examples above as PHP:
+Register the contexts in `behat.php`:
 
 ```php
 <?php
@@ -130,7 +80,25 @@ $profile = (new Profile('default'))->withSuite($suite);
 return (new Config())->withProfile($profile);
 ```
 
-The option names are the same in both formats, so the table below covers either one.
+### `PhpServerContext`
+
+Serves static assets from a pre-defined document root.
+
+This context adds no step definitions. It starts the server before a tagged scenario and stops it afterwards, so tag the scenarios that need it:
+
+```gherkin
+@phpserver
+Scenario: Visit a page served by the PHP server
+  ...
+```
+
+Tagging the `Feature:` line instead starts the server for every scenario in that feature.
+
+Reach the running server through `getServerUrl()` - see [Accessing the server URL from your own context](#accessing-the-server-url-from-your-own-context).
+
+### `ApiServerContext`
+
+Serves pre-set API responses. It extends `PhpServerContext`, so it accepts the same options plus `paths`.
 
 ### Context options
 
@@ -149,7 +117,7 @@ The option names are the same in both formats, so the table below covers either 
 
 Both contexts default to port `8888`. When both are registered, give each one its own port, as shown above.
 
-[`behat.dist.yml`](behat.dist.yml) and [`behat.dist.php`](behat.dist.php) set every option for both contexts.
+[`behat.dist.php`](behat.dist.php) sets every option for both contexts.
 
 ## 📖 Step definitions
 

@@ -20,7 +20,7 @@ There are two suites. PHPUnit covers the classes, and Behat exercises both conte
     composer test
     composer test-bdd
 
-`composer install` sets up Behat 3, which runs the suite from `behat.yml`. To run the suites on Behat 4, which reads `behat.php` instead, switch to it first:
+`composer install` sets up Behat 3. To run the suites on Behat 4, switch to it first:
 
     composer update --with=behat/behat:^4
     composer test-bdd

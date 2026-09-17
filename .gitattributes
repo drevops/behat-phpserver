@@ -7,7 +7,6 @@
 /.logs             export-ignore
 /.phpunit.cache    export-ignore
 /behat.php         export-ignore
-/behat.yml         export-ignore
 /gherkinlint.json  export-ignore
 /phpcs.xml         export-ignore
 /phpstan.neon      export-ignore
