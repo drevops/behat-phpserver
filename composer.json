@@ -33,7 +33,7 @@
         "ergebnis/composer-normalize": "^2.52.0",
         "friends-of-behat/mink-extension": "^2.7.5 || ^3.0@alpha",
         "phpstan/phpstan": "^2.2.8",
-        "phpunit/phpunit": "^12.5.35",
+        "phpunit/phpunit": "^12.5.37",
         "rector/rector": "^2.6.2",
         "squizlabs/php_codesniffer": "^3.13.6",
         "symfony/dependency-injection": "^6.4 || ^7.0 || ^8.0",
